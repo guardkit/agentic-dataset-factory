@@ -29,6 +29,14 @@ work on relevant files.
 - **Patterns**: `.claude/rules/patterns/`
 - **Guidance**: `.claude/rules/guidance/`
 
+## Knowledge Graph (Graphiti)
+
+This project has a Graphiti MCP server providing a persistent knowledge graph.
+**When searching, always pass `group_ids: ["product_knowledge", "command_workflows", "architecture_decisions"]`** —
+searching without group_ids returns empty results.
+
+For full usage details, see `.claude/rules/graphiti-knowledge-graph.md`.
+
 ## Technology Stack
 
 **Language**: Python
