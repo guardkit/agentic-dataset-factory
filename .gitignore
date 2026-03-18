@@ -40,3 +40,7 @@ htmlcov/
 
 # ruff
 .ruff_cache/
+
+# Synthesis outputs
+output/
+checkpoints/
