@@ -36,3 +36,76 @@ Next steps:
 Review: docs/architecture/ARCHITECTURE.md
 Design APIs: /system-design for full GOAL.md schema, tool contracts, Coach rejection schema, agent-config.yaml spec
 Plan features: /system-plan for implementation planning
+
+
+
+
+
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SYSTEM DESIGN COMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+Created: docs/design/
+├── DESIGN.md                          ← summary + file tree + next steps
+├── contracts/
+│   ├── API-domain-config.md           ← GOAL.md schema (9 sections), parser contract
+│   ├── API-ingestion.md               ← CLI interface, chunking, ChromaDB strategy
+│   ├── API-generation.md              ← Player-Coach protocol, Coach rejection schema
+│   ├── API-tools.md                   ← rag_retrieval + write_output contracts
+│   ├── API-output.md                  ← JSONL schemas, rejected format, post-processing split
+│   └── API-entrypoint.md              ← agent-config.yaml, startup sequence, generation loop
+├── models/
+│   ├── DM-goal-schema.md              ← GoalConfig entity + validation rules
+│   ├── DM-training-example.md         ← ShareGPT format + metadata + invariants
+│   ├── DM-coach-rejection.md          ← CoachVerdict entity + acceptance rule
+│   ├── DM-agent-config.md             ← AgentConfig entity + migration notes
+│   └── DM-rejected-example.md         ← RejectedExample entity + debugging purpose
+└── decisions/
+    ├── DDR-001.md                     ← GOAL.md strict validation at startup
+    ├── DDR-002.md                     ← Train/validation split as post-processing
+    └── DDR-003.md                     ← 3-turn Player-Coach limit before discard
+Design questions resolved: 6/6
+Contradiction detection: No conflicts with 9 existing ADRs
+Graphiti: Unavailable — artefacts written to markdown only
+
+Next steps:
+
+Review: docs/design/DESIGN.md
+Plan features: /system-plan for implementation planning
+Generate specs: /feature-spec for BDD specifications
+Refine design: /design-refine for iterative updates
+
+
+
+
+
+
+
+# Design summary
+*guardkit graphiti add-context docs/design/DESIGN.md
+
+# API contracts (6 modules)
+*guardkit graphiti add-context docs/design/contracts/API-domain-config.md
+*guardkit graphiti add-context docs/design/contracts/API-ingestion.md
+*guardkit graphiti add-context docs/design/contracts/API-generation.md
+*guardkit graphiti add-context docs/design/contracts/API-tools.md
+*guardkit graphiti add-context docs/design/contracts/API-output.md
+*guardkit graphiti add-context docs/design/contracts/API-entrypoint.md
+
+
+# Data models (5 entities)
+*guardkit graphiti add-context docs/design/models/DM-goal-schema.md
+*guardkit graphiti add-context docs/design/models/DM-training-example.md
+*guardkit graphiti add-context docs/design/models/DM-coach-rejection.md
+*guardkit graphiti add-context docs/design/models/DM-agent-config.md
+*guardkit graphiti add-context docs/design/models/DM-rejected-example.md
+
+# Design decision records (3 DDRs)
+*guardkit graphiti add-context docs/design/decisions/DDR-001.md
+*guardkit graphiti add-context docs/design/decisions/DDR-002.md
+*guardkit graphiti add-context docs/design/decisions/DDR-003.md
