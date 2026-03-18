@@ -1,0 +1,69 @@
+id: FEAT-6A8C
+name: GCSE English Training Example Synthesis
+description: Phase 1 synthesis script that generates GCSE English tutoring training
+  examples via Claude API, with validation, 75/25 split enforcement, layer routing,
+  and resumption support
+created: '2026-03-17T20:39:17.588882'
+status: planned
+complexity: 5
+estimated_tasks: 5
+tasks:
+- id: TASK-GTS-001
+  name: Create project scaffolding for synthesis module
+  file_path: tasks/backlog/gcse-training-synthesis/TASK-GTS-001-project-scaffolding.md
+  complexity: 2
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 22
+- id: TASK-GTS-002
+  name: Define Pydantic models for ShareGPT schema and metadata
+  file_path: tasks/backlog/gcse-training-synthesis/TASK-GTS-002-pydantic-models.md
+  complexity: 3
+  dependencies:
+  - TASK-GTS-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-GTS-003
+  name: Implement validation logic for schema and split tracking
+  file_path: tasks/backlog/gcse-training-synthesis/TASK-GTS-003-validation-logic.md
+  complexity: 5
+  dependencies:
+  - TASK-GTS-002
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-GTS-004
+  name: Implement prompt templates for reasoning and direct generation
+  file_path: tasks/backlog/gcse-training-synthesis/TASK-GTS-004-prompt-templates.md
+  complexity: 4
+  dependencies:
+  - TASK-GTS-002
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-GTS-005
+  name: Implement main synthesis orchestrator with API and routing
+  file_path: tasks/backlog/gcse-training-synthesis/TASK-GTS-005-synthesis-orchestrator.md
+  complexity: 6
+  dependencies:
+  - TASK-GTS-003
+  - TASK-GTS-004
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 113
+orchestration:
+  parallel_groups:
+  - - TASK-GTS-001
+  - - TASK-GTS-002
+  - - TASK-GTS-003
+    - TASK-GTS-004
+  - - TASK-GTS-005
+  estimated_duration_minutes: 293
+  recommended_parallel: 2

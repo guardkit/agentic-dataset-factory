@@ -7,7 +7,7 @@ timeout: 30.0
 max_concurrent_episodes: 3
 llm_provider: vllm
 llm_base_url: http://promaxgb10-41b1:8000/v1
-llm_model: claude-sonnet-4-6
+llm_model: neuralmagic/Qwen2.5-14B-Instruct-FP8-dynamic
 embedding_provider: vllm
 embedding_base_url: http://promaxgb10-41b1:8001/v1
 embedding_model: nomic-embed-text-v1.5
