@@ -49,6 +49,8 @@ All 6 open design questions from the conversation starter have been resolved:
 | [DDR-002](decisions/DDR-002.md) | Train/validation split as post-processing | Accepted |
 | [DDR-003](decisions/DDR-003.md) | 3-turn Player-Coach limit before discard | Accepted |
 
+See also [Architecture Decision Records](../architecture/ARCHITECTURE.md#architecture-decision-records) for ADR-ARCH-001 through ADR-ARCH-010.
+
 ## Target File Tree
 
 ```

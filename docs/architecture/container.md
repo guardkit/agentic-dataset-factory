@@ -30,7 +30,7 @@ C4Container
 
         ContainerDb(chromadb, "ChromaDB", "Embedded PersistentClient", "Chunked curriculum content indexed per domain")
 
-        Container(output, "Output Files", "JSONL", "train.jsonl (behaviour) + knowledge.jsonl (knowledge) + rejected.jsonl")
+        Container(output, "Output Files", "JSONL", "train.jsonl (behaviour) + knowledge.jsonl (knowledge) + rejected.jsonl + .checkpoint")
     }
 
     System_Ext(llm_api, "Cloud LLM API", "Anthropic / OpenAI")
@@ -78,7 +78,7 @@ C4Container
 | Domain Config | GOAL.md + sources/ | Domain goal definition, generation guidelines, evaluation criteria, output schema |
 | Ingestion Pipeline | Python / Docling | CLI tool — processes source PDFs (standard + VLM modes) into chunks, indexes into ChromaDB |
 | ChromaDB | Embedded PersistentClient | Chunked curriculum content, one collection per domain, persisted to disk |
-| Output Files | JSONL | `train.jsonl` (behaviour), `knowledge.jsonl` (knowledge), `rejected.jsonl` (discards) |
+| Output Files | JSONL | `train.jsonl` (behaviour), `knowledge.jsonl` (knowledge), `rejected.jsonl` (discards), `.checkpoint` (resume state — ADR-ARCH-010) |
 
 ## Key Design Decisions Visible in Diagram
 
@@ -87,3 +87,4 @@ C4Container
 - **Ingestion is a separate CLI step** — runs before generation, populates ChromaDB
 - **Domain Config is read by multiple components** — central abstraction
 - **Output is file-based** — no runtime API, downstream projects consume JSONL files
+- **Checkpoint file** (ADR-ARCH-010) — `output/.checkpoint` enables `--resume` after failure
