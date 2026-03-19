@@ -186,3 +186,306 @@ Next steps:
 /feature-plan — decompose into implementation tasks
 /feature-spec — generate BDD specifications
 /design-refine — iterate on specific design contracts
+
+
+
+I prompted:
+I think the next stage is to use the /feature-spec commands to generate some specs, please review the docs/research and lets work out which features we need to spec out and what commands parameters to use
+
+
+
+Now I have the full picture. The training-pipeline-plan.md is the key document — it defines a two-phase approach and explicitly recommends the /feature-spec workflow. Let me map out the features.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Feature Spec Planning
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Based on the architecture (6 modules), design contracts, and the training pipeline plan, here are the features that need specs. I've ordered them by dependency chain — each feature builds on the previous.
+
+Phase 1: Foundation (no agents, direct Claude API synthesis)
+Feature 1 — Phase 1 Synthesis Script
+The training pipeline plan explicitly recommends this as the first /feature-spec:
+
+
+/feature-spec "Phase 1: Generate GCSE English training examples via Claude API synthesis" \
+  --context docs/research/gcse-tutor-training-data-format.md \
+  --context docs/research/training-pipeline-plan.md
+Covers: synthesis/synthesise.py, synthesis/templates.py, synthesis/validator.py, domains/gcse-english-tutor/generation-plan.yaml. Produces the baseline dataset (200-300 examples) for the ablation comparison.
+
+Phase 2: agentic-dataset-factory Pipeline (6 features, one per module)
+Feature 2 — Domain Config & GOAL.md Validation
+
+
+/feature-spec "Domain Config module: GOAL.md parser and strict validation" \
+  --context docs/design/contracts/API-domain-config.md \
+  --context docs/design/models/DM-goal-schema.md
+Covers: GoalConfig parser, 9-section validation, GoalValidationError. Foundation for all other modules.
+
+Feature 3 — Ingestion Pipeline
+
+
+/feature-spec "Ingestion pipeline: Docling PDF processing to ChromaDB" \
+  --context docs/design/contracts/API-ingestion.md \
+  --context docs/design/contracts/API-domain-config.md
+Covers: ingestion/ingest.py CLI, ingestion/chunker.py, ChromaDB collection lifecycle. Depends on Feature 2 (reads Source Documents from GOAL.md).
+
+Feature 4 — Tools (rag_retrieval + write_output)
+
+
+/feature-spec "LangChain tools: rag_retrieval and write_output with layer routing" \
+  --context docs/design/contracts/API-tools.md \
+  --context docs/design/contracts/API-output.md
+Covers: tools/rag_retrieval.py, tools/write_output.py, schema validation, layer routing. Depends on Feature 3 (ChromaDB populated).
+
+Feature 5 — Agent Factories (Player + Coach)
+
+
+/feature-spec "Agent factories: Player and Coach via create_deep_agent" \
+  --context docs/design/contracts/API-generation.md \
+  --context docs/design/models/DM-coach-rejection.md
+Covers: agents/player.py, agents/coach.py, prompt injection from GOAL.md, Coach rejection schema. Depends on Feature 4 (tools).
+
+Feature 6 — Entrypoint & Generation Loop
+
+
+/feature-spec "Entrypoint: config loading, validation, and generation loop orchestration" \
+  --context docs/design/contracts/API-entrypoint.md \
+  --context docs/design/models/DM-agent-config.md \
+  --context docs/architecture/decisions/ADR-ARCH-010-overnight-run-resilience.md
+Covers: agent.py, agent-config.yaml loading, 12-step startup, sequential generation loop, --resume flag, retry/backoff/timeout (ADR-ARCH-010). Depends on Features 2-5.
+
+Feature 7 — GCSE English Tutor Domain Config
+
+
+/feature-spec "GCSE English tutor GOAL.md: first domain configuration" \
+  --context docs/research/gcse-tutor-training-data-format.md \
+  --context docs/design/contracts/API-domain-config.md
+Covers: domains/gcse-english-tutor/GOAL.md (all 9 sections populated), generation-plan.yaml. This is the content that drives the pipeline — not code, but needs acceptance criteria.
+
+Summary
+#	Feature	Module	Dependencies	Phase
+1	Phase 1 synthesis script	synthesis/	None	Phase 1 (baseline)
+2	Domain Config & GOAL.md validation	domains/	None	Phase 2
+3	Ingestion pipeline	ingestion/	Feature 2	Phase 2
+4	Tools (RAG + write_output)	tools/	Feature 3	Phase 2
+5	Agent factories (Player + Coach)	agents/ + prompts/	Feature 4	Phase 2
+6	Entrypoint & generation loop	agent.py	Features 2-5	Phase 2
+7	GCSE English tutor domain config	domains/gcse-english-tutor/	Feature 2	Phase 2
+Recommendation
+Start with Feature 1 (Phase 1 synthesis) — it's self-contained, produces the baseline dataset for the ablation comparison, and validates the training data format before building the full pipeline. The training pipeline plan explicitly recommends this order.
+
+Then Features 2 → 7 in order for Phase 2.
+
+Would you like me to run /feature-spec for Feature 1 now, or would you prefer to adjust the feature breakdown first?
+
+
+
+
+
+
+Feature Plans
+
+Based on the existing feature spec, the command would be:
+
+
+/feature-plan "GCSE English Training Example Synthesis" \
+  --context features/gcse-training-synthesis/gcse-training-synthesis_summary.md
+You could also pass the original research docs for additional context:
+
+
+/feature-plan "GCSE English Training Example Synthesis" \
+  --context features/gcse-training-synthesis/gcse-training-synthesis_summary.md \
+  --context docs/research/gcse-tutor-training-data-format.md \
+  --context docs/research/training-pipeline-plan.md
+
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE SPEC COMPLETE: GOAL.md Parser and Strict Validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+domain-config.feature
+domain-config_assumptions.yaml
+domain-config_summary.md
+
+Scenarios: 36 total
+@key-example: 8    @boundary: 8
+@negative: 12      @edge-case: 11
+@smoke: 10         @regression: 0
+
+Assumptions: 4 total
+high: 1 (auto-proceed)
+medium: 3 (Coach review recommended)
+low: 0
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: domain-config.feature
+Pass to feature-plan:
+/feature-plan "GOAL.md Parser and Strict Validation" --context features/domain-config/domain-config_summary.md
+
+
+
+FEATURE SPEC COMPLETE: Ingestion Pipeline — Docling PDF Processing to ChromaDB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+ingestion-pipeline.feature
+ingestion-pipeline_assumptions.yaml
+ingestion-pipeline_summary.md
+
+Scenarios: 31 total
+@key-example: 7    @boundary: 6
+@negative: 9       @edge-case: 11
+@smoke: 8          @regression: 0
+
+Assumptions: 4 total
+high: 3 (auto-proceed)
+medium: 0
+low: 1 (human review required)
+
+REVIEW REQUIRED: 1 low-confidence assumption needs verification
+See: ingestion-pipeline_assumptions.yaml
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: ingestion-pipeline.feature
+Pass to feature-plan:
+/feature-plan "Ingestion Pipeline — Docling PDF Processing to ChromaDB" --context features/ingestion-pipeline/ingestion-pipeline_summary.md
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE SPEC COMPLETE: LangChain Tools — RAG Retrieval and Write Output with Layer Routing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+langchain-tools.feature
+langchain-tools_assumptions.yaml
+langchain-tools_summary.md
+
+Scenarios: 41 total
+@key-example: 8   @boundary: 8
+@negative: 14     @edge-case: 13
+@smoke: 10        @regression: 0
+
+Assumptions: 3 total
+high: 2 (auto-proceed)
+medium: 0
+low: 1 (human review required)
+
+REVIEW REQUIRED: 1 low-confidence assumption needs verification
+See: langchain-tools_assumptions.yaml
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: langchain-tools.feature
+Pass to feature-plan:
+
+
+/feature-plan "LangChain Tools — RAG Retrieval and Write Output" \
+  --context features/langchain-tools/langchain-tools_summary.md
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE SPEC COMPLETE: Agent Factories — Player and Coach via create_deep_agent
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+agent-factories.feature
+agent-factories_assumptions.yaml
+agent-factories_summary.md
+
+Scenarios: 35 total
+@key-example: 9   @boundary: 6
+@negative: 10     @edge-case: 12
+@smoke: 11        @regression: 0
+
+Assumptions: 4 total
+high: 4 (auto-proceed)
+medium: 0
+low: 0
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: agent-factories.feature
+Pass to feature-plan:
+
+
+/feature-plan "Agent Factories — Player and Coach" \
+  --context features/agent-factories/agent-factories_summary.md
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE SPEC COMPLETE: Entrypoint — Config Loading, Validation, and Generation Loop Orchestration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+entrypoint.feature
+entrypoint_assumptions.yaml
+entrypoint_summary.md
+
+Scenarios: 44 total
+@key-example: 8    @boundary: 10
+@negative: 10      @edge-case: 16
+@smoke: 8          @regression: 0
+
+Assumptions: 5 total
+high: 2 (auto-proceed)
+medium: 3 (Coach review recommended)
+low: 0 (human review required)
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: entrypoint.feature
+Pass to feature-plan:
+
+
+/feature-plan "Entrypoint — Config Loading, Validation, and Generation Loop Orchestration" \
+  --context features/entrypoint/entrypoint_summary.md
+
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FEATURE SPEC COMPLETE: GCSE English Tutor GOAL.md — First Domain Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Files written:
+gcse-goal-md.feature
+gcse-goal-md_assumptions.yaml
+gcse-goal-md_summary.md
+
+Scenarios: 38 total
+@key-example: 10   @boundary: 8
+@negative: 8       @edge-case: 12
+@smoke: 10         @regression: 0
+
+Assumptions: 5 total
+high: 2 (auto-proceed)
+medium: 3 (Coach review recommended)
+low: 0 (human review required)
+
+Deferred: 0 scenario groups
+
+Next steps:
+Review: gcse-goal-md.feature
+Pass to feature-plan:
+
+
+/feature-plan "GCSE English Tutor GOAL.md — First Domain Configuration" \
+  --context features/gcse-goal-md/gcse-goal-md_summary.md
