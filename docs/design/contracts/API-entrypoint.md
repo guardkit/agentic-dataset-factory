@@ -20,7 +20,13 @@ docker compose up agent-loop
 python agent.py
 ```
 
-No CLI arguments — all configuration via `agent-config.yaml` and environment variables.
+### CLI Arguments
+
+| Argument | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `--resume` | No | `false` | Resume from `output/.checkpoint` instead of starting fresh (ADR-ARCH-010) |
+
+All other configuration via `agent-config.yaml` and environment variables.
 
 ## Configuration: `agent-config.yaml`
 
@@ -41,6 +47,10 @@ coach:
 
 generation:
   max_turns: 3                       # Player-Coach cycles before discard
+  llm_retry_attempts: 3              # Retries per LLM call (ADR-ARCH-010)
+  llm_retry_backoff: 2.0             # Exponential backoff base seconds (ADR-ARCH-010)
+  llm_timeout: 300                   # Per-call timeout seconds (ADR-ARCH-010)
+  target_timeout: 600                # Per-target timeout seconds (ADR-ARCH-010)
 
 chunking:
   chunk_size: 512                    # Tokens per chunk
@@ -73,6 +83,10 @@ class ModelConfig:
 @dataclass
 class GenerationConfig:
     max_turns: int = 3
+    llm_retry_attempts: int = 3
+    llm_retry_backoff: float = 2.0
+    llm_timeout: int = 300
+    target_timeout: int = 600
 
 @dataclass
 class ChunkingConfig:
@@ -124,8 +138,13 @@ def startup():
             f"Run: python -m ingestion.ingest --domain {config.domain}"
         )
 
-    # 7. Clean output directory (ADR-ARCH-008)
-    clean_output_directory()
+    # 7. Clean output directory or resume (ADR-ARCH-008, ADR-ARCH-010)
+    if resume and Path("output/.checkpoint").exists():
+        start_index = read_checkpoint()
+        log.info(f"Resuming from target {start_index}")
+    else:
+        clean_output_directory()
+        start_index = 0
 
     # 8. Build prompts (base + GOAL.md injection)
     player_prompt = build_player_prompt(goal)

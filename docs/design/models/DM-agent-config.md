@@ -29,6 +29,10 @@ coach:
 # Generation loop parameters
 generation:
   max_turns: 3                       # Player-Coach cycles before discard
+  llm_retry_attempts: 3              # Retries per LLM call (ADR-ARCH-010)
+  llm_retry_backoff: 2.0             # Exponential backoff base seconds (ADR-ARCH-010)
+  llm_timeout: 300                   # Per-call timeout seconds (ADR-ARCH-010)
+  target_timeout: 600                # Per-target timeout seconds (ADR-ARCH-010)
 
 # Ingestion chunking parameters
 chunking:
@@ -63,6 +67,10 @@ logging:
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `max_turns` | `int` | No | `3` | Max Player-Coach cycles before discard (DDR-003) |
+| `llm_retry_attempts` | `int` | No | `3` | Retries per LLM call on transient failure (ADR-ARCH-010) |
+| `llm_retry_backoff` | `float` | No | `2.0` | Exponential backoff base in seconds (ADR-ARCH-010) |
+| `llm_timeout` | `int` | No | `300` | Per-LLM-call timeout in seconds (ADR-ARCH-010) |
+| `target_timeout` | `int` | No | `600` | Per-target timeout in seconds — discard on exceed (ADR-ARCH-010) |
 
 ### ChunkingConfig
 

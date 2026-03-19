@@ -109,3 +109,80 @@ Refine design: /design-refine for iterative updates
 *guardkit graphiti add-context docs/design/decisions/DDR-001.md
 *guardkit graphiti add-context docs/design/decisions/DDR-002.md
 *guardkit graphiti add-context docs/design/decisions/DDR-003.md
+
+
+
+
+Let me check the Graphiti success document and the current state of the architecture docs to understand where we are before proceeding.
+
+Read add-graphiti-success.md
+Read scratch_notes.md
+Good — Graphiti is working and you've seeded the core architecture docs (ARCHITECTURE.md, container.md, domain-model.md, and ADR-002).
+
+For Phase 2, the pipeline defined by /system-arch is:
+
+/system-arch (done) → /system-design (API contracts) → /system-plan (planning) → /feature-spec (specification)
+
+The two commands serve different purposes:
+
+/system-design — Detailed design: full GOAL.md schema, tool contracts (rag_retrieval, write_output), Coach rejection schema, agent-config.yaml spec, ChromaDB collection strategy, ingestion pipeline design, layer routing logic, LangSmith integration points. This resolves the open design questions from the conversation starter.
+
+/system-plan — Implementation planning: breaks the work into features/tasks, determines build order, identifies dependencies, estimates complexity.
+
+Recommended order: /system-design first, then /system-plan. The design contracts inform what needs to be built and in what order.
+
+Shall I run /system-design with the context from the architecture session? The command would be:
+
+
+/system-design --from docs/architecture/ARCHITECTURE.md --context docs/research/agentic-dataset-factory-conversation-starter.md --context docs/research/gcse-tutor-training-data-format.md
+
+
+Good — the design phase produced a comprehensive set of artefacts. The /system-plan command should reference both the architecture and design outputs:
+
+
+/system-plan \
+  --from docs/design/DESIGN.md \
+  --context docs/architecture/ARCHITECTURE.md \
+  --context docs/research/agentic-dataset-factory-conversation-starter.md \
+  --context docs/research/gcse-tutor-training-data-format.md
+
+
+This gives /system-plan the design contracts as the primary input (what needs to be built) with architecture and research context for constraints and domain knowledge.
+
+
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ GRAPHITI SEEDING COMPLETE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+Graphiti context:
+  ✓ 1 ADR seeded (ADR-ARCH-010)
+  ✓ 1 cross-cutting concerns update seeded
+  ✓ 1 config contract update seeded
+  ✓ 1 architecture summary refresh seeded
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SESSION SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Mode: Refine (full review — all 6 categories)
+
+Categories reviewed:
+
+✓ Domain & Methodology — no changes needed
+✓ System Structure — 6 modules fully specified, no gaps
+✓ Service/Module Relationships — clean unidirectional dependencies
+✓ Technology Decisions — coherent stack, grounded in GB10 constraints
+✓ Cross-Cutting Concerns — 3 gaps identified and resolved (LLM retry, checkpoint/resume, per-target timeout)
+✓ Constraints and NFRs — Coach consistency analysed, documented (no code change needed for v1)
+Artefacts produced:
+
+1 new ADR: ADR-ARCH-010 (Accepted)
+Updated: ARCHITECTURE.md, container.md, API-entrypoint.md, DM-agent-config.md, DESIGN.md
+Next steps:
+
+/feature-plan — decompose into implementation tasks
+/feature-spec — generate BDD specifications
+/design-refine — iterate on specific design contracts
