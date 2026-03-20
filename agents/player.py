@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 def create_model(model_config: ModelConfig) -> str:
     """Translate a ModelConfig into a model identifier for create_deep_agent.
 
-    For cloud providers (anthropic, openai), returns ``"provider:model"`` format.
-    For local providers, returns ``"provider:model"`` with the endpoint available
-    on the original ModelConfig for downstream configuration.
+    Produces a ``"provider:model"`` string from the validated ModelConfig.
+    Provider validation is handled upstream by ModelConfig's Literal type
+    constraint, so this function assumes a valid provider.
 
     Args:
         model_config: Validated ModelConfig with provider, model, endpoint,
@@ -35,17 +35,7 @@ def create_model(model_config: ModelConfig) -> str:
 
     Returns:
         A model identifier string accepted by ``create_deep_agent``.
-
-    Raises:
-        ValueError: If model_config has an unsupported provider.
     """
-    if model_config.provider not in ("local", "anthropic", "openai"):
-        msg = (
-            f"Unsupported provider '{model_config.provider}'; "
-            f"expected one of: local, anthropic, openai"
-        )
-        raise ValueError(msg)
-
     return f"{model_config.provider}:{model_config.model}"
 
 
