@@ -35,4 +35,5 @@ markers = [
     "seam: seam tests verifying integration contracts between tasks",
     "integration_contract: marks which integration contract is being verified",
     "integration: integration tests exercising full pipeline end-to-end",
+    "smoke: fast-running smoke tests for CI (maps to @smoke BDD scenarios)",
 ]

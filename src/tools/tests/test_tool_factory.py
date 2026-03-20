@@ -193,6 +193,7 @@ class TestAC001PlayerToolsReturnsExactlyTwoTools:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.smoke
 class TestAC002CoachToolsReturnsEmptyList:
     """AC-002: create_coach_tools() returns [] — always empty list."""
 
@@ -240,6 +241,7 @@ class TestAC002CoachToolsReturnsEmptyList:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.smoke
 class TestAC003CoachCannotAccessTools:
     """AC-003: Coach cannot access rag_retrieval or write_output through any code path."""
 

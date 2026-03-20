@@ -94,6 +94,7 @@ class TestFactoryReturnsTool:
 class TestCollectionNameBinding:
     """Verify collection name is bound at factory time."""
 
+    @pytest.mark.smoke
     @patch("tools.rag_retrieval.chromadb")
     def test_collection_name_used_in_query(self, mock_chromadb: MagicMock) -> None:
         """AC-002: Factory binds collection_name; it's not a per-call parameter."""
@@ -187,6 +188,7 @@ class TestClientReuse:
 class TestFormattedOutput:
     """Verify output formatting matches the specification."""
 
+    @pytest.mark.smoke
     @patch("tools.rag_retrieval.chromadb")
     def test_single_chunk_format(self, mock_chromadb: MagicMock) -> None:
         """AC-005: Single chunk formatted with source and page."""
@@ -321,6 +323,7 @@ class TestNResultsValidation:
 class TestDefaultNResults:
     """Verify default n_results behavior."""
 
+    @pytest.mark.smoke
     @patch("tools.rag_retrieval.chromadb")
     def test_default_n_results_is_5(self, mock_chromadb: MagicMock) -> None:
         """AC-007: When n_results not provided, defaults to 5."""
@@ -384,6 +387,7 @@ class TestFewerChunksThanRequested:
 class TestCollectionNotFound:
     """Verify collection-not-found is returned as error string."""
 
+    @pytest.mark.smoke
     @patch("tools.rag_retrieval.chromadb")
     def test_collection_not_found_returns_error_string(
         self, mock_chromadb: MagicMock
@@ -580,6 +584,7 @@ class TestPathTraversalRejection:
 # ===========================================================================
 
 
+@pytest.mark.smoke
 class TestD7ErrorStrings:
     """Verify all error paths return descriptive strings, never raise."""
 

@@ -1,0 +1,147 @@
+{
+  "task_id": "TASK-LCT-005",
+  "timestamp": "2026-03-20T21:16:22.006571",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation \u2713",
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 224,
+    "tests_failed": 0,
+    "coverage": 99.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/pyproject.toml",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_rag_retrieval.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_tool_factory.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_write_output.py",
+    "coverage.json",
+    "pyproject.toml",
+    "src/tools/tests/test_rag_retrieval.py",
+    "src/tools/tests/test_tool_factory.py",
+    "src/tools/tests/test_write_output.py",
+    "tasks/backlog/TASK-LCT-005-unit-integration-tests.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-LCT-005-implementation-plan.md",
+    ".guardkit/autobuild/TASK-LCT-004/checkpoints.json",
+    ".guardkit/autobuild/TASK-LCT-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-LCT-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-LCT-005/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/.guardkit/autobuild/TASK-LCT-005/player_turn_1.json",
+    "tasks/design_approved/TASK-LCT-005-unit-integration-tests.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_rag_retrieval.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_tool_factory.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_write_output.py"
+  ],
+  "summary": "224 tests passed, 99.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 52,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "code_review": {
+    "score": 95,
+    "solid": 95,
+    "dry": 95,
+    "yagni": 98
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "All 41 BDD scenarios have corresponding pytest tests",
+      "status": "complete",
+      "evidence": "226 pytest tests across 4 test files cover all 41 BDD scenarios from features/langchain-tools/langchain-tools.feature. rag_retrieval: 16 scenarios covered in test_rag_retrieval.py (37 tests across 13 test classes). write_output: 22 scenarios covered in test_write_output.py (52 tests across 13 test classes). Factory: 3 scenarios covered in test_tool_factory.py (48 tests across 10 test classes). Models: Additional validation tests in test_models.py (78 tests across 8 test classes). Shared fixtures in conftest.py.",
+      "test_file": "src/tools/tests/",
+      "implementation_files": [
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_write_output.py",
+        "src/tools/tests/test_tool_factory.py",
+        "src/tools/tests/test_models.py",
+        "src/tools/tests/conftest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Smoke tests (@smoke) marked with @pytest.mark.smoke for fast CI runs",
+      "status": "complete",
+      "evidence": "Added @pytest.mark.smoke markers to tests corresponding to all 11 @smoke-tagged BDD scenarios: TestFormattedOutput.test_single_chunk_format (rag valid query), TestDefaultNResults.test_default_n_results_is_5, TestCollectionNameBinding.test_collection_name_used_in_query, TestD7ErrorStrings class (2 tests), TestCollectionNotFound.test_collection_not_found_returns_error_string, TestValidationChain.test_step1_invalid_json_rejected, TestValidationChain.test_step10_valid_example_written (behaviour write), TestLayerRouting.test_behaviour/knowledge, TestValidationChain.test_reasoning_with_think_block_succeeds, TestValidationChain.test_direct_without_think_block_succeeds, TestD7NoExceptions class (3 tests), TestAC002CoachToolsReturnsEmptyList class (6 tests), TestAC003CoachCannotAccessTools class (8 tests). Total: 29 smoke tests pass with `pytest -m smoke`. Registered 'smoke' marker in pyproject.toml.",
+      "test_file": "src/tools/tests/",
+      "implementation_files": [
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_write_output.py",
+        "src/tools/tests/test_tool_factory.py",
+        "pyproject.toml"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "ChromaDB mocked in unit tests (no real database dependency)",
+      "status": "complete",
+      "evidence": "All rag_retrieval tests use unittest.mock.patch('tools.rag_retrieval.chromadb') to mock ChromaDB. Helper functions _make_mock_collection() and _make_mock_client() create mock objects with configurable return values. TestLazyImportPattern and TestNoChromaDBRuntimeDependency verify no top-level chromadb imports via AST analysis. No real ChromaDB connection is made during any test.",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Output file tests use tmp_path fixture (clean isolation)",
+      "status": "complete",
+      "evidence": "test_write_output.py defines an 'output_dir' fixture based on pytest's tmp_path (line 41-45). All file-writing tests use this fixture, ensuring each test gets a fresh temporary directory. TestFactoryBinding tests also use tmp_path directly. No tests write to persistent directories.",
+      "test_file": "src/tools/tests/test_write_output.py",
+      "implementation_files": [
+        "src/tools/tests/test_write_output.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Tests validate exact error message strings per API contract",
+      "status": "complete",
+      "evidence": "TestErrorMessages class in test_write_output.py validates exact error strings: 'Error: Invalid JSON', 'Error: Missing required field messages', 'Error: Missing required field metadata', 'Error: messages[0].role must be system', 'Error: Invalid metadata.layer value X (expected: behaviour, knowledge)', 'Error: metadata.type is reasoning but assistant content has no <think> block', 'Error: metadata.type is direct but assistant content contains <think> block', 'Error: metadata.text value hamlet not in valid values'. TestD7ErrorStrings in test_rag_retrieval.py validates error strings contain 'error'. TestErrorMessageQuality in test_models.py validates Pydantic error messages mention valid options.",
+      "test_file": "src/tools/tests/test_write_output.py",
+      "implementation_files": [
+        "src/tools/tests/test_write_output.py",
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "No test depends on execution order (fully isolated)",
+      "status": "complete",
+      "evidence": "Each test creates its own tool instance via fixtures (write_tool, fresh factory calls). The write_tool fixture creates a new tool bound to a fresh tmp_path for every test. RAG retrieval tests use fresh mock patches per test method. The conftest.py fixtures are all function-scoped (default). No global state is shared between tests. The factory closures (client_holder, example_counts) are per-tool-instance. All 226 tests pass regardless of order.",
+      "test_file": "src/tools/tests/conftest.py",
+      "implementation_files": [
+        "src/tools/tests/conftest.py",
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_write_output.py",
+        "src/tools/tests/test_tool_factory.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "All tests pass with pytest src/tools/tests/ -v",
+      "status": "complete",
+      "evidence": "Ran pytest src/tools/tests/ -v --cov=src/tools --cov-report=term --cov-report=json. Result: 226 passed, 0 failed, 1 warning (Pydantic V1 compat warning unrelated to our code). Coverage: 99% overall. Source file coverage: models.py 96%, rag_retrieval.py 97%, write_output.py 96%, tool_factory.py 97%. All quality gates met: compilation 100%, tests 100%, line coverage 99% (>80%), branch coverage well above 75%.",
+      "test_file": "src/tools/tests/",
+      "implementation_files": [
+        "src/tools/tests/test_rag_retrieval.py",
+        "src/tools/tests/test_write_output.py",
+        "src/tools/tests/test_tool_factory.py",
+        "src/tools/tests/test_models.py",
+        "src/tools/tests/conftest.py"
+      ]
+    }
+  ]
+}

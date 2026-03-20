@@ -1,19 +1,23 @@
 ---
-id: TASK-LCT-005
-title: "Unit and integration tests for LangChain tools (41 BDD scenarios)"
-task_type: testing
-parent_review: TASK-REV-723B
-feature_id: FEAT-LCT
-wave: 3
-implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-LCT-002
-  - TASK-LCT-003
-  - TASK-LCT-004
-status: pending
+- TASK-LCT-002
+- TASK-LCT-003
+- TASK-LCT-004
+feature_id: FEAT-LCT
+id: TASK-LCT-005
+implementation_mode: task-work
+parent_review: TASK-REV-723B
 priority: high
-tags: [langchain-tools, testing, bdd, pytest]
+status: design_approved
+tags:
+- langchain-tools
+- testing
+- bdd
+- pytest
+task_type: testing
+title: Unit and integration tests for LangChain tools (41 BDD scenarios)
+wave: 3
 ---
 
 # Task: Unit and integration tests for LangChain tools

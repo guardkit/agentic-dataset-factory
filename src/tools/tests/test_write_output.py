@@ -266,6 +266,7 @@ class TestFactoryBinding:
 class TestValidationChain:
     """Verify the 10-step validation chain executes in order."""
 
+    @pytest.mark.smoke
     def test_step1_invalid_json_rejected(self, write_tool):
         """Step 1: Parse JSON -> reject if invalid."""
         result = write_tool.invoke("not valid json {{{")
@@ -391,6 +392,24 @@ class TestValidationChain:
         result = write_tool.invoke(json.dumps(example))
         assert result == "Error: metadata.type is 'reasoning' but assistant content has no <think> block"
 
+    @pytest.mark.smoke
+    def test_reasoning_with_think_block_succeeds(
+        self, write_tool, valid_behaviour_example, output_dir
+    ):
+        """BDD @smoke: Reasoning-type example with think block is accepted."""
+        result = write_tool.invoke(json.dumps(valid_behaviour_example))
+        assert "Written to" in result
+        assert (output_dir / "train.jsonl").exists()
+
+    @pytest.mark.smoke
+    def test_direct_without_think_block_succeeds(
+        self, write_tool, valid_direct_behaviour_example, output_dir
+    ):
+        """BDD @smoke: Direct-type example without think block is accepted."""
+        result = write_tool.invoke(json.dumps(valid_direct_behaviour_example))
+        assert "Written to" in result
+        assert (output_dir / "train.jsonl").exists()
+
     def test_step8_direct_with_think_block_rejected(self, write_tool):
         """Step 8: direct type must NOT have <think> block in last assistant message."""
         example = {
@@ -430,6 +449,7 @@ class TestValidationChain:
         assert "hamlet" in result
         assert "not in valid values" in result
 
+    @pytest.mark.smoke
     def test_step10_valid_example_written(
         self, write_tool, valid_behaviour_example, output_dir
     ):
@@ -447,6 +467,7 @@ class TestValidationChain:
 class TestLayerRouting:
     """Verify layer-based file routing."""
 
+    @pytest.mark.smoke
     def test_behaviour_routes_to_train_jsonl(
         self, write_tool, valid_behaviour_example, output_dir
     ):
@@ -455,6 +476,7 @@ class TestLayerRouting:
         assert (output_dir / "train.jsonl").exists()
         assert not (output_dir / "rag_index" / "knowledge.jsonl").exists()
 
+    @pytest.mark.smoke
     def test_knowledge_routes_to_knowledge_jsonl(
         self, write_tool, valid_knowledge_example, output_dir
     ):
@@ -719,6 +741,7 @@ class TestLargeContent:
 # ===========================================================================
 
 
+@pytest.mark.smoke
 class TestD7NoExceptions:
     """Verify the tool never raises exceptions — always returns error strings."""
 
