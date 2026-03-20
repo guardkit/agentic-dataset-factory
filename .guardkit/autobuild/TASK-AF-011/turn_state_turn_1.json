@@ -1,0 +1,35 @@
+{
+  "id": "TURN-FEAT-5AC9-1",
+  "feature_id": "FEAT-5AC9",
+  "task_id": "TASK-AF-011",
+  "turn_number": 1,
+  "player_summary": "Implementation attempt",
+  "player_decision": "approve",
+  "coach_decision": "approve",
+  "coach_feedback": null,
+  "mode": "fresh_start",
+  "blockers_found": [],
+  "progress_summary": "Turn 1: approve",
+  "acceptance_criteria_status": {
+    "AC-001": "verified",
+    "AC-002": "verified",
+    "AC-003": "verified"
+  },
+  "files_modified": [
+    "pyproject.toml",
+    "agents/__init__.py",
+    "agents/tests/__init__.py",
+    "prompts/__init__.py",
+    "prompts/tests/__init__.py",
+    "tests/test_pyproject_config.py"
+  ],
+  "tests_passed": null,
+  "tests_failed": null,
+  "coverage": null,
+  "arch_score": null,
+  "started_at": "2026-03-20T22:54:38.134621",
+  "completed_at": "2026-03-20T22:54:38.134621",
+  "duration_seconds": null,
+  "lessons_from_turn": [],
+  "what_to_try_next": null
+}
