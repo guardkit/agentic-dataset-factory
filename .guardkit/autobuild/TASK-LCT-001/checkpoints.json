@@ -1,0 +1,14 @@
+{
+  "task_id": "TASK-LCT-001",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "02f2ac08ad283bdcbeb4f945c81c6f71f79df9cd",
+      "timestamp": "2026-03-20T20:44:57.891496",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: pass)"
+    }
+  ],
+  "last_updated": "2026-03-20T20:44:57.891802"
+}

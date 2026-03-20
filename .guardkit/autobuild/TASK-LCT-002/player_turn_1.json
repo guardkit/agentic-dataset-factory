@@ -1,0 +1,201 @@
+{
+  "task_id": "TASK-LCT-002",
+  "turn": 1,
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/rag_retrieval.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_rag_retrieval.py",
+    "coverage.json",
+    "tasks/backlog/TASK-LCT-002-rag-retrieval-tool.md",
+    "tasks/backlog/TASK-LCT-003-write-output-tool.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-LCT-002-implementation-plan.md",
+    ".claude/task-plans/TASK-LCT-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-LCT-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-LCT-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-LCT-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-LCT-002/turn_context.json",
+    ".guardkit/autobuild/TASK-LCT-003/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/.guardkit/autobuild/TASK-LCT-002/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/rag_retrieval.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_rag_retrieval.py",
+    "src/tools/rag_retrieval.py",
+    "src/tools/tests/test_rag_retrieval.py",
+    "src/tools/tests/test_write_output.py",
+    "src/tools/write_output.py",
+    "tasks/design_approved/TASK-LCT-002-rag-retrieval-tool.md",
+    "tasks/design_approved/TASK-LCT-003-write-output-tool.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/test_rag_retrieval.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Factory returns LangChain @tool-decorated callable (AC-001)",
+    "Collection name bound at factory time (AC-002)",
+    "Lazy ChromaDB PersistentClient initialisation (AC-003)",
+    "Client reuse across calls (AC-004)",
+    "Formatted chunks with source metadata (AC-005)",
+    "n_results validation 1-20 (AC-006)",
+    "Default n_results is 5 (AC-007)",
+    "Returns available chunks when fewer than requested (AC-008)",
+    "Collection-not-found returns error string (AC-009)",
+    "ChromaDB unavailable returns error string (AC-010)",
+    "Graceful handling of missing metadata (AC-011)",
+    "Path traversal rejection at factory time (AC-012)",
+    "All errors as descriptive strings D7 (AC-013)",
+    "Lint/format checks pass (AC-014)"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 48,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 45,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Factory returns a LangChain @tool-decorated callable",
+      "status": "complete",
+      "evidence": "create_rag_retrieval_tool returns a LangChain StructuredTool (BaseTool subclass) with name='rag_retrieval' and a description. Verified by TestFactoryReturnsTool (3 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Collection name is bound at factory time, not passed per call",
+      "status": "complete",
+      "evidence": "collection_name is captured in the factory closure and used in get_collection(name=collection_name). The tool's args_schema only exposes 'query' and 'n_results', not 'collection_name'. Verified by TestCollectionNameBinding (2 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "ChromaDB PersistentClient is lazily initialised on first call",
+      "status": "complete",
+      "evidence": "PersistentClient is not called during factory creation. It is created inside _get_client() on the first tool invocation using a nonlocal list holder pattern. Verified by TestLazyInitialisation (2 tests) and TestLazyImportPattern (1 test).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Subsequent calls reuse the same client connection",
+      "status": "complete",
+      "evidence": "The client_holder list stores the client after first creation; subsequent calls return client_holder[0] without calling PersistentClient again. Three invocations verified to produce exactly one PersistentClient call. Verified by TestClientReuse (1 test).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Returns formatted chunks with source metadata: --- Chunk N (source: file.pdf, p.X) ---",
+      "status": "complete",
+      "evidence": "Chunks formatted as '--- Chunk {i} (source: {source}, p.{page}) ---\\n{text}\\n' using _format_chunk helper. Verified single chunk and multi-chunk formatting plus empty results. Verified by TestFormattedOutput (3 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Validates n_results: 1 <= n_results <= 20 (returns error string if out of range)",
+      "status": "complete",
+      "evidence": "n_results validated at start of rag_retrieval function. Values <1 or >20 return 'Error: n_results must be between 1 and 20 inclusive' strings. Boundary values 1 and 20 accepted. Verified by TestNResultsValidation (7 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Default n_results is 5",
+      "status": "complete",
+      "evidence": "rag_retrieval tool function signature has n_results: int = 5. Verified that collection.query is called with n_results=5 when not explicitly provided. Verified by TestDefaultNResults (1 test).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Returns all available chunks if collection has fewer than n_results",
+      "status": "complete",
+      "evidence": "Tool formats whatever documents ChromaDB returns (even if fewer than requested). When 5 requested but only 2 returned, output contains Chunk 1 and Chunk 2 only. Verified by TestFewerChunksThanRequested (1 test).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Collection-not-found returns error string (not exception)",
+      "status": "complete",
+      "evidence": "get_collection ValueError is caught and returned as 'Error: ChromaDB collection '{name}' not found - {exc}'. No exception propagated. Verified by TestCollectionNotFound (2 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "ChromaDB unavailable returns error string (not exception)",
+      "status": "complete",
+      "evidence": "PersistentClient creation failures (ConnectionError, RuntimeError) are caught and returned as 'Error: ChromaDB unavailable - {exc}'. No exception propagated. Verified by TestChromaDBUnavailable (2 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "Handles chunks with missing source metadata gracefully (returns available info)",
+      "status": "complete",
+      "evidence": "_format_chunk uses dict.get with defaults: source defaults to 'unknown', page defaults to '?'. None metadata treated as empty dict. Verified with missing source, missing page, empty dict, and None metadata. Verified by TestMissingMetadata (4 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "Collection name with path traversal characters is rejected at factory time",
+      "status": "complete",
+      "evidence": "_validate_collection_name uses regex ^[A-Za-z0-9][A-Za-z0-9_-]*$ to reject path traversal (../, /, \\), spaces, semicolons, dollar signs, and other unsafe characters. Raises ValueError at factory creation time, not at tool invocation. Verified with 9 bad names and 5 valid names. Verified by TestPathTraversalRejection (15 tests).",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "All errors returned as descriptive strings, never raised as exceptions (D7)",
+      "status": "complete",
+      "evidence": "All runtime error paths (client init, collection not found, query failure, n_results validation) return descriptive error strings. Only factory-time validation (collection name) raises ValueError. Verified by TestD7ErrorStrings (2 tests) plus all error tests across other classes.",
+      "test_file": "src/tools/tests/test_rag_retrieval.py",
+      "implementation_files": [
+        "src/tools/rag_retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-014",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both src/tools/rag_retrieval.py and src/tools/tests/test_rag_retrieval.py pass `ruff check` with zero errors.",
+      "test_file": null,
+      "implementation_files": [
+        "src/tools/rag_retrieval.py",
+        "src/tools/tests/test_rag_retrieval.py"
+      ]
+    }
+  ]
+}
