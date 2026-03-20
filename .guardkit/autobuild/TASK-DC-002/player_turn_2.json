@@ -1,26 +1,6 @@
 {
   "task_id": "TASK-DC-002",
-  "timestamp": "2026-03-20T15:01:15.355502",
-  "completed": true,
-  "phases": {
-    "phase_3": {
-      "detected": true,
-      "text": "Implementation",
-      "completed": false
-    },
-    "phase_4": {
-      "detected": true,
-      "completed": true
-    }
-  },
-  "quality_gates": {
-    "tests_passing": true,
-    "tests_passed": 60,
-    "tests_failed": 0,
-    "coverage": 92.0,
-    "coverage_met": true,
-    "all_passed": true
-  },
+  "turn": 2,
   "files_modified": [
     ".claude/task-plans/TASK-DC-002-implementation-plan.md",
     ".guardkit/autobuild/TASK-DC-002/coach_turn_1.json",
@@ -46,12 +26,30 @@
   "tests_written": [
     "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parser.py"
   ],
-  "summary": "60 tests passed, 92.0% coverage, all quality gates passed",
-  "sdk_turns": {
-    "turns_used": 30,
-    "max_turns": 100,
-    "ceiling_hit": false
-  },
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Splits on known section headings only",
+    "Returns dict mapping section name to body text",
+    "Strips whitespace from section bodies",
+    "Handles inconsistent whitespace around headings",
+    "Preserves embedded ## headings as content",
+    "Raises GoalValidationError for missing sections",
+    "Reports ALL missing sections at once",
+    "Empty file raises error",
+    "File-not-found case raises GoalValidationError with descriptive message",
+    "Unicode content preserved",
+    "Lint/format checks pass",
+    "Seam test for SECTION_DICT contract"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 30,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 60,
   "completion_promises": [
     {
       "criterion_id": "AC-001",

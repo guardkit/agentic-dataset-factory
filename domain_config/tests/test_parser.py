@@ -778,6 +778,48 @@ class TestSplitSectionsUnicode:
 
 
 # ---------------------------------------------------------------------------
+# split_sections — File-not-found (AC-009)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsFileNotFound:
+    """AC-009: File-not-found case raises GoalValidationError with descriptive message."""
+
+    def test_nonexistent_file_raises_goal_validation_error(self, tmp_path):
+        """Passing a Path to a nonexistent file raises GoalValidationError."""
+        missing = tmp_path / "nonexistent" / "GOAL.md"
+        with pytest.raises(GoalValidationError) as exc_info:
+            split_sections(missing)
+        assert (
+            "not found" in str(exc_info.value).lower()
+            or "does not exist" in str(exc_info.value).lower()
+        )
+
+    def test_file_not_found_error_includes_path(self, tmp_path):
+        """Error message should include the file path for diagnostics."""
+        missing = tmp_path / "missing_GOAL.md"
+        with pytest.raises(GoalValidationError) as exc_info:
+            split_sections(missing)
+        assert "missing_GOAL.md" in str(exc_info.value)
+
+    def test_valid_file_path_reads_and_splits(self, tmp_path):
+        """Passing a Path to a valid GOAL.md file reads and splits it."""
+        content = "\n".join(f"## {name}\n{name} body content." for name in REQUIRED_SECTIONS)
+        goal_file = tmp_path / "GOAL.md"
+        goal_file.write_text(content, encoding="utf-8")
+        result = split_sections(goal_file)
+        assert isinstance(result, dict)
+        assert len(result) == 9
+        assert "Goal body content." in result["Goal"]
+
+    def test_string_content_still_works(self):
+        """Existing str content API is unaffected by Path support."""
+        content = "\n".join(f"## {name}\n{name} body." for name in REQUIRED_SECTIONS)
+        result = split_sections(content)
+        assert len(result) == 9
+
+
+# ---------------------------------------------------------------------------
 # split_sections — Seam Test (integration contract)
 # ---------------------------------------------------------------------------
 
