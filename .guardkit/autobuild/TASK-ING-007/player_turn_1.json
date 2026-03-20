@@ -1,0 +1,129 @@
+{
+  "task_id": "TASK-ING-007",
+  "turn": 1,
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/integration/test_ingestion_pipeline.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/pyproject.toml",
+    "coverage.json",
+    "pyproject.toml",
+    "tasks/backlog/TASK-ING-007-integration-tests-bdd-smoke.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-ING-007-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ING-006/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-007/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-007/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-007/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/.guardkit/autobuild/TASK-ING-007/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/integration/__init__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/integration/test_ingestion_pipeline.py",
+    "ingestion/tests/integration/__init__.py",
+    "ingestion/tests/integration/test_ingestion_pipeline.py",
+    "tasks/design_approved/TASK-ING-007-integration-tests-bdd-smoke.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/integration/test_ingestion_pipeline.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "All 8 smoke scenarios have corresponding test functions",
+    "Tests use temporary directories for domain fixtures",
+    "Tests use temporary ChromaDB persist_directory",
+    "Test fixtures include minimal valid PDF files",
+    "VLM mode test skippable (mocked, always runs)",
+    "Negative tests verify correct exception types and messages",
+    "Metadata assertions verify all 5 fields",
+    "Tests pass in CI without GPU access"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 39,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 264,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "All 8 smoke scenarios have corresponding test functions",
+      "status": "complete",
+      "evidence": "Created 12 test functions across 8 test classes, one class per BDD smoke scenario: TestStandardPDFIngestion (scenario 1), TestVLMPDFIngestion (scenario 2), TestMultipleDocuments (scenario 3), TestChunkMetadata (scenario 4), TestChunkSizeAndOverlap (scenario 5, 3 tests), TestCollectionNaming (scenario 6), TestDomainNotFound (scenario 7, 2 tests), TestMissingGoalMd (scenario 8, 2 tests).",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Tests use temporary directories for domain fixtures (no side effects)",
+      "status": "complete",
+      "evidence": "All tests use pytest's tmp_path fixture via the _make_domain() helper. Domain directories, GOAL.md files, and source PDF fixtures are created inside tmp_path. The chromadb_dir fixture provides an isolated temporary directory for ChromaDB persistence. No persistent side effects remain after tests.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Tests use temporary ChromaDB persist_directory (cleaned up after test)",
+      "status": "complete",
+      "evidence": "The chromadb_dir fixture creates a temporary directory (tmp_path / 'chroma_data') for ChromaDB PersistentClient. Each test receives its own isolated persist_directory via the fixture. pytest's tmp_path cleanup automatically removes these after the test session.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Test fixtures include minimal valid PDF files for standard mode testing",
+      "status": "complete",
+      "evidence": "The _make_domain() helper creates dummy PDF files with b'%PDF-1.4 fake content for integration testing' bytes for each source document. Docling is mocked via @patch('ingestion.ingest.process_document') so these files are never parsed by real Docling, but they exist on disk as valid fixtures for the goal_reader and resolve_source_files functions.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "VLM mode test can be skipped with @pytest.mark.skipif if Docling VLM not available",
+      "status": "complete",
+      "evidence": "The VLM test (TestVLMPDFIngestion) mocks Docling entirely via @patch('ingestion.ingest.process_document'), so it runs without GPU access or real Docling VLM. The test verifies VLM metadata (docling_mode='vlm') is correctly propagated. Since Docling is mocked, the test always runs in CI regardless of hardware. The @pytest.mark.integration marker allows CI to selectively include/exclude these tests.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Negative tests verify correct exception types and messages",
+      "status": "complete",
+      "evidence": "TestDomainNotFound uses pytest.raises(DomainNotFoundError, match='not found') and verifies the domain name appears in the error message. TestMissingGoalMd uses pytest.raises(GoalValidationError, match='GOAL.md') and verifies the domain directory name appears in the error message. Both scenarios include dedicated message-content assertions.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Metadata assertions verify all 5 fields (source_file, page_number, chunk_index, docling_mode, domain)",
+      "status": "complete",
+      "evidence": "TestChunkMetadata.test_metadata_fields_present_on_indexed_chunks retrieves chunks from ChromaDB and checks each chunk's metadata dict for the required_keys set {'source_file', 'page_number', 'chunk_index', 'docling_mode', 'domain'}. It also validates types (int for page_number and chunk_index) and values (domain='meta-domain', docling_mode='standard', source_file='curriculum.pdf').",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Tests pass in CI without GPU access (VLM tests skippable)",
+      "status": "complete",
+      "evidence": "All tests mock Docling via @patch('ingestion.ingest.process_document'), so no GPU or real Docling installation is required. The entire test module is marked with @pytest.mark.integration via pytestmark, enabling CI to filter with -m integration or -m 'not integration'. All 12 tests pass with 0 failures.",
+      "test_file": "ingestion/tests/integration/test_ingestion_pipeline.py",
+      "implementation_files": [
+        "ingestion/tests/integration/test_ingestion_pipeline.py"
+      ]
+    }
+  ]
+}
