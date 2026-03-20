@@ -40,8 +40,7 @@ class TestCreateCoachSignature:
         sig = inspect.signature(create_coach)
         param_names = set(sig.parameters.keys())
         assert "tools" not in param_names, (
-            "create_coach must NOT have a 'tools' parameter — "
-            "D5 invariant enforced structurally"
+            "create_coach must NOT have a 'tools' parameter — D5 invariant enforced structurally"
         )
 
     def test_create_coach_accepts_model_config(self) -> None:
