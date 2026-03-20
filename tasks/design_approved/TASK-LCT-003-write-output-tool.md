@@ -1,23 +1,29 @@
 ---
-id: TASK-LCT-003
-title: "Implement create_write_output_tool factory and write_output tool with layer routing"
-task_type: feature
-parent_review: TASK-REV-723B
-feature_id: FEAT-LCT
-wave: 2
-implementation_mode: task-work
 complexity: 6
-dependencies:
-  - TASK-LCT-001
-status: pending
-priority: high
-tags: [langchain-tools, write-output, layer-routing, validation]
 consumer_context:
-  - task: TASK-LCT-001
-    consumes: METADATA_SCHEMA
-    framework: "Pydantic v2 (BaseModel + field_validator)"
-    driver: "pydantic"
-    format_note: "list[MetadataField] where each MetadataField has field, type, required, valid_values attributes"
+- consumes: METADATA_SCHEMA
+  driver: pydantic
+  format_note: list[MetadataField] where each MetadataField has field, type, required,
+    valid_values attributes
+  framework: Pydantic v2 (BaseModel + field_validator)
+  task: TASK-LCT-001
+dependencies:
+- TASK-LCT-001
+feature_id: FEAT-LCT
+id: TASK-LCT-003
+implementation_mode: task-work
+parent_review: TASK-REV-723B
+priority: high
+status: design_approved
+tags:
+- langchain-tools
+- write-output
+- layer-routing
+- validation
+task_type: feature
+title: Implement create_write_output_tool factory and write_output tool with layer
+  routing
+wave: 2
 ---
 
 # Task: Implement create_write_output_tool factory and write_output tool with layer routing
