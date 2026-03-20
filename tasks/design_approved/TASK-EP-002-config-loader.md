@@ -1,21 +1,21 @@
 ---
-id: TASK-EP-002
-title: "Config loader with yaml.safe_load and Pydantic parsing"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 1
-implementation_mode: task-work
 complexity: 3
-dependencies:
-  - TASK-EP-001
-status: pending
 consumer_context:
-  - task: TASK-EP-001
-    consumes: AgentConfig
-    framework: "Pydantic BaseModel"
-    driver: "pydantic"
-    format_note: "AgentConfig.model_validate() expects a dict from yaml.safe_load output"
+- consumes: AgentConfig
+  driver: pydantic
+  format_note: AgentConfig.model_validate() expects a dict from yaml.safe_load output
+  framework: Pydantic BaseModel
+  task: TASK-EP-001
+dependencies:
+- TASK-EP-001
+feature_id: FEAT-2CF1
+id: TASK-EP-002
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: Config loader with yaml.safe_load and Pydantic parsing
+wave: 1
 ---
 
 # Task: Config Loader — yaml.safe_load + Pydantic Parsing
