@@ -1,17 +1,20 @@
 ---
-id: TASK-LCT-002
-title: "Implement create_rag_retrieval_tool factory and rag_retrieval tool"
-task_type: feature
-parent_review: TASK-REV-723B
-feature_id: FEAT-LCT
-wave: 2
-implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-LCT-001
-status: pending
+- TASK-LCT-001
+feature_id: FEAT-LCT
+id: TASK-LCT-002
+implementation_mode: task-work
+parent_review: TASK-REV-723B
 priority: high
-tags: [langchain-tools, rag-retrieval, chromadb]
+status: design_approved
+tags:
+- langchain-tools
+- rag-retrieval
+- chromadb
+task_type: feature
+title: Implement create_rag_retrieval_tool factory and rag_retrieval tool
+wave: 2
 ---
 
 # Task: Implement create_rag_retrieval_tool factory and rag_retrieval tool
