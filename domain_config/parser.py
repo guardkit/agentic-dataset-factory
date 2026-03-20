@@ -1,13 +1,15 @@
-"""Markdown table parser and JSON code-block extractor for GOAL.md sections.
+"""Markdown section splitter, table parser, and JSON extractor for GOAL.md.
 
-Provides two utilities for the domain_config module:
+Provides three utilities for the domain_config module:
 
+- ``split_sections`` — splits raw GOAL.md text into its 9 named sections
+  using a whitelist approach so embedded ``##`` headings are preserved.
 - ``parse_table`` — converts a markdown table section into a list of
   Pydantic model instances (or a ``dict[str, str]`` for Layer Routing).
 - ``extract_json`` — extracts and validates a JSON code block from the
   Output Schema section.
 
-Both functions are consumed by the higher-level GOAL.md file loader
+All functions are consumed by the higher-level GOAL.md file loader
 (future task) to populate a ``GoalConfig`` instance.
 """
 
@@ -100,7 +102,77 @@ _FIELD_COERCIONS: dict[str, Any] = {
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# Section splitter — whitelist of the 9 known GOAL.md headings
+# ---------------------------------------------------------------------------
+
+_REQUIRED_SECTIONS: list[str] = [
+    "Goal",
+    "Source Documents",
+    "System Prompt",
+    "Generation Targets",
+    "Generation Guidelines",
+    "Evaluation Criteria",
+    "Output Schema",
+    "Metadata Schema",
+    "Layer Routing",
+]
+
+# Regex matching only the 9 whitelisted section headings.
+# Uses re.MULTILINE so ``^`` matches start of every line.
+# Allows optional trailing whitespace after the heading name.
+_SECTION_HEADING_RE = re.compile(
+    r"^##\s+(" + "|".join(re.escape(name) for name in _REQUIRED_SECTIONS) + r")\s*$",
+    re.MULTILINE,
+)
+
+
+def split_sections(content: str) -> dict[str, str]:
+    """Split GOAL.md content into named sections.
+
+    Uses a whitelist approach: only the 9 known section headings are
+    treated as boundaries.  Any other ``##`` headings found in the text
+    are preserved as part of the enclosing section's body.
+
+    Args:
+        content: Raw markdown text of the GOAL.md file.
+
+    Returns:
+        Dict mapping section name to section body text (stripped).
+
+    Raises:
+        GoalValidationError: If any required section is missing, or if
+            the content is empty / contains no recognised headings.
+    """
+    matches = list(_SECTION_HEADING_RE.finditer(content))
+
+    # --- Build dict from located headings ---
+    sections: dict[str, str] = {}
+    for idx, match in enumerate(matches):
+        name = match.group(1)
+        body_start = match.end()
+        body_end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
+        body = content[body_start:body_end].strip()
+        sections[name] = body
+
+    # --- Validate all 9 sections are present ---
+    missing = [name for name in _REQUIRED_SECTIONS if name not in sections]
+    if missing:
+        missing_list = ", ".join(missing)
+        if len(missing) == len(_REQUIRED_SECTIONS):
+            raise GoalValidationError(
+                section="GOAL.md",
+                message=f"No sections found. Missing all required sections: {missing_list}",
+            )
+        raise GoalValidationError(
+            section="GOAL.md",
+            message=f"Missing required sections: {missing_list}",
+        )
+
+    return sections
+
+
+# ---------------------------------------------------------------------------
+# Public API — table parser and JSON extractor
 # ---------------------------------------------------------------------------
 
 

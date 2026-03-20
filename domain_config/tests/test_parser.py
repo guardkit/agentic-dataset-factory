@@ -1,6 +1,6 @@
-"""Tests for domain_config.parser — parse_table() and extract_json().
+"""Tests for domain_config.parser — parse_table(), extract_json(), and split_sections().
 
-TDD: RED phase — these tests define the expected behaviour for TASK-DC-003.
+TDD: RED phase — these tests define the expected behaviour for TASK-DC-002 and TASK-DC-003.
 Follows the same conventions as test_models.py:
 - Organised by test class per function
 - AAA pattern (Arrange, Act, Assert)
@@ -20,7 +20,7 @@ from domain_config.models import (
     MetadataField,
     SourceDocument,
 )
-from domain_config.parser import extract_json, parse_table
+from domain_config.parser import extract_json, parse_table, split_sections
 
 
 # ---------------------------------------------------------------------------
@@ -529,7 +529,7 @@ class TestExtractJsonErrors:
 
 
 class TestParserImports:
-    """Verify parse_table and extract_json are importable."""
+    """Verify parse_table, extract_json, and split_sections are importable."""
 
     def test_parse_table_importable(self):
         from domain_config.parser import parse_table
@@ -540,3 +540,274 @@ class TestParserImports:
         from domain_config.parser import extract_json
 
         assert callable(extract_json)
+
+    def test_split_sections_importable(self):
+        from domain_config.parser import split_sections
+
+        assert callable(split_sections)
+
+
+# ---------------------------------------------------------------------------
+# Fixtures for split_sections
+# ---------------------------------------------------------------------------
+
+REQUIRED_SECTIONS = [
+    "Goal",
+    "Source Documents",
+    "System Prompt",
+    "Generation Targets",
+    "Generation Guidelines",
+    "Evaluation Criteria",
+    "Output Schema",
+    "Metadata Schema",
+    "Layer Routing",
+]
+
+
+def _build_goal_md(sections: list[tuple[str, str]]) -> str:
+    """Build a minimal GOAL.md string from (heading, body) pairs."""
+    parts = []
+    for heading, body in sections:
+        parts.append(f"## {heading}\n{body}")
+    return "\n".join(parts)
+
+
+@pytest.fixture
+def valid_goal_md() -> str:
+    """A well-formed GOAL.md with all 9 sections."""
+    return _build_goal_md([(name, f"Content for {name}.\n") for name in REQUIRED_SECTIONS])
+
+
+@pytest.fixture
+def minimal_goal_md() -> str:
+    """Minimal GOAL.md with very short bodies."""
+    return _build_goal_md([(name, "x" * 100 + "\n") for name in REQUIRED_SECTIONS])
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Happy Path (BDD Scenarios 21-25)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsHappyPath:
+    """AC: Splits on known section headings, returns dict[str, str]."""
+
+    def test_returns_dict_with_nine_keys(self, valid_goal_md):
+        result = split_sections(valid_goal_md)
+        assert isinstance(result, dict)
+        assert len(result) == 9
+
+    def test_all_required_keys_present(self, valid_goal_md):
+        result = split_sections(valid_goal_md)
+        for name in REQUIRED_SECTIONS:
+            assert name in result, f"Missing key: {name}"
+
+    def test_section_body_is_string(self, valid_goal_md):
+        result = split_sections(valid_goal_md)
+        for name in REQUIRED_SECTIONS:
+            assert isinstance(result[name], str)
+
+    def test_section_body_content_correct(self, valid_goal_md):
+        result = split_sections(valid_goal_md)
+        assert "Content for Goal." in result["Goal"]
+        assert "Content for Layer Routing." in result["Layer Routing"]
+
+    def test_section_bodies_stripped(self, valid_goal_md):
+        result = split_sections(valid_goal_md)
+        for name, body in result.items():
+            assert body == body.strip(), f"Section '{name}' body not stripped"
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Whitespace Variations (BDD Scenarios 229-234)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsWhitespace:
+    """AC: Handles inconsistent whitespace around headings."""
+
+    def test_extra_blank_lines_around_headings(self):
+        """Extra blank lines before/after headings should not break parsing."""
+        content = "\n\n## Goal\n\nGoal body.\n\n\n## Source Documents\n\nDocs body.\n"
+        # Add remaining sections
+        for name in REQUIRED_SECTIONS[2:]:
+            content += f"\n\n## {name}\n\n{name} body.\n"
+        result = split_sections(content)
+        assert "Goal body." in result["Goal"]
+        assert "Docs body." in result["Source Documents"]
+
+    def test_trailing_spaces_on_heading_line(self):
+        """Headings with trailing spaces should still be recognised."""
+        content = ""
+        for name in REQUIRED_SECTIONS:
+            content += f"## {name}   \n{name} body.\n"
+        result = split_sections(content)
+        assert len(result) == 9
+
+    def test_no_blank_line_between_heading_and_body(self):
+        """Body text immediately following heading (no blank line) is valid."""
+        content = ""
+        for name in REQUIRED_SECTIONS:
+            content += f"## {name}\nImmediate body for {name}.\n"
+        result = split_sections(content)
+        assert "Immediate body for Goal." in result["Goal"]
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Embedded Headings (BDD Scenarios 272-277)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsEmbeddedHeadings:
+    """AC: Embedded ## headings within section content are preserved as content."""
+
+    def test_embedded_h2_not_treated_as_boundary(self):
+        """An ## heading that is NOT one of the 9 known sections stays as body content."""
+        content = "## Goal\nThe goal.\n## Sub-heading within Goal\nMore goal content.\n"
+        for name in REQUIRED_SECTIONS[1:]:
+            content += f"## {name}\n{name} body.\n"
+        result = split_sections(content)
+        assert "## Sub-heading within Goal" in result["Goal"]
+        assert "More goal content." in result["Goal"]
+
+    def test_embedded_h3_preserved_in_body(self):
+        """### headings inside sections are always preserved as content."""
+        content = "## Goal\n### Sub-subsection\nNested content.\n"
+        for name in REQUIRED_SECTIONS[1:]:
+            content += f"## {name}\n{name} body.\n"
+        result = split_sections(content)
+        assert "### Sub-subsection" in result["Goal"]
+        assert "Nested content." in result["Goal"]
+
+    def test_embedded_heading_matching_section_name_in_content(self):
+        """An ## heading that matches a known section name inside body content of another section.
+
+        This is a tricky edge case: if Goal section body contains '## Source Documents' as text,
+        it should be treated as a new section boundary (this is the whitelist approach).
+        """
+        content = "## Goal\nSome goal text.\n## Source Documents\nDocs body.\n"
+        for name in REQUIRED_SECTIONS[2:]:
+            content += f"## {name}\n{name} body.\n"
+        result = split_sections(content)
+        # "Some goal text." should be in Goal, "Docs body." in Source Documents
+        assert "Some goal text." in result["Goal"]
+        assert "Docs body." in result["Source Documents"]
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Missing Sections (BDD Scenarios 146-162)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsMissing:
+    """AC: Raises GoalValidationError identifying each missing section."""
+
+    def test_one_missing_section_raises(self):
+        """Missing a single section raises GoalValidationError."""
+        content = _build_goal_md(
+            [(name, f"{name} body.\n") for name in REQUIRED_SECTIONS if name != "Layer Routing"]
+        )
+        with pytest.raises(GoalValidationError) as exc_info:
+            split_sections(content)
+        assert "Layer Routing" in str(exc_info.value)
+
+    def test_multiple_missing_sections_all_reported(self):
+        """AC: Reports ALL missing sections at once (not just the first)."""
+        missing = {"Goal", "Output Schema", "Layer Routing"}
+        content = _build_goal_md(
+            [(name, f"{name} body.\n") for name in REQUIRED_SECTIONS if name not in missing]
+        )
+        with pytest.raises(GoalValidationError) as exc_info:
+            split_sections(content)
+        error_msg = str(exc_info.value)
+        for name in missing:
+            assert name in error_msg, f"Missing section '{name}' not mentioned in error"
+
+    def test_missing_section_error_is_goal_validation_error(self):
+        content = _build_goal_md([(name, f"{name} body.\n") for name in REQUIRED_SECTIONS[:5]])
+        with pytest.raises(GoalValidationError):
+            split_sections(content)
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Empty File (BDD Scenarios 220-224)
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsEmptyFile:
+    """AC: Empty GOAL.md raises error indicating no sections found."""
+
+    def test_empty_string_raises(self):
+        with pytest.raises(GoalValidationError) as exc_info:
+            split_sections("")
+        assert (
+            "no sections found" in str(exc_info.value).lower()
+            or "missing" in str(exc_info.value).lower()
+        )
+
+    def test_whitespace_only_raises(self):
+        with pytest.raises(GoalValidationError):
+            split_sections("   \n\n  \n")
+
+    def test_content_without_any_known_headings_raises(self):
+        """Content with text but no known ## headings raises."""
+        with pytest.raises(GoalValidationError):
+            split_sections("Some random text\nwithout any headings.\n")
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Unicode
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSectionsUnicode:
+    """AC: Unicode content preserved exactly."""
+
+    def test_unicode_content_preserved(self):
+        unicode_body = "This section has émojis: 🎓📚 and accented chars: café, naïve.\n"
+        content = ""
+        for name in REQUIRED_SECTIONS:
+            if name == "Goal":
+                content += f"## {name}\n{unicode_body}"
+            else:
+                content += f"## {name}\n{name} body.\n"
+        result = split_sections(content)
+        assert "émojis: 🎓📚" in result["Goal"]
+        assert "café" in result["Goal"]
+        assert "naïve" in result["Goal"]
+
+
+# ---------------------------------------------------------------------------
+# split_sections — Seam Test (integration contract)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.seam
+@pytest.mark.integration_contract("SECTION_DICT")
+class TestSectionDictContract:
+    """Seam test: verify split_sections output contract.
+
+    Contract: dict[str, str] with exactly 9 keys.
+    Producer: TASK-DC-002
+    """
+
+    def test_section_dict_keys(self):
+        content = "\n".join(
+            f"## {name}\n{'x' * 100}"
+            for name in [
+                "Goal",
+                "Source Documents",
+                "System Prompt",
+                "Generation Targets",
+                "Generation Guidelines",
+                "Evaluation Criteria",
+                "Output Schema",
+                "Metadata Schema",
+                "Layer Routing",
+            ]
+        )
+        result = split_sections(content)
+        assert isinstance(result, dict)
+        assert len(result) == 9
+        assert "Goal" in result
+        assert "Layer Routing" in result
