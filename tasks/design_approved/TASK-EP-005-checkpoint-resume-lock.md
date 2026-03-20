@@ -1,15 +1,15 @@
 ---
-id: TASK-EP-005
-title: "Checkpoint/resume logic and lock file concurrency guard"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 2
-implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-EP-002
-status: pending
+- TASK-EP-002
+feature_id: FEAT-2CF1
+id: TASK-EP-005
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: Checkpoint/resume logic and lock file concurrency guard
+wave: 2
 ---
 
 # Task: Checkpoint/Resume Logic and Lock File Concurrency Guard
