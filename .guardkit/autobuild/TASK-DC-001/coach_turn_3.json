@@ -1,0 +1,181 @@
+{
+  "task_id": "TASK-DC-001",
+  "turn": 3,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest domain_config/tests/test_models.py -v --tb=short",
+      "test_output_summary": "Error detail:\n\ndomain_config/tests/test_models.py::TestGoalValidationError::test_attributes_stored PASSED [  0%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_str_includes_section_and_message PASSED [  1%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_is_exception PASSED [  2%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_can_be_raised_and_caught PASSED [  3%]\nResult:\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_has_section_attribute PASSED [ 97%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_has_message_attribute PASSED [ 98%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_constructor_signature PASSED [ 99%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_raise_and_catch PASSED [100%]\n============================= 110 passed in 0.11s ==============================",
+      "duration_seconds": 9.378581047058105
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 9,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`domain_config/` package created with `__init__.py` and `models.py`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: domain_config/__init__.py exists (26 lines, re-exports all 6 public names). domain_config/models.py exists (133 lines, defines all models). Both files importable: `from domain_config import GoalConfig` works. Test: TestImports.test_all_models_importable_from_package (PASSED).",
+      "notes": "VERIFIED: domain_config/__init__.py exists (26 lines, re-exports all 6 public names). domain_config/models.py exists (133 lines, defines all models). Both files importable: `from domain_config import GoalConfig` works. Test: TestImports.test_all_models_importable_from_package (PASSED)."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "All 5 Pydantic models match the API contract field types exactly",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: All 5 models are pydantic.BaseModel subclasses (tested by TestAC002_PydanticModelsMatchContract.test_all_five_models_are_pydantic_base_model). Field names verified via model_fields.keys(): SourceDocument has {file_pattern, mode, notes} (line 50-52 of models.py), GenerationTarget has {category, type, count} (lines 61-63), EvaluationCriterion has {name, description, weight} (lines 74-76), MetadataField has {field, type, required, valid_values} (lines 97-100), GoalConfig has all 9 fields (lines 114-122). All match API-domain-config.md contract exactly. Runtime type checks: file_pattern->str, mode->str(Literal), notes->str, category->str, type->str(Literal), count->int, name->str, description->str, weight->float, field->str, required->bool, valid_values->list[str]. Tests: TestAC002_PydanticModelsMatchContract (6 tests, ALL PASSED).",
+      "notes": "VERIFIED: All 5 models are pydantic.BaseModel subclasses (tested by TestAC002_PydanticModelsMatchContract.test_all_five_models_are_pydantic_base_model). Field names verified via model_fields.keys(): SourceDocument has {file_pattern, mode, notes} (line 50-52 of models.py), GenerationTarget has {category, type, count} (lines 61-63), EvaluationCriterion has {name, description, weight} (lines 74-76), MetadataField has {field, type, required, valid_values} (lines 97-100), GoalConfig has all 9 fields (lines 114-122). All match API-domain-config.md contract exactly. Runtime type checks: file_pattern->str, mode->str(Literal), notes->str, category->str, type->str(Literal), count->int, name->str, description->str, weight->float, field->str, required->bool, valid_values->list[str]. Tests: TestAC002_PydanticModelsMatchContract (6 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: Line 51 of domain_config/models.py declares: `mode: Literal[\"standard\", \"vlm\"]`. Pydantic enforces this at construction time. 'standard' accepted (TestAC003.test_standard_accepted PASSED), 'vlm' accepted (TestAC003.test_vlm_accepted PASSED), 'ocr' rejected with ValidationError (TestAC003.test_ocr_rejected PASSED), arbitrary string rejected (TestAC003.test_arbitrary_string_rejected PASSED). Additional coverage: 7 invalid modes tested in TestSourceDocument.test_invalid_mode_rejected (ALL PASSED). Tests: TestAC003_SourceDocumentModeLiteral (4 tests, ALL PASSED).",
+      "notes": "VERIFIED: Line 51 of domain_config/models.py declares: `mode: Literal[\"standard\", \"vlm\"]`. Pydantic enforces this at construction time. 'standard' accepted (TestAC003.test_standard_accepted PASSED), 'vlm' accepted (TestAC003.test_vlm_accepted PASSED), 'ocr' rejected with ValidationError (TestAC003.test_ocr_rejected PASSED), arbitrary string rejected (TestAC003.test_arbitrary_string_rejected PASSED). Additional coverage: 7 invalid modes tested in TestSourceDocument.test_invalid_mode_rejected (ALL PASSED). Tests: TestAC003_SourceDocumentModeLiteral (4 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: Line 62 of domain_config/models.py declares: `type: Literal[\"reasoning\", \"direct\"]`. Pydantic enforces this at construction time. 'reasoning' accepted (TestAC004.test_reasoning_accepted PASSED), 'direct' accepted (TestAC004.test_direct_accepted PASSED), 'invalid' rejected with ValidationError (TestAC004.test_invalid_type_rejected PASSED). Additional coverage: 5 invalid types tested in TestGenerationTarget.test_invalid_type_rejected (ALL PASSED). Tests: TestAC004_GenerationTargetTypeLiteral (3 tests, ALL PASSED).",
+      "notes": "VERIFIED: Line 62 of domain_config/models.py declares: `type: Literal[\"reasoning\", \"direct\"]`. Pydantic enforces this at construction time. 'reasoning' accepted (TestAC004.test_reasoning_accepted PASSED), 'direct' accepted (TestAC004.test_direct_accepted PASSED), 'invalid' rejected with ValidationError (TestAC004.test_invalid_type_rejected PASSED). Additional coverage: 5 invalid types tested in TestGenerationTarget.test_invalid_type_rejected (ALL PASSED). Tests: TestAC004_GenerationTargetTypeLiteral (3 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: Lines 78-91 of domain_config/models.py implement @field_validator('name') that calls v.isidentifier() (rejects non-identifiers with ValueError('not a valid Python identifier')) and keyword.iskeyword(v) (rejects keywords with ValueError('must not be a Python reserved keyword')). Valid identifier 'socratic_approach' accepted (TestAC005.test_valid_identifier_accepted PASSED). Hyphenated 'socratic-approach' rejected as not identifier (TestAC005.test_hyphenated_name_rejected_as_not_identifier PASSED). Keyword 'class' rejected (TestAC005.test_keyword_class_rejected PASSED). Keyword 'import' rejected (TestAC005.test_keyword_import_rejected PASSED). str.isidentifier() used (TestAC005.test_uses_str_isidentifier PASSED). keyword.iskeyword() used (TestAC005.test_uses_keyword_iskeyword PASSED). Exhaustive: all keyword.kwlist entries rejected (TestEvaluationCriterion.test_all_keywords_are_covered PASSED). Tests: TestAC005_EvaluationCriterionNameValidation (6 tests, ALL PASSED).",
+      "notes": "VERIFIED: Lines 78-91 of domain_config/models.py implement @field_validator('name') that calls v.isidentifier() (rejects non-identifiers with ValueError('not a valid Python identifier')) and keyword.iskeyword(v) (rejects keywords with ValueError('must not be a Python reserved keyword')). Valid identifier 'socratic_approach' accepted (TestAC005.test_valid_identifier_accepted PASSED). Hyphenated 'socratic-approach' rejected as not identifier (TestAC005.test_hyphenated_name_rejected_as_not_identifier PASSED). Keyword 'class' rejected (TestAC005.test_keyword_class_rejected PASSED). Keyword 'import' rejected (TestAC005.test_keyword_import_rejected PASSED). str.isidentifier() used (TestAC005.test_uses_str_isidentifier PASSED). keyword.iskeyword() used (TestAC005.test_uses_keyword_iskeyword PASSED). Exhaustive: all keyword.kwlist entries rejected (TestEvaluationCriterion.test_all_keywords_are_covered PASSED). Tests: TestAC005_EvaluationCriterionNameValidation (6 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "`GoalValidationError` exception class with `section` and `message` attributes",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: Lines 25-36 of domain_config/models.py define GoalValidationError(Exception) with __init__(self, section: str, message: str) that stores self.section = section and self.message = message as instance attributes, then calls super().__init__(f'[{section}] {message}'). issubclass(GoalValidationError, Exception) is True (TestAC006.test_is_exception_subclass PASSED). hasattr(err, 'section') and err.section == 'Goal' (TestAC006.test_has_section_attribute PASSED). hasattr(err, 'message') and err.message == 'too short' (TestAC006.test_has_message_attribute PASSED). Constructor signature has 'self', 'section', 'message' params (TestAC006.test_constructor_signature PASSED). Can be raised and caught with correct attributes (TestAC006.test_raise_and_catch PASSED). Tests: TestAC006_GoalValidationErrorException (5 tests, ALL PASSED).",
+      "notes": "VERIFIED: Lines 25-36 of domain_config/models.py define GoalValidationError(Exception) with __init__(self, section: str, message: str) that stores self.section = section and self.message = message as instance attributes, then calls super().__init__(f'[{section}] {message}'). issubclass(GoalValidationError, Exception) is True (TestAC006.test_is_exception_subclass PASSED). hasattr(err, 'section') and err.section == 'Goal' (TestAC006.test_has_section_attribute PASSED). hasattr(err, 'message') and err.message == 'too short' (TestAC006.test_has_message_attribute PASSED). Constructor signature has 'self', 'section', 'message' params (TestAC006.test_constructor_signature PASSED). Can be raised and caught with correct attributes (TestAC006.test_raise_and_catch PASSED). Tests: TestAC006_GoalValidationErrorException (5 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "`GoalConfig` model with all 9 fields typed correctly",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: Lines 108-122 of domain_config/models.py define GoalConfig(BaseModel) with exactly 9 fields: goal(str, min_length=50), source_documents(list[SourceDocument], min_length=1), system_prompt(str, min_length=100), generation_targets(list[GenerationTarget], min_length=1), generation_guidelines(str, min_length=100), evaluation_criteria(list[EvaluationCriterion], min_length=3), output_schema(dict), metadata_schema(list[MetadataField]), layer_routing(dict[str, str]). Field set verified by TestGoalConfig.test_all_nine_fields_present and TestAC002.test_goal_config_fields_match_contract (PASSED). Boundary tests: goal 50 chars OK / 49 rejected, system_prompt 100 OK / 99 rejected, guidelines 100 OK / 99 rejected, 3 criteria OK / 2 rejected. Tests: TestGoalConfig (18 tests, ALL PASSED).",
+      "notes": "VERIFIED: Lines 108-122 of domain_config/models.py define GoalConfig(BaseModel) with exactly 9 fields: goal(str, min_length=50), source_documents(list[SourceDocument], min_length=1), system_prompt(str, min_length=100), generation_targets(list[GenerationTarget], min_length=1), generation_guidelines(str, min_length=100), evaluation_criteria(list[EvaluationCriterion], min_length=3), output_schema(dict), metadata_schema(list[MetadataField]), layer_routing(dict[str, str]). Field set verified by TestGoalConfig.test_all_nine_fields_present and TestAC002.test_goal_config_fields_match_contract (PASSED). Boundary tests: goal 50 chars OK / 49 rejected, system_prompt 100 OK / 99 rejected, guidelines 100 OK / 99 rejected, 3 criteria OK / 2 rejected. Tests: TestGoalConfig (18 tests, ALL PASSED)."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Models importable from `domain_config` package root",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: domain_config/__init__.py (lines 9-16) re-exports all 6 public names: EvaluationCriterion, GenerationTarget, GoalConfig, GoalValidationError, MetadataField, SourceDocument. `from domain_config import GoalConfig, SourceDocument, GoalValidationError` works. Tests: TestImports.test_all_models_importable_from_package and test_all_models_importable_from_models_module (PASSED).",
+      "notes": "VERIFIED: domain_config/__init__.py (lines 9-16) re-exports all 6 public names: EvaluationCriterion, GenerationTarget, GoalConfig, GoalValidationError, MetadataField, SourceDocument. `from domain_config import GoalConfig, SourceDocument, GoalValidationError` works. Tests: TestImports.test_all_models_importable_from_package and test_all_models_importable_from_models_module (PASSED)."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Unit tests for model construction and field validation",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "VERIFIED: 110 tests in domain_config/tests/test_models.py across 12 test classes covering: model construction (valid kwargs for all 5 models + GoalValidationError), field validation (min_length, ge/le, Literal constraints, identifier validation), boundary conditions (exact boundaries for 50/100 char minimums, count=1, weight=0.0/1.0), negative cases (invalid modes, types, identifiers, keywords, empty strings, missing fields), import contracts (package and module level), and explicit AC-verification tests (TestAC002-TestAC006). ALL 110 PASSED in 0.12s. No regressions in synthesis tests (203 passed).",
+      "notes": "VERIFIED: 110 tests in domain_config/tests/test_models.py across 12 test classes covering: model construction (valid kwargs for all 5 models + GoalValidationError), field validation (min_length, ge/le, Literal constraints, identifier validation), boundary conditions (exact boundaries for 50/100 char minimums, count=1, weight=0.0/1.0), negative cases (invalid modes, types, identifiers, keywords, empty strings, missing fields), import contracts (package and module level), and explicit AC-verification tests (TestAC002-TestAC006). ALL 110 PASSED in 0.12s. No regressions in synthesis tests (203 passed)."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`domain_config/` package created with `__init__.py` and `models.py`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: domain_config/__init__.py exists (26 lines, re-exports all 6 public names). domain_config/models.py exists (133 lines, defines all models). Both files importable: `from domain_config import GoalConfig` works. Test: TestImports.test_all_models_importable_from_package (PASSED).",
+        "notes": "VERIFIED: domain_config/__init__.py exists (26 lines, re-exports all 6 public names). domain_config/models.py exists (133 lines, defines all models). Both files importable: `from domain_config import GoalConfig` works. Test: TestImports.test_all_models_importable_from_package (PASSED)."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "All 5 Pydantic models match the API contract field types exactly",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: All 5 models are pydantic.BaseModel subclasses (tested by TestAC002_PydanticModelsMatchContract.test_all_five_models_are_pydantic_base_model). Field names verified via model_fields.keys(): SourceDocument has {file_pattern, mode, notes} (line 50-52 of models.py), GenerationTarget has {category, type, count} (lines 61-63), EvaluationCriterion has {name, description, weight} (lines 74-76), MetadataField has {field, type, required, valid_values} (lines 97-100), GoalConfig has all 9 fields (lines 114-122). All match API-domain-config.md contract exactly. Runtime type checks: file_pattern->str, mode->str(Literal), notes->str, category->str, type->str(Literal), count->int, name->str, description->str, weight->float, field->str, required->bool, valid_values->list[str]. Tests: TestAC002_PydanticModelsMatchContract (6 tests, ALL PASSED).",
+        "notes": "VERIFIED: All 5 models are pydantic.BaseModel subclasses (tested by TestAC002_PydanticModelsMatchContract.test_all_five_models_are_pydantic_base_model). Field names verified via model_fields.keys(): SourceDocument has {file_pattern, mode, notes} (line 50-52 of models.py), GenerationTarget has {category, type, count} (lines 61-63), EvaluationCriterion has {name, description, weight} (lines 74-76), MetadataField has {field, type, required, valid_values} (lines 97-100), GoalConfig has all 9 fields (lines 114-122). All match API-domain-config.md contract exactly. Runtime type checks: file_pattern->str, mode->str(Literal), notes->str, category->str, type->str(Literal), count->int, name->str, description->str, weight->float, field->str, required->bool, valid_values->list[str]. Tests: TestAC002_PydanticModelsMatchContract (6 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: Line 51 of domain_config/models.py declares: `mode: Literal[\"standard\", \"vlm\"]`. Pydantic enforces this at construction time. 'standard' accepted (TestAC003.test_standard_accepted PASSED), 'vlm' accepted (TestAC003.test_vlm_accepted PASSED), 'ocr' rejected with ValidationError (TestAC003.test_ocr_rejected PASSED), arbitrary string rejected (TestAC003.test_arbitrary_string_rejected PASSED). Additional coverage: 7 invalid modes tested in TestSourceDocument.test_invalid_mode_rejected (ALL PASSED). Tests: TestAC003_SourceDocumentModeLiteral (4 tests, ALL PASSED).",
+        "notes": "VERIFIED: Line 51 of domain_config/models.py declares: `mode: Literal[\"standard\", \"vlm\"]`. Pydantic enforces this at construction time. 'standard' accepted (TestAC003.test_standard_accepted PASSED), 'vlm' accepted (TestAC003.test_vlm_accepted PASSED), 'ocr' rejected with ValidationError (TestAC003.test_ocr_rejected PASSED), arbitrary string rejected (TestAC003.test_arbitrary_string_rejected PASSED). Additional coverage: 7 invalid modes tested in TestSourceDocument.test_invalid_mode_rejected (ALL PASSED). Tests: TestAC003_SourceDocumentModeLiteral (4 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: Line 62 of domain_config/models.py declares: `type: Literal[\"reasoning\", \"direct\"]`. Pydantic enforces this at construction time. 'reasoning' accepted (TestAC004.test_reasoning_accepted PASSED), 'direct' accepted (TestAC004.test_direct_accepted PASSED), 'invalid' rejected with ValidationError (TestAC004.test_invalid_type_rejected PASSED). Additional coverage: 5 invalid types tested in TestGenerationTarget.test_invalid_type_rejected (ALL PASSED). Tests: TestAC004_GenerationTargetTypeLiteral (3 tests, ALL PASSED).",
+        "notes": "VERIFIED: Line 62 of domain_config/models.py declares: `type: Literal[\"reasoning\", \"direct\"]`. Pydantic enforces this at construction time. 'reasoning' accepted (TestAC004.test_reasoning_accepted PASSED), 'direct' accepted (TestAC004.test_direct_accepted PASSED), 'invalid' rejected with ValidationError (TestAC004.test_invalid_type_rejected PASSED). Additional coverage: 5 invalid types tested in TestGenerationTarget.test_invalid_type_rejected (ALL PASSED). Tests: TestAC004_GenerationTargetTypeLiteral (3 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: Lines 78-91 of domain_config/models.py implement @field_validator('name') that calls v.isidentifier() (rejects non-identifiers with ValueError('not a valid Python identifier')) and keyword.iskeyword(v) (rejects keywords with ValueError('must not be a Python reserved keyword')). Valid identifier 'socratic_approach' accepted (TestAC005.test_valid_identifier_accepted PASSED). Hyphenated 'socratic-approach' rejected as not identifier (TestAC005.test_hyphenated_name_rejected_as_not_identifier PASSED). Keyword 'class' rejected (TestAC005.test_keyword_class_rejected PASSED). Keyword 'import' rejected (TestAC005.test_keyword_import_rejected PASSED). str.isidentifier() used (TestAC005.test_uses_str_isidentifier PASSED). keyword.iskeyword() used (TestAC005.test_uses_keyword_iskeyword PASSED). Exhaustive: all keyword.kwlist entries rejected (TestEvaluationCriterion.test_all_keywords_are_covered PASSED). Tests: TestAC005_EvaluationCriterionNameValidation (6 tests, ALL PASSED).",
+        "notes": "VERIFIED: Lines 78-91 of domain_config/models.py implement @field_validator('name') that calls v.isidentifier() (rejects non-identifiers with ValueError('not a valid Python identifier')) and keyword.iskeyword(v) (rejects keywords with ValueError('must not be a Python reserved keyword')). Valid identifier 'socratic_approach' accepted (TestAC005.test_valid_identifier_accepted PASSED). Hyphenated 'socratic-approach' rejected as not identifier (TestAC005.test_hyphenated_name_rejected_as_not_identifier PASSED). Keyword 'class' rejected (TestAC005.test_keyword_class_rejected PASSED). Keyword 'import' rejected (TestAC005.test_keyword_import_rejected PASSED). str.isidentifier() used (TestAC005.test_uses_str_isidentifier PASSED). keyword.iskeyword() used (TestAC005.test_uses_keyword_iskeyword PASSED). Exhaustive: all keyword.kwlist entries rejected (TestEvaluationCriterion.test_all_keywords_are_covered PASSED). Tests: TestAC005_EvaluationCriterionNameValidation (6 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`GoalValidationError` exception class with `section` and `message` attributes",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: Lines 25-36 of domain_config/models.py define GoalValidationError(Exception) with __init__(self, section: str, message: str) that stores self.section = section and self.message = message as instance attributes, then calls super().__init__(f'[{section}] {message}'). issubclass(GoalValidationError, Exception) is True (TestAC006.test_is_exception_subclass PASSED). hasattr(err, 'section') and err.section == 'Goal' (TestAC006.test_has_section_attribute PASSED). hasattr(err, 'message') and err.message == 'too short' (TestAC006.test_has_message_attribute PASSED). Constructor signature has 'self', 'section', 'message' params (TestAC006.test_constructor_signature PASSED). Can be raised and caught with correct attributes (TestAC006.test_raise_and_catch PASSED). Tests: TestAC006_GoalValidationErrorException (5 tests, ALL PASSED).",
+        "notes": "VERIFIED: Lines 25-36 of domain_config/models.py define GoalValidationError(Exception) with __init__(self, section: str, message: str) that stores self.section = section and self.message = message as instance attributes, then calls super().__init__(f'[{section}] {message}'). issubclass(GoalValidationError, Exception) is True (TestAC006.test_is_exception_subclass PASSED). hasattr(err, 'section') and err.section == 'Goal' (TestAC006.test_has_section_attribute PASSED). hasattr(err, 'message') and err.message == 'too short' (TestAC006.test_has_message_attribute PASSED). Constructor signature has 'self', 'section', 'message' params (TestAC006.test_constructor_signature PASSED). Can be raised and caught with correct attributes (TestAC006.test_raise_and_catch PASSED). Tests: TestAC006_GoalValidationErrorException (5 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "`GoalConfig` model with all 9 fields typed correctly",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: Lines 108-122 of domain_config/models.py define GoalConfig(BaseModel) with exactly 9 fields: goal(str, min_length=50), source_documents(list[SourceDocument], min_length=1), system_prompt(str, min_length=100), generation_targets(list[GenerationTarget], min_length=1), generation_guidelines(str, min_length=100), evaluation_criteria(list[EvaluationCriterion], min_length=3), output_schema(dict), metadata_schema(list[MetadataField]), layer_routing(dict[str, str]). Field set verified by TestGoalConfig.test_all_nine_fields_present and TestAC002.test_goal_config_fields_match_contract (PASSED). Boundary tests: goal 50 chars OK / 49 rejected, system_prompt 100 OK / 99 rejected, guidelines 100 OK / 99 rejected, 3 criteria OK / 2 rejected. Tests: TestGoalConfig (18 tests, ALL PASSED).",
+        "notes": "VERIFIED: Lines 108-122 of domain_config/models.py define GoalConfig(BaseModel) with exactly 9 fields: goal(str, min_length=50), source_documents(list[SourceDocument], min_length=1), system_prompt(str, min_length=100), generation_targets(list[GenerationTarget], min_length=1), generation_guidelines(str, min_length=100), evaluation_criteria(list[EvaluationCriterion], min_length=3), output_schema(dict), metadata_schema(list[MetadataField]), layer_routing(dict[str, str]). Field set verified by TestGoalConfig.test_all_nine_fields_present and TestAC002.test_goal_config_fields_match_contract (PASSED). Boundary tests: goal 50 chars OK / 49 rejected, system_prompt 100 OK / 99 rejected, guidelines 100 OK / 99 rejected, 3 criteria OK / 2 rejected. Tests: TestGoalConfig (18 tests, ALL PASSED)."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Models importable from `domain_config` package root",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: domain_config/__init__.py (lines 9-16) re-exports all 6 public names: EvaluationCriterion, GenerationTarget, GoalConfig, GoalValidationError, MetadataField, SourceDocument. `from domain_config import GoalConfig, SourceDocument, GoalValidationError` works. Tests: TestImports.test_all_models_importable_from_package and test_all_models_importable_from_models_module (PASSED).",
+        "notes": "VERIFIED: domain_config/__init__.py (lines 9-16) re-exports all 6 public names: EvaluationCriterion, GenerationTarget, GoalConfig, GoalValidationError, MetadataField, SourceDocument. `from domain_config import GoalConfig, SourceDocument, GoalValidationError` works. Tests: TestImports.test_all_models_importable_from_package and test_all_models_importable_from_models_module (PASSED)."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Unit tests for model construction and field validation",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "VERIFIED: 110 tests in domain_config/tests/test_models.py across 12 test classes covering: model construction (valid kwargs for all 5 models + GoalValidationError), field validation (min_length, ge/le, Literal constraints, identifier validation), boundary conditions (exact boundaries for 50/100 char minimums, count=1, weight=0.0/1.0), negative cases (invalid modes, types, identifiers, keywords, empty strings, missing fields), import contracts (package and module level), and explicit AC-verification tests (TestAC002-TestAC006). ALL 110 PASSED in 0.12s. No regressions in synthesis tests (203 passed).",
+        "notes": "VERIFIED: 110 tests in domain_config/tests/test_models.py across 12 test classes covering: model construction (valid kwargs for all 5 models + GoalValidationError), field validation (min_length, ge/le, Literal constraints, identifier validation), boundary conditions (exact boundaries for 50/100 char minimums, count=1, weight=0.0/1.0), negative cases (invalid modes, types, identifiers, keywords, empty strings, missing fields), import contracts (package and module level), and explicit AC-verification tests (TestAC002-TestAC006). ALL 110 PASSED in 0.12s. No regressions in synthesis tests (203 passed)."
+      }
+    ]
+  },
+  "issues": [],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 1364 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2789/7892 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- USED_AS_TYPE\n- IMPLEMENTED_BY_CODE_PATTERN\n- IS_USED_IN_PATTERN\n- USED_IN_PATTERNS\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- PART_OF_DIRECTORY_LAYOUT\n- CREATED_AT\n- PART_OF_DIRECTORY_LAYOUT\n- PART_OF_DIRECTORY_LAYOUT\n\n### \u26a0\ufe0f Warnings\n- CREATES\n- HAS_PROJECT_ID\n- CREATES\n- CALLS\n\n### \ud83c\udfad Role Constraints\n- MUST_PERFORM\n- PROJECT_INVOLVES\n- PROJECT_INVOLVES\n- HAS_ROLE_MUST_DO\n- MUST_CREATE_CRITERIA_VERIFICATION_ENTRIES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- IMPLEMENTATION_MODE_APPLIES_TO\n- ASSOCIATED_WITH_PROJECT\n\n\n## Previous Turn Summary (Turn 2)\n**What was attempted**: Implementation attempt\n**Player decision**: feedback\n**Coach decision**: feedback\n**Coach feedback**: - Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models match the API contract field types exactly\n  \u2022 `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name` validated as Python identifier + not keyword\n  \u2022 `GoalValidationError` exception class with `section` and `message` attributes\n\n**Acceptance Criteria Status**:\n  \u25cb AC-001: verified\n  \u2717 AC-002: rejected\n  \u2717 AC-003: rejected\n  \u2717 AC-004: rejected\n  \u2717 AC-005: rejected\n  \u2717 AC-006: rejected\n  \u25cb AC-007: verified\n  \u25cb AC-008: verified\n  \u25cb AC-009: verified",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

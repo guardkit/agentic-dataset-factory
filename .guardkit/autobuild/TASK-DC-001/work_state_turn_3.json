@@ -1,0 +1,37 @@
+{
+  "turn_number": 3,
+  "files_modified": [],
+  "files_created": [],
+  "tests_written": [
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_passed": true,
+  "test_count": 203,
+  "timestamp": "2026-03-20T11:07:10.376854",
+  "detection_method": "player_report",
+  "git_changes": {
+    "files_modified": [
+      ".guardkit/autobuild/TASK-DC-001/checkpoints.json",
+      ".guardkit/autobuild/TASK-DC-001/turn_context.json"
+    ],
+    "files_added": [
+      ".guardkit/autobuild/TASK-DC-001/player_turn_3.json"
+    ],
+    "files_deleted": [],
+    "diff_stats": ".guardkit/autobuild/TASK-DC-001/checkpoints.json  | 10 +++++++++-\n .guardkit/autobuild/TASK-DC-001/turn_context.json |  4 ++--\n 2 files changed, 11 insertions(+), 3 deletions(-)",
+    "insertions": 11,
+    "deletions": 3,
+    "timestamp": "2026-03-20T11:07:09.437076"
+  },
+  "test_results": {
+    "tests_run": true,
+    "tests_passed": true,
+    "test_count": 203,
+    "passed_count": 203,
+    "failed_count": 0,
+    "output_summary": "........................................................................ [ 35%]\n........................................................................ [ 70%]\n...........................................................              [100%]\n203 passed in 0.46s\n",
+    "timestamp": "2026-03-20T11:07:10.376584",
+    "error": null
+  },
+  "player_report_available": true
+}
