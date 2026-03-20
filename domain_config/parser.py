@@ -332,3 +332,133 @@ def extract_json(section_body: str) -> dict:
         )
 
     return parsed
+
+
+# ---------------------------------------------------------------------------
+# Public API — parse_goal_md
+# ---------------------------------------------------------------------------
+
+# Column maps for each table section, matching the GOAL.md schema.
+_SOURCE_DOCS_COLUMN_MAP: dict[str, str] = {
+    "File Pattern": "file_pattern",
+    "Mode": "mode",
+    "Notes": "notes",
+}
+
+_GENERATION_TARGETS_COLUMN_MAP: dict[str, str] = {
+    "Category": "category",
+    "Type": "type",
+    "Count": "count",
+}
+
+_EVALUATION_CRITERIA_COLUMN_MAP: dict[str, str] = {
+    "Criterion": "name",
+    "Description": "description",
+    "Weight": "weight",
+}
+
+_METADATA_SCHEMA_COLUMN_MAP: dict[str, str] = {
+    "Field": "field",
+    "Type": "type",
+    "Required": "required",
+    "Valid Values": "valid_values",
+}
+
+_LAYER_ROUTING_COLUMN_MAP: dict[str, str] = {
+    "Layer": "key",
+    "Destination": "value",
+}
+
+
+def parse_goal_md(goal_path: Path) -> GoalConfig:
+    """Parse and validate a GOAL.md file.
+
+    Orchestrates the full parsing pipeline:
+    1. Read file from disk (raises GoalValidationError if not found)
+    2. Split into 9 named sections
+    3. Parse each section using the appropriate parser
+    4. Construct a GoalConfig
+    5. Run cross-section validation
+    6. Return the validated config
+
+    Args:
+        goal_path: Path to the GOAL.md file on disk.
+
+    Returns:
+        Validated GoalConfig instance with all 9 sections populated.
+
+    Raises:
+        GoalValidationError: If the file is not found, is empty,
+            has missing sections, contains malformed data, or fails
+            any cross-section validation rule.
+    """
+    from domain_config.models import (
+        EvaluationCriterion,
+        GenerationTarget,
+        GoalConfig,
+        MetadataField,
+        SourceDocument,
+    )
+    from domain_config.validators import validate_goal_config
+
+    # Step 1-2: Read file and split into sections.
+    # split_sections handles FileNotFoundError and empty-file cases.
+    sections = split_sections(goal_path)
+
+    # Step 3: Parse each section into its appropriate data structure.
+    source_documents = parse_table(
+        sections["Source Documents"],
+        SourceDocument,
+        _SOURCE_DOCS_COLUMN_MAP,
+    )
+
+    generation_targets = parse_table(
+        sections["Generation Targets"],
+        GenerationTarget,
+        _GENERATION_TARGETS_COLUMN_MAP,
+    )
+
+    evaluation_criteria = parse_table(
+        sections["Evaluation Criteria"],
+        EvaluationCriterion,
+        _EVALUATION_CRITERIA_COLUMN_MAP,
+    )
+
+    output_schema = extract_json(sections["Output Schema"])
+
+    metadata_schema = parse_table(
+        sections["Metadata Schema"],
+        MetadataField,
+        _METADATA_SCHEMA_COLUMN_MAP,
+    )
+
+    layer_routing = parse_table(
+        sections["Layer Routing"],
+        dict,
+        _LAYER_ROUTING_COLUMN_MAP,
+    )
+
+    # Step 4: Construct GoalConfig using model_construct() to bypass
+    # Pydantic field-level validators (min_length, Field(min_length=N)).
+    # This allows validate_goal_config() in Step 5 to aggregate ALL
+    # failures with proper section names rather than Pydantic failing
+    # on the first constraint at model construction time.
+    config = GoalConfig.model_construct(
+        goal=sections["Goal"],
+        source_documents=source_documents,
+        system_prompt=sections["System Prompt"],
+        generation_targets=generation_targets,
+        generation_guidelines=sections["Generation Guidelines"],
+        evaluation_criteria=evaluation_criteria,
+        output_schema=output_schema,
+        metadata_schema=metadata_schema,
+        layer_routing=layer_routing,
+    )
+
+    # Step 5: Run cross-section validation (aggregates all failures).
+    # This is the single point of validation — it checks all 10 rules
+    # from DM-goal-schema.md and raises with all failures at once.
+    validate_goal_config(sections, config)
+
+    # Step 6: Return the validated config.
+    return config
