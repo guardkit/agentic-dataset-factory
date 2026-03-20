@@ -1,0 +1,93 @@
+id: FEAT-F59D
+name: Ingestion Pipeline — Docling PDF Processing to ChromaDB
+description: One-time pre-processing pipeline (Stage 0) that converts source PDF documents
+  into queryable chunks in ChromaDB via Docling extraction, fixed-size chunking, and
+  batch indexing with provenance metadata
+created: '2026-03-19T21:05:14.775543'
+status: planned
+complexity: 5
+estimated_tasks: 7
+tasks:
+- id: TASK-ING-001
+  name: Create ingestion package and models
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-001-create-ingestion-package-and-models.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-ING-002
+  name: Implement chunker with RecursiveCharacterTextSplitter
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-002-implement-chunker.md
+  complexity: 4
+  dependencies:
+  - TASK-ING-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-ING-003
+  name: Implement Docling processor for standard and VLM modes
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-003-implement-docling-processor.md
+  complexity: 5
+  dependencies:
+  - TASK-ING-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-ING-004
+  name: Implement ChromaDB indexer with collection CRUD and batch upsert
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-004-implement-chromadb-indexer.md
+  complexity: 5
+  dependencies:
+  - TASK-ING-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-ING-005
+  name: Implement GOAL.md Source Documents reader
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-005-implement-goal-reader.md
+  complexity: 3
+  dependencies:
+  - TASK-ING-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-ING-006
+  name: Implement ingest orchestrator and CLI entry point
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-006-implement-orchestrator-and-cli.md
+  complexity: 5
+  dependencies:
+  - TASK-ING-002
+  - TASK-ING-003
+  - TASK-ING-004
+  - TASK-ING-005
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-ING-007
+  name: Integration tests covering BDD smoke scenarios
+  file_path: tasks/backlog/ingestion-pipeline/TASK-ING-007-integration-tests-bdd-smoke.md
+  complexity: 5
+  dependencies:
+  - TASK-ING-006
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+orchestration:
+  parallel_groups:
+  - - TASK-ING-001
+  - - TASK-ING-002
+    - TASK-ING-003
+    - TASK-ING-004
+    - TASK-ING-005
+  - - TASK-ING-006
+  - - TASK-ING-007
+  estimated_duration_minutes: 416
+  recommended_parallel: 4

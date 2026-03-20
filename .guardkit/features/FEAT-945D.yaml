@@ -1,0 +1,70 @@
+id: FEAT-945D
+name: LangChain Tools — RAG Retrieval and Write Output
+description: Two LangChain @tool functions (rag_retrieval, write_output) with closure-based
+  factories, layer routing, and D7 error-string contract
+created: '2026-03-19T21:37:29.291503'
+status: planned
+complexity: 6
+estimated_tasks: 5
+tasks:
+- id: TASK-LCT-001
+  name: Create tools package and Pydantic models
+  file_path: tasks/backlog/langchain-tools/TASK-LCT-001-tools-package-and-models.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-LCT-002
+  name: Implement rag_retrieval factory and tool
+  file_path: tasks/backlog/langchain-tools/TASK-LCT-002-rag-retrieval-tool.md
+  complexity: 5
+  dependencies:
+  - TASK-LCT-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-LCT-003
+  name: Implement write_output factory and tool with layer routing
+  file_path: tasks/backlog/langchain-tools/TASK-LCT-003-write-output-tool.md
+  complexity: 6
+  dependencies:
+  - TASK-LCT-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 113
+- id: TASK-LCT-004
+  name: Tool assignment and factory wiring
+  file_path: tasks/backlog/langchain-tools/TASK-LCT-004-tool-assignment-factory-wiring.md
+  complexity: 3
+  dependencies:
+  - TASK-LCT-002
+  - TASK-LCT-003
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-LCT-005
+  name: Unit and integration tests for 41 BDD scenarios
+  file_path: tasks/backlog/langchain-tools/TASK-LCT-005-unit-integration-tests.md
+  complexity: 5
+  dependencies:
+  - TASK-LCT-002
+  - TASK-LCT-003
+  - TASK-LCT-004
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+orchestration:
+  parallel_groups:
+  - - TASK-LCT-001
+  - - TASK-LCT-002
+    - TASK-LCT-003
+  - - TASK-LCT-004
+  - - TASK-LCT-005
+  estimated_duration_minutes: 329
+  recommended_parallel: 2

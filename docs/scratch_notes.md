@@ -1,3 +1,13 @@
+Phase 1
+
+Updated: TASK-DOC-A180 is now tasks/backlog/TASK-DOC-A180-synthesis-user-guide.md — "Write user guide for the Phase 1 synthesis script".
+
+It covers: prerequisites, quick start, generation plan format, CLI options, output files, resumption, the 75/25 split, running tests, and common errors. It depends on TASK-GTS-005 so it can document the real CLI accurately once it's built.
+
+
+
+Phase 2
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ARCHITECTURE DOCUMENTATION CREATED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

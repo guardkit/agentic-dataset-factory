@@ -1,0 +1,69 @@
+id: FEAT-5606
+name: GOAL.md Parser and Strict Validation
+description: Parse GOAL.md files into validated GoalConfig using Pydantic v2 models
+  with regex section splitting, table parsing, JSON extraction, and cross-section
+  validation with error aggregation
+created: '2026-03-19T20:50:03.400062'
+status: planned
+complexity: 5
+estimated_tasks: 5
+tasks:
+- id: TASK-DC-001
+  name: Create domain_config package and Pydantic models
+  file_path: tasks/backlog/goal-md-parser/TASK-DC-001-pydantic-models.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-DC-002
+  name: Implement markdown section splitter
+  file_path: tasks/backlog/goal-md-parser/TASK-DC-002-section-splitter.md
+  complexity: 4
+  dependencies:
+  - TASK-DC-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-DC-003
+  name: Implement table parser and JSON extractor
+  file_path: tasks/backlog/goal-md-parser/TASK-DC-003-table-json-parsers.md
+  complexity: 5
+  dependencies:
+  - TASK-DC-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-DC-004
+  name: Implement cross-section validation and error aggregation
+  file_path: tasks/backlog/goal-md-parser/TASK-DC-004-cross-section-validation.md
+  complexity: 5
+  dependencies:
+  - TASK-DC-002
+  - TASK-DC-003
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-DC-005
+  name: Implement parse_goal_md public API and integration tests
+  file_path: tasks/backlog/goal-md-parser/TASK-DC-005-public-api-integration-tests.md
+  complexity: 4
+  dependencies:
+  - TASK-DC-004
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+orchestration:
+  parallel_groups:
+  - - TASK-DC-001
+  - - TASK-DC-002
+    - TASK-DC-003
+  - - TASK-DC-004
+  - - TASK-DC-005
+  estimated_duration_minutes: 283
+  recommended_parallel: 2
