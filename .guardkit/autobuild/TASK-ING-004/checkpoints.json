@@ -1,0 +1,14 @@
+{
+  "task_id": "TASK-ING-004",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "d65b80b2b20b92a1f39f67dfa1d398f65360c5a2",
+      "timestamp": "2026-03-20T17:03:00.573208",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: pass)"
+    }
+  ],
+  "last_updated": "2026-03-20T17:03:00.573540"
+}

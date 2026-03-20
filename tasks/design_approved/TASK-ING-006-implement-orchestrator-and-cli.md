@@ -1,26 +1,29 @@
 ---
-id: TASK-ING-006
-title: "Implement ingest orchestrator and CLI entry point"
-task_type: feature
-parent_review: TASK-REV-F479
-feature_id: FEAT-ING
-wave: 3
-implementation_mode: task-work
 complexity: 5
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-ING-002
-  - TASK-ING-003
-  - TASK-ING-004
-  - TASK-ING-005
-status: pending
+- TASK-ING-002
+- TASK-ING-003
+- TASK-ING-004
+- TASK-ING-005
+feature_id: FEAT-ING
+id: TASK-ING-006
+implementation_mode: task-work
+parent_review: TASK-REV-F479
 priority: high
-tags: [ingestion, orchestrator, cli]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- ingestion
+- orchestrator
+- cli
+task_type: feature
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement ingest orchestrator and CLI entry point
+updated: 2026-03-19 00:00:00+00:00
+wave: 3
 ---
 
 # Task: Implement ingest orchestrator and CLI entry point

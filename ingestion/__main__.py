@@ -1,23 +1,11 @@
-"""Stub entry point for ``python -m ingestion.ingest``.
+"""Entry point for ``python -m ingestion``.
 
-Full CLI implementation is deferred to TASK-ING-006.
+Delegates to ``ingestion.ingest.main()`` which wraps the CLI with argparse.
 """
 
 from __future__ import annotations
 
-import sys
-
-
-def main() -> None:
-    """Print usage instructions and exit."""
-    print(
-        "Usage: python -m ingestion.ingest --domain <domain-name>\n"
-        "\n"
-        "This command is not yet implemented.\n"
-        "See TASK-ING-006 for the full CLI implementation."
-    )
-    sys.exit(0)
-
+from ingestion.ingest import main
 
 if __name__ == "__main__":
     main()
