@@ -6,6 +6,7 @@ Defines a structured exception hierarchy for all ingestion failure modes:
 - GoalValidationError: GOAL.md missing or Source Documents section invalid
 - DoclingError: Docling processing failure for a specific document
 - IndexingError: ChromaDB indexing failure
+- CollectionExistsError: ChromaDB collection already exists when force=False
 """
 
 from __future__ import annotations
@@ -50,10 +51,19 @@ class IndexingError(IngestionError):
     """
 
 
+class CollectionExistsError(IngestionError):
+    """ChromaDB collection already exists when force=False.
+
+    Raised when ``create_or_replace_collection()`` is called with
+    ``force=False`` but the target collection already exists.
+    """
+
+
 __all__ = [
     "IngestionError",
     "DomainNotFoundError",
     "GoalValidationError",
     "DoclingError",
     "IndexingError",
+    "CollectionExistsError",
 ]
