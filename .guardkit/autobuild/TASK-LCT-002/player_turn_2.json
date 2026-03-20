@@ -1,22 +1,6 @@
 {
   "task_id": "TASK-LCT-002",
-  "timestamp": "2026-03-20T20:55:38.882691",
-  "completed": true,
-  "phases": {
-    "phase_3": {
-      "detected": true,
-      "text": "Implementation (Fix for Coach Feedback)",
-      "completed": true
-    }
-  },
-  "quality_gates": {
-    "tests_passing": true,
-    "tests_passed": 45,
-    "tests_failed": 0,
-    "coverage": 97.0,
-    "coverage_met": true,
-    "all_passed": true
-  },
+  "turn": 2,
   "files_modified": [
     ".claude/task-plans/TASK-LCT-002-implementation-plan.md",
     ".claude/task-plans/TASK-LCT-003-implementation-plan.md",
@@ -50,12 +34,32 @@
     "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/.guardkit/autobuild/TASK-LCT-002/player_turn_2.json"
   ],
   "tests_written": [],
-  "summary": "45 tests passed, 97.0% coverage, all quality gates passed",
-  "sdk_turns": {
-    "turns_used": 15,
-    "max_turns": 100,
-    "ceiling_hit": false
-  },
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Factory returns LangChain @tool-decorated callable (AC-001)",
+    "Collection name bound at factory time (AC-002)",
+    "Lazy ChromaDB PersistentClient initialisation (AC-003)",
+    "Client reuse across calls (AC-004)",
+    "Formatted chunks with source metadata (AC-005)",
+    "n_results validation 1-20 (AC-006)",
+    "Default n_results is 5 (AC-007)",
+    "Returns available chunks when fewer than requested (AC-008)",
+    "Collection-not-found returns error string (AC-009)",
+    "ChromaDB unavailable returns error string (AC-010)",
+    "Graceful handling of missing metadata (AC-011)",
+    "Path traversal rejection at factory time (AC-012)",
+    "All errors as descriptive strings D7 (AC-013)",
+    "Lint/format checks pass (AC-014)"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 15,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 45,
   "completion_promises": [
     {
       "criterion_id": "AC-001",
