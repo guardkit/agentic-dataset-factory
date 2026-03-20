@@ -1,0 +1,203 @@
+{
+  "task_id": "TASK-ING-004",
+  "turn": 1,
+  "files_modified": [
+    ".claude/task-plans/TASK-ING-002-implementation-plan.md",
+    ".claude/task-plans/TASK-ING-003-implementation-plan.md",
+    ".claude/task-plans/TASK-ING-004-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ING-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-002/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-002/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-002/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-003/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-003/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-003/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-004/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-005/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-005/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-005/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-005/turn_state_turn_1.json",
+    ".guardkit/bootstrap_state.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/__init__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/errors.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_chromadb_indexer.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_errors.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/pyproject.toml",
+    "=0.3.0",
+    "coverage.json",
+    "ingestion/__init__.py",
+    "ingestion/chromadb_indexer.py",
+    "ingestion/chunker.py",
+    "ingestion/docling_processor.py",
+    "ingestion/errors.py",
+    "ingestion/goal_reader.py",
+    "ingestion/tests/test_chromadb_indexer.py",
+    "ingestion/tests/test_chunker.py",
+    "ingestion/tests/test_docling_processor.py",
+    "ingestion/tests/test_errors.py",
+    "ingestion/tests/test_goal_reader.py",
+    "pyproject.toml",
+    "tasks/design_approved/TASK-ING-002-implement-chunker.md",
+    "tasks/design_approved/TASK-ING-003-implement-docling-processor.md",
+    "tasks/design_approved/TASK-ING-004-implement-chromadb-indexer.md"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-ING-003/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-004/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-004/task_work_results.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/.guardkit/autobuild/TASK-ING-004/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/chromadb_indexer.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_chromadb_indexer.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_chromadb_indexer.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_errors.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: PersistentClient with configurable persist_directory",
+    "AC-002: collection_exists() correctly detects existing collections",
+    "AC-003: create_or_replace_collection() creates new collection",
+    "AC-004: force=True deletes and recreates existing collection",
+    "AC-005: force=False raises CollectionExistsError",
+    "AC-006: index_chunks() indexes with correct metadata",
+    "AC-007: index_chunks() uses configurable batch_size",
+    "AC-008: index_chunks() handles embedding failures gracefully",
+    "AC-009: Force re-ingestion logs concurrent access warning",
+    "AC-010: Connection failure raises IndexingError",
+    "AC-011: All files pass lint/format checks"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 67,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 222,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "ChromaDBIndexer uses PersistentClient with configurable persist_directory",
+      "status": "complete",
+      "evidence": "ChromaDBIndexer.__init__ accepts persist_directory parameter (default './chroma_data') and passes it to chromadb.PersistentClient(path=persist_directory). Verified by TestPersistentClientInit with 4 tests including mock-based verification of PersistentClient call args.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "collection_exists() correctly detects existing collections",
+      "status": "complete",
+      "evidence": "collection_exists() queries client.list_collections() and checks if collection_name is in the list. Verified by TestCollectionExists with tests for nonexistent, existing, and deleted collections.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "create_or_replace_collection() creates new collection when none exists",
+      "status": "complete",
+      "evidence": "create_or_replace_collection() calls client.create_collection() when no existing collection is found. TestCreateCollection verifies creation and accessibility with 2 tests.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "create_or_replace_collection() with force=True deletes and recreates existing collection",
+      "status": "complete",
+      "evidence": "When force=True and collection exists, it calls client.delete_collection() then client.create_collection(). TestForceReplaceCollection verifies the replaced collection is empty (count==0) and that force=True on nonexistent collection also works.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "create_or_replace_collection() with force=False raises CollectionExistsError if collection exists",
+      "status": "complete",
+      "evidence": "When force=False (default) and collection exists, raises CollectionExistsError. CollectionExistsError added to errors.py inheriting from IngestionError. TestCollectionExistsError has 3 tests verifying the error is raised, is an IngestionError subclass, and that force=False is the default.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py",
+        "ingestion/errors.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "index_chunks() indexes chunks with correct metadata (source_file, page_number, chunk_index, docling_mode, domain)",
+      "status": "complete",
+      "evidence": "index_chunks() passes chunk.metadata directly to collection.add(metadatas=[...]). TestIndexChunksMetadata verifies all 5 required metadata keys are present, chunk IDs are deterministic ({domain}_{source_file}_{chunk_index}), documents are stored, and empty list returns 0. 5 tests total.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "index_chunks() uses configurable batch_size for batch operations",
+      "status": "complete",
+      "evidence": "index_chunks() accepts batch_size parameter (default 500) and processes chunks in range(0, len(chunks), batch_size) batches. TestBatchSize has 4 tests: custom batch_size=10 with 25 chunks, default batch_size, batch_size=1, and batch_size exactly equal to chunk count.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "index_chunks() handles individual chunk embedding failures gracefully (log + skip)",
+      "status": "complete",
+      "evidence": "When collection.add() raises an exception for a batch, the error is caught, logged as WARNING with details (batch size, start index, collection name, error message), and the batch is skipped. Remaining batches continue. TestEmbeddingFailureHandling has 2 tests: verifying warning is logged and that return count excludes failed batches (3 chunks with 1 batch failure = 2 indexed).",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Force re-ingestion logs a warning about concurrent access safety (ASSUM-004)",
+      "status": "complete",
+      "evidence": "When force=True and collection exists, logger.warning() is called with message containing 'concurrent' and referencing ASSUM-004. TestConcurrentAccessWarning verifies the warning is logged with 'concurrent' in the message.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "ChromaDB connection failure raises IndexingError with descriptive message",
+      "status": "complete",
+      "evidence": "ChromaDBIndexer.__init__ wraps PersistentClient creation in try/except, raising IndexingError with descriptive message on failure. create_or_replace_collection() also wraps ChromaDB operations. TestConnectionFailure has 2 tests: one for init failure and one for collection creation failure, both verifying IndexingError is raised with the original error message.",
+      "test_file": "ingestion/tests/test_chromadb_indexer.py",
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Ran 'ruff check' on all 5 modified/created files (chromadb_indexer.py, errors.py, __init__.py, test_chromadb_indexer.py, test_errors.py) \u2014 output: 'All checks passed!' with zero errors.",
+      "test_file": null,
+      "implementation_files": [
+        "ingestion/chromadb_indexer.py",
+        "ingestion/errors.py",
+        "ingestion/__init__.py",
+        "ingestion/tests/test_chromadb_indexer.py",
+        "ingestion/tests/test_errors.py"
+      ]
+    }
+  ]
+}
