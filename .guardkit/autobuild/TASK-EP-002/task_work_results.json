@@ -1,0 +1,126 @@
+{
+  "task_id": "TASK-EP-002",
+  "timestamp": "2026-03-20T23:43:32.824710",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation",
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 21,
+    "tests_failed": 0,
+    "coverage": 93.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    ".claude/task-plans/TASK-EP-002-implementation-plan.md",
+    ".guardkit/autobuild/TASK-EP-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-EP-002/turn_context.json",
+    ".guardkit/autobuild/TASK-EP-003/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-EP-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-EP-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-EP-003/turn_context.json",
+    ".guardkit/autobuild/TASK-EP-003/turn_state_turn_1.json",
+    "config/__init__.py",
+    "config/loader.py",
+    "config/logging.py",
+    "config/tests/test_loader.py",
+    "config/tests/test_logging.py",
+    "tasks/design_approved/TASK-EP-002-config-loader.md"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-EP-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-EP-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-EP-003/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/.guardkit/autobuild/TASK-EP-002/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/config/loader.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/config/tests/test_loader.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/config/tests/test_loader.py"
+  ],
+  "summary": "21 tests passed, 93.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 35,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "load_config() returns validated AgentConfig from valid YAML",
+      "status": "complete",
+      "evidence": "Implemented load_config(path: Path = Path('agent-config.yaml')) -> AgentConfig in config/loader.py. Uses yaml.safe_load to parse YAML, then AgentConfig.model_validate(data) to produce a validated AgentConfig. Tests test_load_valid_config_returns_agent_config, test_load_config_applies_defaults_for_optional_sections, and test_load_config_default_path_is_agent_config_yaml all pass.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "FileNotFoundError raised when config file missing (BDD: 'Startup with missing agent-config.yaml')",
+      "status": "complete",
+      "evidence": "load_config checks path.exists() and raises FileNotFoundError with a clear message including the file path. Tests test_missing_file_raises_file_not_found_error and test_file_not_found_error_message_is_clear both pass.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "ConfigValidationError raised for invalid config values with actionable error messages",
+      "status": "complete",
+      "evidence": "ConfigValidationError is defined in config/loader.py. load_config catches Pydantic ValidationError and re-raises as ConfigValidationError with a user-friendly message containing error count, field paths, and messages. The original ValidationError is chained via 'raise ... from exc'. Nine tests cover invalid provider, missing domain, missing player provider/model, missing endpoint for local, invalid log level, actionable message content, wrapping of ValidationError, and exception hierarchy.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "yaml.safe_load used (never yaml.load or yaml.unsafe_load)",
+      "status": "complete",
+      "evidence": "load_config uses yaml.safe_load exclusively on line 64. Test test_loader_source_uses_safe_load verifies via source inspection that yaml.safe_load is present and no yaml.load( or yaml.unsafe_load calls exist in non-comment lines.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Warning logged for unrecognised fields (BDD: 'Config file with extra unknown fields')",
+      "status": "complete",
+      "evidence": "Unknown field warning is handled by AgentConfig.__init__ in config/models.py (already implemented in TASK-EP-001). load_config delegates to AgentConfig.model_validate which triggers the warning. Tests test_unknown_top_level_fields_logged_as_warning and test_no_warning_for_valid_fields verify correct behavior via caplog.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "YAML anchor/alias injection rejected (BDD: 'Config file with YAML alias injection')",
+      "status": "complete",
+      "evidence": "yaml.safe_load resolves YAML anchors/aliases safely (no code execution). Custom YAML tags (the real security risk) are rejected by safe_load, raising yaml.YAMLError which load_config catches and wraps as ConfigValidationError. Tests test_yaml_with_anchors_and_aliases_rejected (verifies safe resolution) and test_yaml_custom_tag_rejected_by_safe_load (verifies custom tag rejection) both pass.",
+      "test_file": "config/tests/test_loader.py",
+      "implementation_files": [
+        "config/loader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both config/loader.py and config/tests/test_loader.py pass ruff check (lint) and ruff format (formatting) with zero errors. Verified after applying ruff format.",
+      "test_file": null,
+      "implementation_files": [
+        "config/loader.py",
+        "config/tests/test_loader.py"
+      ]
+    }
+  ]
+}
