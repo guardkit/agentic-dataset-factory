@@ -1,23 +1,26 @@
 ---
-id: TASK-ING-002
-title: "Implement chunker with RecursiveCharacterTextSplitter"
-task_type: feature
-parent_review: TASK-REV-F479
-feature_id: FEAT-ING
-wave: 1
-implementation_mode: task-work
 complexity: 4
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-ING-001
-status: pending
+- TASK-ING-001
+feature_id: FEAT-ING
+id: TASK-ING-002
+implementation_mode: task-work
+parent_review: TASK-REV-F479
 priority: high
-tags: [ingestion, chunking, langchain]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- ingestion
+- chunking
+- langchain
+task_type: feature
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement chunker with RecursiveCharacterTextSplitter
+updated: 2026-03-19 00:00:00+00:00
+wave: 1
 ---
 
 # Task: Implement chunker with RecursiveCharacterTextSplitter

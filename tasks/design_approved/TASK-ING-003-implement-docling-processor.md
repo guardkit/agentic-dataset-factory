@@ -1,23 +1,26 @@
 ---
-id: TASK-ING-003
-title: "Implement Docling processor for standard and VLM modes"
-task_type: feature
-parent_review: TASK-REV-F479
-feature_id: FEAT-ING
-wave: 2
-implementation_mode: task-work
 complexity: 5
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-ING-001
-status: pending
+- TASK-ING-001
+feature_id: FEAT-ING
+id: TASK-ING-003
+implementation_mode: task-work
+parent_review: TASK-REV-F479
 priority: high
-tags: [ingestion, docling, pdf-processing]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- ingestion
+- docling
+- pdf-processing
+task_type: feature
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement Docling processor for standard and VLM modes
+updated: 2026-03-19 00:00:00+00:00
+wave: 2
 ---
 
 # Task: Implement Docling processor for standard and VLM modes
