@@ -1,0 +1,46 @@
+{
+  "turn_number": 1,
+  "files_modified": [],
+  "files_created": [
+    "domain_config/__init__.py",
+    "domain_config/models.py",
+    "domain_config/tests/__init__.py",
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_written": [
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_passed": true,
+  "test_count": 203,
+  "timestamp": "2026-03-20T11:00:21.545843",
+  "detection_method": "player_report",
+  "git_changes": {
+    "files_modified": [],
+    "files_added": [
+      ".guardkit/autobuild/",
+      ".guardkit/bootstrap_state.json",
+      "domain_config/",
+      "tasks/backlog/TASK-DC-001-pydantic-models.md",
+      "tasks/backlog/TASK-DC-002-section-splitter.md",
+      "tasks/backlog/TASK-DC-003-table-json-parsers.md",
+      "tasks/backlog/TASK-DC-004-cross-section-validation.md",
+      "tasks/backlog/TASK-DC-005-public-api-integration-tests.md"
+    ],
+    "files_deleted": [],
+    "diff_stats": "",
+    "insertions": 0,
+    "deletions": 0,
+    "timestamp": "2026-03-20T11:00:20.515370"
+  },
+  "test_results": {
+    "tests_run": true,
+    "tests_passed": true,
+    "test_count": 203,
+    "passed_count": 203,
+    "failed_count": 0,
+    "output_summary": "........................................................................ [ 35%]\n........................................................................ [ 70%]\n...........................................................              [100%]\n203 passed in 0.45s\n",
+    "timestamp": "2026-03-20T11:00:21.545646",
+    "error": null
+  },
+  "player_report_available": true
+}
