@@ -1,0 +1,125 @@
+{
+  "task_id": "TASK-DC-001",
+  "turn": 1,
+  "files_modified": [],
+  "files_created": [
+    "domain_config/__init__.py",
+    "domain_config/models.py",
+    "domain_config/tests/__init__.py",
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_written": [
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "86 passed in 0.12s. All 203 existing synthesis tests also pass (no regressions).",
+  "implementation_notes": "Created the domain_config package with Pydantic v2 BaseModel classes matching the API contract in API-domain-config.md and DM-goal-schema.md. Models use Literal types for constrained values (mode, type), Field constraints for minimum lengths and numeric bounds, and a custom field_validator on EvaluationCriterion.name that checks both str.isidentifier() and keyword.iskeyword(). GoalConfig enforces min_length on goal (50), system_prompt (100), generation_guidelines (100), min_length=1 on source_documents, and min_length=3 on evaluation_criteria. GoalValidationError is an Exception subclass with section and message attributes. All models are re-exported from the package root __init__.py. Test suite follows the existing synthesis/tests/test_validator.py patterns with class-per-model organisation, fixtures, parametrize, and boundary tests.",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: domain_config/ package created with __init__.py and models.py",
+    "AC-002: All 5 Pydantic models match API contract field types exactly",
+    "AC-003: SourceDocument.mode constrained to Literal[\"standard\", \"vlm\"]",
+    "AC-004: GenerationTarget.type constrained to Literal[\"reasoning\", \"direct\"]",
+    "AC-005: EvaluationCriterion.name validated as Python identifier + not keyword",
+    "AC-006: GoalValidationError exception class with section and message attributes",
+    "AC-007: GoalConfig model with all 9 fields typed correctly",
+    "AC-008: Models importable from domain_config package root",
+    "AC-009: Unit tests for model construction and field validation"
+  ],
+  "requirements_remaining": [],
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `domain_config/` package created with `__init__.py` and `models.py`",
+      "status": "complete",
+      "evidence": "Created domain_config/__init__.py (package root with re-exports) and domain_config/models.py (all model definitions). Also created domain_config/tests/__init__.py and domain_config/tests/test_models.py for the test package.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/__init__.py",
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] All 5 Pydantic models match the API contract field types exactly",
+      "status": "complete",
+      "evidence": "Implemented SourceDocument (file_pattern: str, mode: Literal, notes: str), GenerationTarget (category: str, type: Literal, count: int), EvaluationCriterion (name: str, description: str, weight: float), MetadataField (field: str, type: str, required: bool, valid_values: list[str]), GoalConfig (all 9 fields). All field types match API-domain-config.md and DM-goal-schema.md exactly.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+      "status": "complete",
+      "evidence": "SourceDocument.mode typed as Literal['standard', 'vlm']. Tests verify both valid modes are accepted and 7 invalid modes (ocr, OCR, Standard, VLM, auto, empty string, pdf) are all rejected with ValidationError.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+      "status": "complete",
+      "evidence": "GenerationTarget.type typed as Literal['reasoning', 'direct']. Tests verify both valid types are accepted and 5 invalid types (Reasoning, DIRECT, chain_of_thought, empty string, cot) are rejected with ValidationError.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "[ ] `EvaluationCriterion.name` validated as Python identifier + not keyword",
+      "status": "complete",
+      "evidence": "Implemented @field_validator('name') that checks str.isidentifier() and keyword.iskeyword(). Tests cover: 5 invalid identifiers (hyphenated, digit-leading, spaces, dots, operators), 10 explicit Python keywords (class, return, import, def, if, for, while, True, False, None), exhaustive coverage of all keyword.kwlist entries, and acceptance of valid identifiers including builtins like 'list'.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "[ ] `GoalValidationError` exception class with `section` and `message` attributes",
+      "status": "complete",
+      "evidence": "GoalValidationError(Exception) with __init__(self, section: str, message: str) storing both as instance attributes and formatting str(err) as '[section] message'. Tests verify attributes are stored, str() includes both values, it is an Exception subclass, and it can be raised/caught with pytest.raises.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "[ ] `GoalConfig` model with all 9 fields typed correctly",
+      "status": "complete",
+      "evidence": "GoalConfig has exactly 9 fields: goal (str, min_length=50), source_documents (list[SourceDocument], min_length=1), system_prompt (str, min_length=100), generation_targets (list[GenerationTarget], min_length=1), generation_guidelines (str, min_length=100), evaluation_criteria (list[EvaluationCriterion], min_length=3), output_schema (dict), metadata_schema (list[MetadataField]), layer_routing (dict[str, str]). Tests verify all 9 fields are present, boundary lengths (50/49, 100/99), minimum list sizes (empty source_documents rejected, 2 criteria rejected, 3 accepted), and correct typing of all fields.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "[ ] Models importable from `domain_config` package root",
+      "status": "complete",
+      "evidence": "__init__.py re-exports all 6 public names (SourceDocument, GenerationTarget, EvaluationCriterion, MetadataField, GoalConfig, GoalValidationError) from domain_config.models. TestImports class verifies both 'from domain_config import ...' and 'from domain_config.models import ...' work correctly.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/__init__.py",
+        "domain_config/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "[ ] Unit tests for model construction and field validation",
+      "status": "complete",
+      "evidence": "86 tests across 7 test classes: TestGoalValidationError (4 tests), TestSourceDocument (8 tests), TestGenerationTarget (8 tests), TestEvaluationCriterion (14 tests incl. exhaustive keyword coverage), TestMetadataField (6 tests), TestGoalConfig (18 tests incl. boundary conditions), TestImports (3 tests). Tests cover valid construction, boundary values, negative cases, missing fields, and import contracts. All 86 pass in 0.12s.",
+      "test_file": "domain_config/tests/test_models.py",
+      "implementation_files": [
+        "domain_config/tests/test_models.py"
+      ]
+    }
+  ]
+}
