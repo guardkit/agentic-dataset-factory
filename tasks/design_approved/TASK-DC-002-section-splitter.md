@@ -1,26 +1,49 @@
 ---
+id: TASK-DC-002
+title: Implement markdown section splitter
+task_type: feature
+parent_review: TASK-REV-DC5D
+feature_id: FEAT-5606
+wave: 2
+implementation_mode: task-work
 complexity: 4
-created: 2026-03-19 00:00:00+00:00
 dependencies:
 - TASK-DC-001
-feature_id: FEAT-5606
-id: TASK-DC-002
-implementation_mode: task-work
-parent_review: TASK-REV-DC5D
+status: in_review
 priority: high
-status: design_approved
 tags:
 - domain-config
 - parser
 - markdown
-task_type: feature
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
+  status: pending
   coverage: null
   last_run: null
-  status: pending
-title: Implement markdown section splitter
-updated: 2026-03-19 00:00:00+00:00
-wave: 2
+autobuild_state:
+  current_turn: 2
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  base_branch: main
+  started_at: '2026-03-20T14:49:10.986999'
+  last_updated: '2026-03-20T15:01:27.127423'
+  turns:
+  - turn: 1
+    decision: feedback
+    feedback: "- Not all acceptance criteria met:\n  \u2022 File-not-found case raises\
+      \ `GoalValidationError` with descriptive message"
+    timestamp: '2026-03-20T14:49:10.986999'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
+  - turn: 2
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T14:56:58.537920'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement markdown section splitter

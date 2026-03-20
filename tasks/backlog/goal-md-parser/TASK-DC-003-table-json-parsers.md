@@ -1,6 +1,6 @@
 ---
 id: TASK-DC-003
-title: "Implement table parser and JSON extractor"
+title: Implement table parser and JSON extractor
 task_type: feature
 parent_review: TASK-REV-DC5D
 feature_id: FEAT-5606
@@ -8,16 +8,35 @@ wave: 2
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-DC-001
-status: pending
+- TASK-DC-001
+status: in_review
 priority: high
-tags: [domain-config, parser, markdown-tables, json]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- domain-config
+- parser
+- markdown-tables
+- json
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  base_branch: main
+  started_at: '2026-03-20T11:07:21.272755'
+  last_updated: '2026-03-20T11:15:21.826742'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T11:07:21.272755'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement table parser and JSON extractor

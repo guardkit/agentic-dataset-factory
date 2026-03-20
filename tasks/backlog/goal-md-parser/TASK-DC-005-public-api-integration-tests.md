@@ -1,6 +1,6 @@
 ---
 id: TASK-DC-005
-title: "Implement parse_goal_md public API and integration tests"
+title: Implement parse_goal_md public API and integration tests
 task_type: testing
 parent_review: TASK-REV-DC5D
 feature_id: FEAT-5606
@@ -8,16 +8,35 @@ wave: 3
 implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-DC-004
-status: pending
+- TASK-DC-004
+status: in_review
 priority: high
-tags: [domain-config, api, testing, integration]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- domain-config
+- api
+- testing
+- integration
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  base_branch: main
+  started_at: '2026-03-20T15:12:26.850414'
+  last_updated: '2026-03-20T15:21:59.966632'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T15:12:26.850414'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement parse_goal_md public API and integration tests

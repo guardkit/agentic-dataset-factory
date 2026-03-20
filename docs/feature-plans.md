@@ -45,7 +45,7 @@ Review: IMPLEMENTATION-GUIDE.md
 Start Wave 1: /task-work TASK-DC-001
 Or run autonomously: /feature-build FEAT-5606
 
-
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-5606 --max-turns 35 --verbose
 
 
 
@@ -75,6 +75,8 @@ Next steps:
 Review: IMPLEMENTATION-GUIDE.md
 Start autonomous build: /feature-build FEAT-F59D
 Or start manually: /task-work TASK-ING-001
+
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-F59D --max-turns 35 --verbose
 
 
 
@@ -122,53 +124,7 @@ Review: IMPLEMENTATION-GUIDE.md
 Start Wave 1: /task-work TASK-LCT-001
 Or run autonomously: /feature-build FEAT-945D
 
-
-
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FEATURE PLANNING COMPLETE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ Feature FEAT-945D created
-📁 Feature file: FEAT-945D.yaml
-
-📋 Tasks: 5
-
-Task	Name	Complexity	Wave	Mode
-TASK-LCT-001	Create tools package + Pydantic models	3	1	direct
-TASK-LCT-002	Implement rag_retrieval factory + tool	5	2	task-work
-TASK-LCT-003	Implement write_output factory + tool + layer routing	6	2	task-work
-TASK-LCT-004	Tool assignment + factory wiring	3	3	direct
-TASK-LCT-005	Unit + integration tests (41 BDD scenarios)	5	3	task-work
-🔀 Parallel execution groups: 4 waves
-
-Wave 1: [TASK-LCT-001]
-Wave 2: [TASK-LCT-002, TASK-LCT-003] (parallel)
-Wave 3: [TASK-LCT-004]
-Wave 4: [TASK-LCT-005]
-📁 Files created:
-
-
-tasks/backlog/langchain-tools/
-├── README.md
-├── IMPLEMENTATION-GUIDE.md
-├── TASK-LCT-001-tools-package-and-models.md
-├── TASK-LCT-002-rag-retrieval-tool.md
-├── TASK-LCT-003-write-output-tool.md
-├── TASK-LCT-004-tool-assignment-factory-wiring.md
-└── TASK-LCT-005-unit-integration-tests.md
-
-.guardkit/features/FEAT-945D.yaml
-🔗 Original review: TASK-REV-723B (review_complete)
-
-Next steps:
-
-Review: IMPLEMENTATION-GUIDE.md
-Start Wave 1: /task-work TASK-LCT-001
-Or run autonomously: /feature-build FEAT-945D
-
-
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-945D --max-turns 35 --verbose
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,6 +1,6 @@
 ---
 id: TASK-DC-001
-title: "Create domain_config package and Pydantic models"
+title: Create domain_config package and Pydantic models
 task_type: declarative
 parent_review: TASK-REV-DC5D
 feature_id: FEAT-5606
@@ -8,15 +8,63 @@ wave: 1
 implementation_mode: direct
 complexity: 3
 dependencies: []
-status: pending
+status: in_review
 priority: high
-tags: [domain-config, pydantic, models]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- domain-config
+- pydantic
+- models
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 3
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  base_branch: main
+  started_at: '2026-03-20T10:54:46.700377'
+  last_updated: '2026-03-20T11:07:21.248096'
+  turns:
+  - turn: 1
+    decision: feedback
+    feedback: "- Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models\
+      \ match the API contract field types exactly\n  \u2022 `SourceDocument.mode`\
+      \ constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type`\
+      \ constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name`\
+      \ validated as Python identifier + not keyword\n  \u2022 `GoalValidationError`\
+      \ exception class with `section` and `message` attributes"
+    timestamp: '2026-03-20T10:54:46.700377'
+    player_summary: '[RECOVERED via player_report] Original error: Cancelled: Cancelled
+      via cancel scope 122fe1910 by <Task pending name=''Task-100'' coro=<<async_generator_athrow
+      without __name__>()>>'
+    player_success: true
+    coach_success: true
+  - turn: 2
+    decision: feedback
+    feedback: "- Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models\
+      \ match the API contract field types exactly\n  \u2022 `SourceDocument.mode`\
+      \ constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type`\
+      \ constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name`\
+      \ validated as Python identifier + not keyword\n  \u2022 `GoalValidationError`\
+      \ exception class with `section` and `message` attributes"
+    timestamp: '2026-03-20T11:00:31.617674'
+    player_summary: '[RECOVERED via player_report] Original error: Cancelled: Cancelled
+      via cancel scope 1231444d0 by <Task pending name=''Task-199'' coro=<<async_generator_athrow
+      without __name__>()>>'
+    player_success: true
+    coach_success: true
+  - turn: 3
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T11:03:41.588734'
+    player_summary: '[RECOVERED via player_report] Original error: Cancelled: Cancelled
+      via cancel scope 123145190 by <Task pending name=''Task-212'' coro=<<async_generator_athrow
+      without __name__>()>>'
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Create domain_config package and Pydantic models
