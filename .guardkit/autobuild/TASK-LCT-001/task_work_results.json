@@ -1,0 +1,116 @@
+{
+  "task_id": "TASK-LCT-001",
+  "timestamp": "2026-03-20T20:44:56.787560",
+  "completed": true,
+  "success": true,
+  "implementation_mode": "direct",
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 1,
+    "tests_failed": 0,
+    "coverage": null,
+    "coverage_met": true,
+    "quality_gates_relaxed": true,
+    "all_passed": true
+  },
+  "files_modified": [],
+  "files_created": [
+    "src/__init__.py",
+    "src/tools/__init__.py",
+    "src/tools/models.py",
+    "src/tools/tests/__init__.py",
+    "src/tools/tests/conftest.py",
+    "src/tools/tests/test_models.py"
+  ],
+  "tests_written": [
+    "src/tools/tests/test_models.py"
+  ],
+  "requirements_addressed": [
+    "AC-001: src/tools/ package importable with from tools.models import TrainingExample, RagRetrievalParams",
+    "AC-002: RagRetrievalParams rejects n_results < 1 or > 20",
+    "AC-003: TrainingExample validates messages[0].role == system",
+    "AC-004: ExampleMetadata validates layer in {behaviour, knowledge} and type in {reasoning, direct}",
+    "AC-005: All models have clear validation error messages suitable for D7 error strings",
+    "AC-006: Package has no runtime dependency on ChromaDB (lazy import pattern)"
+  ],
+  "requirements_met": [
+    "AC-001: src/tools/ package importable with from tools.models import TrainingExample, RagRetrievalParams",
+    "AC-002: RagRetrievalParams rejects n_results < 1 or > 20",
+    "AC-003: TrainingExample validates messages[0].role == system",
+    "AC-004: ExampleMetadata validates layer in {behaviour, knowledge} and type in {reasoning, direct}",
+    "AC-005: All models have clear validation error messages suitable for D7 error strings",
+    "AC-006: Package has no runtime dependency on ChromaDB (lazy import pattern)"
+  ],
+  "summary": "Direct mode implementation completed successfully",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `src/tools/` package importable with `from tools.models import TrainingExample, RagRetrievalParams`",
+      "status": "complete",
+      "evidence": "Created src/tools/__init__.py re-exporting all public models and src/tools/models.py with __all__ containing ExampleMetadata, Message, RagRetrievalParams, TrainingExample. TestImportContract class (3 tests) verifies both `from tools.models import ...` and `from tools import ...` work correctly, plus __all__ content.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/__init__.py",
+        "src/tools/__init__.py",
+        "src/tools/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] `RagRetrievalParams` rejects n_results < 1 or > 20",
+      "status": "complete",
+      "evidence": "RagRetrievalParams.n_results uses Field(ge=1, le=20) with a custom field_validator providing actionable error messages. TestRagRetrievalParams class covers: valid range [1,2,5,10,15,19,20], below-minimum [0,-1,-10,-100], above-maximum [21,50,100,1000], boundary values (1 and 20), zero explicitly, default value (5), error message content for both bounds.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/tools/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] `TrainingExample` validates messages[0].role == \"system\"",
+      "status": "complete",
+      "evidence": "TrainingExample.validate_message_ordering model_validator(mode='after') checks msgs[0].role == 'system' and enforces alternating user/assistant after that. Tests: test_first_message_must_be_system, test_first_message_system_error_is_clear, test_alternating_roles_enforced, test_assistant_after_system_rejected, plus positive cases for 2-message, 3-message, 5-turn, and 11-message conversations.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/tools/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] `ExampleMetadata` validates layer in {\"behaviour\", \"knowledge\"} and type in {\"reasoning\", \"direct\"}",
+      "status": "complete",
+      "evidence": "ExampleMetadata uses Literal types plus custom field_validators (mode='before') that produce clear error messages mentioning the valid option set. TestExampleMetadata covers: both valid layers, both valid types, 6 invalid layers (behavioral, Behaviour, KNOWLEDGE, train, empty, behavior), 6 invalid types (chain_of_thought, cot, Reasoning, DIRECT, empty, simple), error message clarity assertions.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/tools/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "[ ] All models have clear validation error messages suitable for D7 error strings",
+      "status": "complete",
+      "evidence": "All custom validators include the invalid value received and the set of valid options in their error messages. TestErrorMessageQuality class (6 tests) asserts that error messages mention valid options (layer mentions 'behaviour'/'knowledge', type mentions 'reasoning'/'direct'), expected roles, and numeric bounds. Additionally, individual model test classes include error message content checks via pytest.raises match patterns.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/tools/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "[ ] Package has no runtime dependency on ChromaDB (lazy import pattern)",
+      "status": "complete",
+      "evidence": "Neither tools/models.py nor tools/__init__.py contain any chromadb import. TestNoChromaDBRuntimeDependency class (3 tests) verifies this by: (1) AST-parsing models.py to confirm no top-level import/from-import of chromadb, (2) verifying module loads without requiring chromadb, (3) AST-parsing __init__.py for the same. RagRetrievalParams documents via docstring that tools performing actual retrieval must import chromadb lazily inside their function body.",
+      "test_file": "src/tools/tests/test_models.py",
+      "implementation_files": [
+        "src/tools/__init__.py",
+        "src/tools/models.py"
+      ]
+    }
+  ]
+}
