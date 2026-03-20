@@ -1,0 +1,161 @@
+{
+  "task_id": "TASK-AF-004",
+  "turn": 1,
+  "files_modified": [
+    ".claude/task-plans/TASK-AF-003-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-004-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-006-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-007-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-010-implementation-plan.md",
+    ".guardkit/autobuild/TASK-AF-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-AF-003/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-004/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-006/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-006/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-006/task_work_results.json",
+    ".guardkit/autobuild/TASK-AF-006/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-006/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-007/checkpoints.json",
+    ".guardkit/autobuild/TASK-AF-007/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-007/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-007/task_work_results.json",
+    ".guardkit/autobuild/TASK-AF-007/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-007/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-010/checkpoints.json",
+    ".guardkit/autobuild/TASK-AF-010/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-010/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-010/task_work_results.json",
+    ".guardkit/autobuild/TASK-AF-010/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-010/turn_state_turn_1.json",
+    ".guardkit/bootstrap_state.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/agents/coach.py",
+    "agents/coach.py",
+    "agents/model_factory.py",
+    "agents/player.py",
+    "agents/tests/test_coach_factory.py",
+    "agents/tests/test_model_factory.py",
+    "agents/tests/test_player.py",
+    "config/tests/test_models.py",
+    "coverage.json",
+    "tasks/design_approved/TASK-AF-003-player-factory.md",
+    "tasks/design_approved/TASK-AF-004-coach-factory.md",
+    "tasks/design_approved/TASK-AF-006-model-factory.md",
+    "tasks/design_approved/TASK-AF-007-unit-tests-modelconfig.md",
+    "tasks/design_approved/TASK-AF-010-unit-tests-prompt-builders.md",
+    "tests/test_prompt_builders.py"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-AF-004/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-004/task_work_results.json",
+    ".guardkit/autobuild/TASK-AF-006/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/.guardkit/autobuild/TASK-AF-004/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/agents/coach.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/agents/tests/test_coach_factory.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/agents/tests/test_coach_factory.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: create_coach with contract signature (no tools param)",
+    "AC-002: delegates to create_deep_agent with tools=[]",
+    "AC-003: no backend kwarg (explicit backend=None)",
+    "AC-004: FilesystemBackend not imported",
+    "AC-005: system_prompt passed as kwarg",
+    "AC-006: memory passed as kwarg",
+    "AC-007: empty system_prompt raises ValueError",
+    "AC-008: lint/format checks pass"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 45,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 17,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`agents/coach.py` contains `create_coach()` with the contract signature (no `tools` parameter)",
+      "status": "complete",
+      "evidence": "create_coach() defined with parameters (model_config, system_prompt, memory) \u2014 no tools parameter. Verified by TestCreateCoachSignature with 5 tests: callable check, no-tools-param check, and presence of all 3 expected params.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Factory delegates to `create_deep_agent` with `tools=[]`",
+      "status": "complete",
+      "evidence": "create_coach calls create_deep_agent(tools=[]) on line 76. Verified by TestDelegationToCreateDeepAgent: test_delegates_to_create_deep_agent (assert_called_once) and test_passes_empty_tools_list (assert tools kwarg == []).",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "NO `backend` kwarg passed to `create_deep_agent` (or explicitly `backend=None`)",
+      "status": "complete",
+      "evidence": "create_coach passes backend=None explicitly on line 79. Verified by TestNoBackend.test_no_backend_kwarg_or_none which asserts backend value is None.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "`FilesystemBackend` is NOT imported anywhere in `agents/coach.py`",
+      "status": "complete",
+      "evidence": "agents/coach.py does not import or reference FilesystemBackend. Verified by two tests: AST-level import scan (test_filesystem_backend_not_in_source) and full-text grep (test_filesystem_backend_not_in_source_text).",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "`system_prompt` is passed as `system_prompt` kwarg",
+      "status": "complete",
+      "evidence": "create_coach passes system_prompt=system_prompt on line 77. Verified by TestSystemPromptPassthrough.test_system_prompt_passed_through which checks the exact value is forwarded.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "`memory` list is passed as `memory` kwarg",
+      "status": "complete",
+      "evidence": "create_coach passes memory=memory on line 78. Verified by TestMemoryPassthrough.test_memory_passed_through which checks a multi-element list is forwarded exactly.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Empty system prompt raises a validation error",
+      "status": "complete",
+      "evidence": "Guard clause on lines 59-63 raises ValueError for empty or whitespace-only system_prompt. Verified by TestEmptySystemPromptRejected with two tests: empty string and whitespace-only string, both matching 'system.prompt' pattern.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": [
+        "agents/coach.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both agents/coach.py and agents/tests/test_coach_factory.py pass 'ruff check' and 'ruff format --check' with zero errors.",
+      "test_file": null,
+      "implementation_files": [
+        "agents/coach.py",
+        "agents/tests/test_coach_factory.py"
+      ]
+    }
+  ]
+}
