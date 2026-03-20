@@ -1,18 +1,29 @@
-"""Tests for config.models.ModelConfig Pydantic model.
+"""Tests for config.models Pydantic models.
 
 Covers all acceptance criteria for TASK-AF-001 and BDD scenarios from
 features/agent-factories/agent-factories.feature.
 
 Extended by TASK-AF-007 with comprehensive BDD boundary, negative, and
 edge-case scenarios.
+
+Extended by TASK-EP-001 with GenerationConfig, ChunkingConfig, LoggingConfig,
+and AgentConfig tests covering entrypoint configuration validation.
 """
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 from pydantic import ValidationError
 
-from config.models import ModelConfig
+from config.models import (
+    AgentConfig,
+    ChunkingConfig,
+    GenerationConfig,
+    LoggingConfig,
+    ModelConfig,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -478,3 +489,299 @@ class TestBDDEdgeCaseHeterogeneousConfig:
         )
         assert player_cfg.temperature == 0.7
         assert coach_cfg.temperature == 0.3
+
+
+# ===========================================================================
+# TASK-EP-001: GenerationConfig
+# ===========================================================================
+
+
+class TestGenerationConfigDefaults:
+    """GenerationConfig default values match API contract."""
+
+    def test_default_max_turns(self) -> None:
+        cfg = GenerationConfig()
+        assert cfg.max_turns == 3
+
+    def test_default_llm_retry_attempts(self) -> None:
+        cfg = GenerationConfig()
+        assert cfg.llm_retry_attempts == 3
+
+    def test_default_llm_retry_backoff(self) -> None:
+        cfg = GenerationConfig()
+        assert cfg.llm_retry_backoff == 2.0
+
+    def test_default_llm_timeout(self) -> None:
+        cfg = GenerationConfig()
+        assert cfg.llm_timeout == 300
+
+    def test_default_target_timeout(self) -> None:
+        cfg = GenerationConfig()
+        assert cfg.target_timeout == 600
+
+
+class TestGenerationConfigValidation:
+    """GenerationConfig validation rules."""
+
+    def test_max_turns_at_minimum_1_accepted(self) -> None:
+        cfg = GenerationConfig(max_turns=1)
+        assert cfg.max_turns == 1
+
+    def test_max_turns_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="max_turns"):
+            GenerationConfig(max_turns=0)
+
+    def test_max_turns_negative_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="max_turns"):
+            GenerationConfig(max_turns=-1)
+
+    def test_max_turns_large_value_accepted(self) -> None:
+        cfg = GenerationConfig(max_turns=100)
+        assert cfg.max_turns == 100
+
+    def test_is_pydantic_base_model(self) -> None:
+        from pydantic import BaseModel
+
+        assert issubclass(GenerationConfig, BaseModel)
+
+    def test_extra_fields_ignored(self) -> None:
+        cfg = GenerationConfig(unknown_field="value")  # type: ignore[call-arg]
+        assert not hasattr(cfg, "unknown_field")
+
+
+# ===========================================================================
+# TASK-EP-001: ChunkingConfig
+# ===========================================================================
+
+
+class TestChunkingConfigDefaults:
+    """ChunkingConfig default values match API contract."""
+
+    def test_default_chunk_size(self) -> None:
+        cfg = ChunkingConfig()
+        assert cfg.chunk_size == 512
+
+    def test_default_overlap(self) -> None:
+        cfg = ChunkingConfig()
+        assert cfg.overlap == 64
+
+
+class TestChunkingConfigValidation:
+    """ChunkingConfig validation rules."""
+
+    def test_chunk_size_at_minimum_1_accepted(self) -> None:
+        cfg = ChunkingConfig(chunk_size=1, overlap=0)
+        assert cfg.chunk_size == 1
+
+    def test_chunk_size_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="chunk_size"):
+            ChunkingConfig(chunk_size=0)
+
+    def test_chunk_size_negative_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="chunk_size"):
+            ChunkingConfig(chunk_size=-1)
+
+    def test_overlap_zero_accepted(self) -> None:
+        cfg = ChunkingConfig(overlap=0)
+        assert cfg.overlap == 0
+
+    def test_overlap_negative_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="overlap"):
+            ChunkingConfig(overlap=-1)
+
+    def test_overlap_equal_to_chunk_size_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="overlap"):
+            ChunkingConfig(chunk_size=512, overlap=512)
+
+    def test_overlap_greater_than_chunk_size_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="overlap"):
+            ChunkingConfig(chunk_size=512, overlap=600)
+
+    def test_overlap_one_less_than_chunk_size_accepted(self) -> None:
+        cfg = ChunkingConfig(chunk_size=512, overlap=511)
+        assert cfg.overlap == 511
+
+    def test_is_pydantic_base_model(self) -> None:
+        from pydantic import BaseModel
+
+        assert issubclass(ChunkingConfig, BaseModel)
+
+    def test_extra_fields_ignored(self) -> None:
+        cfg = ChunkingConfig(future_param=True)  # type: ignore[call-arg]
+        assert not hasattr(cfg, "future_param")
+
+
+# ===========================================================================
+# TASK-EP-001: LoggingConfig
+# ===========================================================================
+
+
+class TestLoggingConfigDefaults:
+    """LoggingConfig default values match API contract."""
+
+    def test_default_level(self) -> None:
+        cfg = LoggingConfig()
+        assert cfg.level == "INFO"
+
+    def test_default_format(self) -> None:
+        cfg = LoggingConfig()
+        assert cfg.format == "json"
+
+
+class TestLoggingConfigValidation:
+    """LoggingConfig validation rules."""
+
+    @pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR"])
+    def test_valid_levels_accepted(self, level: str) -> None:
+        cfg = LoggingConfig(level=level)
+        assert cfg.level == level
+
+    @pytest.mark.parametrize("level", ["VERBOSE", "TRACE", "CRITICAL", "info", "debug"])
+    def test_invalid_levels_rejected(self, level: str) -> None:
+        with pytest.raises(ValidationError, match="level"):
+            LoggingConfig(level=level)
+
+    def test_format_json_accepted(self) -> None:
+        cfg = LoggingConfig(format="json")
+        assert cfg.format == "json"
+
+    def test_format_non_json_rejected(self) -> None:
+        """ADR-ARCH-007: format must be 'json'."""
+        with pytest.raises(ValidationError, match="format"):
+            LoggingConfig(format="text")
+
+    def test_format_plain_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="format"):
+            LoggingConfig(format="plain")
+
+    def test_is_pydantic_base_model(self) -> None:
+        from pydantic import BaseModel
+
+        assert issubclass(LoggingConfig, BaseModel)
+
+    def test_extra_fields_ignored(self) -> None:
+        cfg = LoggingConfig(unknown="x")  # type: ignore[call-arg]
+        assert not hasattr(cfg, "unknown")
+
+
+# ===========================================================================
+# TASK-EP-001: AgentConfig
+# ===========================================================================
+
+
+class TestAgentConfigStructure:
+    """AgentConfig top-level model structure."""
+
+    def test_is_pydantic_base_model(self) -> None:
+        from pydantic import BaseModel
+
+        assert issubclass(AgentConfig, BaseModel)
+
+    def test_domain_required(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+            )  # type: ignore[call-arg]
+
+    def test_full_valid_config(self) -> None:
+        cfg = AgentConfig(
+            domain="gcse-english-tutor",
+            player={"provider": "local", "model": "nemotron", "endpoint": "http://localhost:8000/v1"},
+            coach={"provider": "anthropic", "model": "claude-3-opus"},
+        )
+        assert cfg.domain == "gcse-english-tutor"
+        assert isinstance(cfg.player, ModelConfig)
+        assert isinstance(cfg.coach, ModelConfig)
+        assert isinstance(cfg.generation, GenerationConfig)
+        assert isinstance(cfg.chunking, ChunkingConfig)
+        assert isinstance(cfg.logging, LoggingConfig)
+
+    def test_minimal_config_with_defaults(self) -> None:
+        """Only domain, player, and coach are required; rest defaults."""
+        cfg = AgentConfig(
+            domain="test-domain",
+            player={"provider": "anthropic", "model": "test-model"},
+            coach={"provider": "openai", "model": "gpt-4"},
+        )
+        assert cfg.generation.max_turns == 3
+        assert cfg.generation.llm_retry_attempts == 3
+        assert cfg.generation.llm_retry_backoff == 2.0
+        assert cfg.generation.llm_timeout == 300
+        assert cfg.generation.target_timeout == 600
+        assert cfg.chunking.chunk_size == 512
+        assert cfg.chunking.overlap == 64
+        assert cfg.logging.level == "INFO"
+        assert cfg.logging.format == "json"
+
+
+class TestAgentConfigExtraFields:
+    """ASSUM-003: Unknown fields ignored with warning."""
+
+    def test_extra_fields_ignored(self) -> None:
+        cfg = AgentConfig(
+            domain="test",
+            player={"provider": "anthropic", "model": "test"},
+            coach={"provider": "anthropic", "model": "test"},
+            experimental_feature=True,  # type: ignore[call-arg]
+        )
+        assert not hasattr(cfg, "experimental_feature")
+        assert cfg.domain == "test"
+
+    def test_unknown_fields_warning_logged(self, caplog: pytest.LogCaptureFixture) -> None:
+        with caplog.at_level(logging.WARNING):
+            AgentConfig(
+                domain="test",
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+                future_field="value",  # type: ignore[call-arg]
+            )
+        assert any("unknown" in msg.lower() or "ignored" in msg.lower() for msg in caplog.messages)
+
+
+class TestAgentConfigNestedValidation:
+    """Nested model validation propagates correctly."""
+
+    def test_invalid_player_provider_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                domain="test",
+                player={"provider": "azure", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+            )
+
+    def test_invalid_generation_max_turns_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                domain="test",
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+                generation={"max_turns": 0},
+            )
+
+    def test_invalid_chunking_overlap_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                domain="test",
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+                chunking={"chunk_size": 100, "overlap": 100},
+            )
+
+    def test_invalid_logging_level_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                domain="test",
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+                logging={"level": "VERBOSE"},
+            )
+
+    def test_invalid_logging_format_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AgentConfig(
+                domain="test",
+                player={"provider": "anthropic", "model": "test"},
+                coach={"provider": "anthropic", "model": "test"},
+                logging={"format": "text"},
+            )
