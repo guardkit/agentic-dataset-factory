@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -126,7 +127,7 @@ _SECTION_HEADING_RE = re.compile(
 )
 
 
-def split_sections(content: str) -> dict[str, str]:
+def split_sections(content: str | Path) -> dict[str, str]:
     """Split GOAL.md content into named sections.
 
     Uses a whitelist approach: only the 9 known section headings are
@@ -134,15 +135,26 @@ def split_sections(content: str) -> dict[str, str]:
     are preserved as part of the enclosing section's body.
 
     Args:
-        content: Raw markdown text of the GOAL.md file.
+        content: Raw markdown text of the GOAL.md file, **or** a
+            ``pathlib.Path`` pointing to the file on disk.  When a
+            ``Path`` is given, the file is read as UTF-8 text.
 
     Returns:
         Dict mapping section name to section body text (stripped).
 
     Raises:
-        GoalValidationError: If any required section is missing, or if
-            the content is empty / contains no recognised headings.
+        GoalValidationError: If any required section is missing, if
+            the content is empty / contains no recognised headings,
+            or if a ``Path`` is given and the file does not exist.
     """
+    if isinstance(content, Path):
+        if not content.exists():
+            raise GoalValidationError(
+                section="GOAL.md",
+                message=f"File not found: {content}",
+            )
+        content = content.read_text(encoding="utf-8")
+
     matches = list(_SECTION_HEADING_RE.finditer(content))
 
     # --- Build dict from located headings ---
