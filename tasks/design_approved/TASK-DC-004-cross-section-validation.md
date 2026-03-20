@@ -1,35 +1,38 @@
 ---
-id: TASK-DC-004
-title: "Implement cross-section validation and error aggregation"
-task_type: feature
-parent_review: TASK-REV-DC5D
-feature_id: FEAT-5606
-wave: 3
-implementation_mode: task-work
 complexity: 5
-dependencies:
-  - TASK-DC-002
-  - TASK-DC-003
-status: pending
-priority: high
-tags: [domain-config, validation, error-handling]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
 consumer_context:
-  - task: TASK-DC-002
-    consumes: SECTION_DICT
-    framework: "Pydantic v2 (BaseModel)"
-    driver: "pydantic"
-    format_note: "dict[str, str] with 9 keys mapping section name to body text"
-  - task: TASK-DC-003
-    consumes: PARSED_MODELS
-    framework: "Pydantic v2 (BaseModel)"
-    driver: "pydantic"
-    format_note: "Lists of validated Pydantic model instances per section"
+- consumes: SECTION_DICT
+  driver: pydantic
+  format_note: dict[str, str] with 9 keys mapping section name to body text
+  framework: Pydantic v2 (BaseModel)
+  task: TASK-DC-002
+- consumes: PARSED_MODELS
+  driver: pydantic
+  format_note: Lists of validated Pydantic model instances per section
+  framework: Pydantic v2 (BaseModel)
+  task: TASK-DC-003
+created: 2026-03-19 00:00:00+00:00
+dependencies:
+- TASK-DC-002
+- TASK-DC-003
+feature_id: FEAT-5606
+id: TASK-DC-004
+implementation_mode: task-work
+parent_review: TASK-REV-DC5D
+priority: high
+status: design_approved
+tags:
+- domain-config
+- validation
+- error-handling
+task_type: feature
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement cross-section validation and error aggregation
+updated: 2026-03-19 00:00:00+00:00
+wave: 3
 ---
 
 # Task: Implement cross-section validation and error aggregation

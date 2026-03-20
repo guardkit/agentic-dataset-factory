@@ -1,0 +1,184 @@
+{
+  "task_id": "TASK-DC-004",
+  "turn": 1,
+  "files_modified": [
+    ".guardkit/autobuild/TASK-DC-002/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_validators.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/validators.py",
+    "coverage.json",
+    "tasks/backlog/TASK-DC-004-cross-section-validation.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-DC-004-implementation-plan.md",
+    ".guardkit/autobuild/TASK-DC-004/player_turn_1.json",
+    ".guardkit/autobuild/TASK-DC-004/task_work_results.json",
+    ".guardkit/autobuild/TASK-DC-004/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/.guardkit/autobuild/TASK-DC-004/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_validators.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/validators.py",
+    "domain_config/tests/test_validators.py",
+    "domain_config/validators.py",
+    "tasks/design_approved/TASK-DC-004-cross-section-validation.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_validators.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Goal section validated: minimum 50 characters (boundary: 50 passes, 49 fails)",
+    "System Prompt validated: minimum 100 characters (boundary: 100 passes, 99 fails)",
+    "Generation Guidelines validated: minimum 100 characters",
+    "Evaluation Criteria: at least 3 criteria required (boundary: 3 passes, 2 fails)",
+    "Evaluation Criteria: names checked for Python keyword collision",
+    "Output Schema: messages and metadata keys required",
+    "Source Documents: mode restricted to standard or vlm (reject ocr)",
+    "Layer Routing: both behaviour and knowledge rows required",
+    "Reasoning split: >= 70% of generation targets must be reasoning type (boundary: 70% passes, 69% fails)",
+    "Percentages in Generation Targets are advisory; counts are authoritative",
+    "Multiple validation failures reported together in a single error",
+    "Error messages include section name and human-readable description",
+    "All modified files pass project-configured lint/format checks with zero errors"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 45,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 217,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Goal section validated: minimum 50 characters (boundary: 50 passes, 49 fails)",
+      "status": "complete",
+      "evidence": "Implemented _validate_min_length checking sections['Goal'] >= 50 chars. Tests: test_goal_exactly_50_chars_passes (boundary 50), test_goal_49_chars_fails (boundary 49), test_goal_empty_fails (empty). Validation uses sections dict to check raw text length.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "System Prompt validated: minimum 100 characters (boundary: 100 passes, 99 fails)",
+      "status": "complete",
+      "evidence": "Implemented _validate_min_length checking sections['System Prompt'] >= 100 chars. Tests: test_system_prompt_exactly_100_chars_passes (boundary 100), test_system_prompt_99_chars_fails (boundary 99).",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Generation Guidelines validated: minimum 100 characters",
+      "status": "complete",
+      "evidence": "Implemented _validate_min_length checking sections['Generation Guidelines'] >= 100 chars. Tests: test_guidelines_exactly_100_chars_passes (boundary 100), test_guidelines_99_chars_fails (boundary 99).",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Evaluation Criteria: at least 3 criteria required (boundary: 3 passes, 2 fails)",
+      "status": "complete",
+      "evidence": "Implemented _validate_evaluation_criteria checking len(parsed.evaluation_criteria) >= 3. Tests: test_exactly_3_criteria_passes (boundary 3), test_2_criteria_fails (boundary 2), test_1_criterion_fails. Uses model_construct() to bypass Pydantic min_length=3 for negative tests.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Evaluation Criteria: names checked for Python keyword collision (class, import, etc.)",
+      "status": "complete",
+      "evidence": "Implemented both Pydantic model-level validation (field_validator on EvaluationCriterion.name) and cross-section validator check in _validate_evaluation_criteria. Tests: test_python_keyword_as_criterion_name_rejected_by_model (parametrized: class, import, return, for, if), test_keyword_name_detected_by_validator (model_construct bypass), test_invalid_identifier_detected_by_validator.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Output Schema: messages and metadata keys required",
+      "status": "complete",
+      "evidence": "Implemented _validate_output_schema checking {'messages', 'metadata'} - set(parsed.output_schema.keys()). Tests: test_valid_output_schema_passes, test_missing_messages_key_fails, test_missing_metadata_key_fails, test_missing_both_keys_fails.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Source Documents: mode restricted to standard or vlm (reject ocr)",
+      "status": "complete",
+      "evidence": "Mode restriction is enforced by the Pydantic model SourceDocument(mode: Literal['standard', 'vlm']). The validator adds a second line of defence via _validate_source_documents checking at least 1 entry exists. Tests verify model-level rejection of 'ocr' mode exists in test_models.py. Empty source_documents tested via test_empty_source_docs_fails.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Layer Routing: both behaviour and knowledge rows required",
+      "status": "complete",
+      "evidence": "Implemented _validate_layer_routing checking {'behaviour', 'knowledge'} - set(parsed.layer_routing.keys()). Tests: test_both_layers_present_passes, test_missing_knowledge_fails, test_missing_behaviour_fails, test_both_missing_fails.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Reasoning split: >= 70% of generation targets must be reasoning type (boundary: 70% passes, 69% fails)",
+      "status": "complete",
+      "evidence": "Implemented _validate_reasoning_split computing reasoning_count/total_count * 100 >= 70. Uses counts as authoritative (not percentages). Tests: test_exactly_70_percent_reasoning_passes (70/100), test_69_percent_reasoning_fails (69/100), test_60_percent_reasoning_fails (60/100), test_100_percent_reasoning_passes, test_various_counts_at_or_above_70_percent_pass (700/1000, 7/10, 71/100).",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "Percentages in Generation Targets are advisory; counts are authoritative",
+      "status": "complete",
+      "evidence": "The _validate_reasoning_split function computes the split from counts (sum(t.count for t in targets)), not from any percentage field. Tests: test_various_counts_at_or_above_70_percent_pass verifies counts 700/300, 7/3, 71/29 all pass regardless of any percentage values.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "Multiple validation failures reported together in a single error",
+      "status": "complete",
+      "evidence": "validate_goal_config collects all errors in a list[tuple[str, str]], then raises a single GoalValidationError with all failures attached as err.failures. Tests: test_multiple_failures_aggregated (Goal + System Prompt + Evaluation Criteria all in one error), test_all_structural_failures_aggregated (all 9 sections failing simultaneously).",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "Error messages include section name and human-readable description",
+      "status": "complete",
+      "evidence": "Each failure tuple is (section_name, human_readable_message). The GoalValidationError str() includes all section names and messages. Tests: test_error_has_failures_attribute, test_error_message_includes_all_sections, test_single_failure_still_uses_failures_attribute.",
+      "test_file": "domain_config/tests/test_validators.py",
+      "implementation_files": [
+        "domain_config/validators.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Ran ruff check on both validators.py and test_validators.py \u2014 'All checks passed!' after removing unused imports (keyword, MagicMock).",
+      "test_file": null,
+      "implementation_files": [
+        "domain_config/validators.py",
+        "domain_config/tests/test_validators.py"
+      ]
+    }
+  ]
+}

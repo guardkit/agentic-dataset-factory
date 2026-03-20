@@ -1,0 +1,251 @@
+{
+  "task_id": "TASK-DC-004",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest domain_config/tests/test_validators.py -v --tb=short",
+      "test_output_summary": "Result:\ndomain_config/tests/test_validators.py:632\n/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_validators.py:632: PytestUnknownMarkWarning: Unknown pytest.mark.negative - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\ndomain_config/tests/test_validators.py:648\n/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_validators.py:648: PytestUnknownMarkWarning: Unknown pytest.mark.negative - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n======================= 47 passed, 30 warnings in 0.09s ========================",
+      "duration_seconds": 11.20188307762146
+    },
+    "requirements": {
+      "criteria_total": 13,
+      "criteria_met": 13,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Goal section validated: minimum 50 characters (boundary: 50 passes, 49 fails)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_min_length checking sections['Goal'] >= 50 chars. Tests: test_goal_exactly_50_chars_passes (boundary 50), test_goal_49_chars_fails (boundary 49), test_goal_empty_fails (empty). Validation uses sections dict to check raw text length.",
+      "notes": "Implemented _validate_min_length checking sections['Goal'] >= 50 chars. Tests: test_goal_exactly_50_chars_passes (boundary 50), test_goal_49_chars_fails (boundary 49), test_goal_empty_fails (empty). Validation uses sections dict to check raw text length."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "System Prompt validated: minimum 100 characters (boundary: 100 passes, 99 fails)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_min_length checking sections['System Prompt'] >= 100 chars. Tests: test_system_prompt_exactly_100_chars_passes (boundary 100), test_system_prompt_99_chars_fails (boundary 99).",
+      "notes": "Implemented _validate_min_length checking sections['System Prompt'] >= 100 chars. Tests: test_system_prompt_exactly_100_chars_passes (boundary 100), test_system_prompt_99_chars_fails (boundary 99)."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Generation Guidelines validated: minimum 100 characters",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_min_length checking sections['Generation Guidelines'] >= 100 chars. Tests: test_guidelines_exactly_100_chars_passes (boundary 100), test_guidelines_99_chars_fails (boundary 99).",
+      "notes": "Implemented _validate_min_length checking sections['Generation Guidelines'] >= 100 chars. Tests: test_guidelines_exactly_100_chars_passes (boundary 100), test_guidelines_99_chars_fails (boundary 99)."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Evaluation Criteria: at least 3 criteria required (boundary: 3 passes, 2 fails)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_evaluation_criteria checking len(parsed.evaluation_criteria) >= 3. Tests: test_exactly_3_criteria_passes (boundary 3), test_2_criteria_fails (boundary 2), test_1_criterion_fails. Uses model_construct() to bypass Pydantic min_length=3 for negative tests.",
+      "notes": "Implemented _validate_evaluation_criteria checking len(parsed.evaluation_criteria) >= 3. Tests: test_exactly_3_criteria_passes (boundary 3), test_2_criteria_fails (boundary 2), test_1_criterion_fails. Uses model_construct() to bypass Pydantic min_length=3 for negative tests."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Evaluation Criteria: names checked for Python keyword collision (`class`, `import`, etc.)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented both Pydantic model-level validation (field_validator on EvaluationCriterion.name) and cross-section validator check in _validate_evaluation_criteria. Tests: test_python_keyword_as_criterion_name_rejected_by_model (parametrized: class, import, return, for, if), test_keyword_name_detected_by_validator (model_construct bypass), test_invalid_identifier_detected_by_validator.",
+      "notes": "Implemented both Pydantic model-level validation (field_validator on EvaluationCriterion.name) and cross-section validator check in _validate_evaluation_criteria. Tests: test_python_keyword_as_criterion_name_rejected_by_model (parametrized: class, import, return, for, if), test_keyword_name_detected_by_validator (model_construct bypass), test_invalid_identifier_detected_by_validator."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Output Schema: `messages` and `metadata` keys required",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_output_schema checking {'messages', 'metadata'} - set(parsed.output_schema.keys()). Tests: test_valid_output_schema_passes, test_missing_messages_key_fails, test_missing_metadata_key_fails, test_missing_both_keys_fails.",
+      "notes": "Implemented _validate_output_schema checking {'messages', 'metadata'} - set(parsed.output_schema.keys()). Tests: test_valid_output_schema_passes, test_missing_messages_key_fails, test_missing_metadata_key_fails, test_missing_both_keys_fails."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Source Documents: mode restricted to `standard` or `vlm` (reject `ocr`)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Mode restriction is enforced by the Pydantic model SourceDocument(mode: Literal['standard', 'vlm']). The validator adds a second line of defence via _validate_source_documents checking at least 1 entry exists. Tests verify model-level rejection of 'ocr' mode exists in test_models.py. Empty source_documents tested via test_empty_source_docs_fails.",
+      "notes": "Mode restriction is enforced by the Pydantic model SourceDocument(mode: Literal['standard', 'vlm']). The validator adds a second line of defence via _validate_source_documents checking at least 1 entry exists. Tests verify model-level rejection of 'ocr' mode exists in test_models.py. Empty source_documents tested via test_empty_source_docs_fails."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Layer Routing: both `behaviour` and `knowledge` rows required",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_layer_routing checking {'behaviour', 'knowledge'} - set(parsed.layer_routing.keys()). Tests: test_both_layers_present_passes, test_missing_knowledge_fails, test_missing_behaviour_fails, test_both_missing_fails.",
+      "notes": "Implemented _validate_layer_routing checking {'behaviour', 'knowledge'} - set(parsed.layer_routing.keys()). Tests: test_both_layers_present_passes, test_missing_knowledge_fails, test_missing_behaviour_fails, test_both_missing_fails."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Reasoning split: >= 70% of generation targets must be `reasoning` type (boundary: 70% passes, 69% fails)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _validate_reasoning_split computing reasoning_count/total_count * 100 >= 70. Uses counts as authoritative (not percentages). Tests: test_exactly_70_percent_reasoning_passes (70/100), test_69_percent_reasoning_fails (69/100), test_60_percent_reasoning_fails (60/100), test_100_percent_reasoning_passes, test_various_counts_at_or_above_70_percent_pass (700/1000, 7/10, 71/100).",
+      "notes": "Implemented _validate_reasoning_split computing reasoning_count/total_count * 100 >= 70. Uses counts as authoritative (not percentages). Tests: test_exactly_70_percent_reasoning_passes (70/100), test_69_percent_reasoning_fails (69/100), test_60_percent_reasoning_fails (60/100), test_100_percent_reasoning_passes, test_various_counts_at_or_above_70_percent_pass (700/1000, 7/10, 71/100)."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "Percentages in Generation Targets are advisory; counts are authoritative",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "The _validate_reasoning_split function computes the split from counts (sum(t.count for t in targets)), not from any percentage field. Tests: test_various_counts_at_or_above_70_percent_pass verifies counts 700/300, 7/3, 71/29 all pass regardless of any percentage values.",
+      "notes": "The _validate_reasoning_split function computes the split from counts (sum(t.count for t in targets)), not from any percentage field. Tests: test_various_counts_at_or_above_70_percent_pass verifies counts 700/300, 7/3, 71/29 all pass regardless of any percentage values."
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "Multiple validation failures reported together in a single error",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "validate_goal_config collects all errors in a list[tuple[str, str]], then raises a single GoalValidationError with all failures attached as err.failures. Tests: test_multiple_failures_aggregated (Goal + System Prompt + Evaluation Criteria all in one error), test_all_structural_failures_aggregated (all 9 sections failing simultaneously).",
+      "notes": "validate_goal_config collects all errors in a list[tuple[str, str]], then raises a single GoalValidationError with all failures attached as err.failures. Tests: test_multiple_failures_aggregated (Goal + System Prompt + Evaluation Criteria all in one error), test_all_structural_failures_aggregated (all 9 sections failing simultaneously)."
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "Error messages include section name and human-readable description",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Each failure tuple is (section_name, human_readable_message). The GoalValidationError str() includes all section names and messages. Tests: test_error_has_failures_attribute, test_error_message_includes_all_sections, test_single_failure_still_uses_failures_attribute.",
+      "notes": "Each failure tuple is (section_name, human_readable_message). The GoalValidationError str() includes all section names and messages. Tests: test_error_has_failures_attribute, test_error_message_includes_all_sections, test_single_failure_still_uses_failures_attribute."
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Ran ruff check on both validators.py and test_validators.py \u2014 'All checks passed!' after removing unused imports (keyword, MagicMock).",
+      "notes": "Ran ruff check on both validators.py and test_validators.py \u2014 'All checks passed!' after removing unused imports (keyword, MagicMock)."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Goal section validated: minimum 50 characters (boundary: 50 passes, 49 fails)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_min_length checking sections['Goal'] >= 50 chars. Tests: test_goal_exactly_50_chars_passes (boundary 50), test_goal_49_chars_fails (boundary 49), test_goal_empty_fails (empty). Validation uses sections dict to check raw text length.",
+        "notes": "Implemented _validate_min_length checking sections['Goal'] >= 50 chars. Tests: test_goal_exactly_50_chars_passes (boundary 50), test_goal_49_chars_fails (boundary 49), test_goal_empty_fails (empty). Validation uses sections dict to check raw text length."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "System Prompt validated: minimum 100 characters (boundary: 100 passes, 99 fails)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_min_length checking sections['System Prompt'] >= 100 chars. Tests: test_system_prompt_exactly_100_chars_passes (boundary 100), test_system_prompt_99_chars_fails (boundary 99).",
+        "notes": "Implemented _validate_min_length checking sections['System Prompt'] >= 100 chars. Tests: test_system_prompt_exactly_100_chars_passes (boundary 100), test_system_prompt_99_chars_fails (boundary 99)."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Generation Guidelines validated: minimum 100 characters",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_min_length checking sections['Generation Guidelines'] >= 100 chars. Tests: test_guidelines_exactly_100_chars_passes (boundary 100), test_guidelines_99_chars_fails (boundary 99).",
+        "notes": "Implemented _validate_min_length checking sections['Generation Guidelines'] >= 100 chars. Tests: test_guidelines_exactly_100_chars_passes (boundary 100), test_guidelines_99_chars_fails (boundary 99)."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Evaluation Criteria: at least 3 criteria required (boundary: 3 passes, 2 fails)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_evaluation_criteria checking len(parsed.evaluation_criteria) >= 3. Tests: test_exactly_3_criteria_passes (boundary 3), test_2_criteria_fails (boundary 2), test_1_criterion_fails. Uses model_construct() to bypass Pydantic min_length=3 for negative tests.",
+        "notes": "Implemented _validate_evaluation_criteria checking len(parsed.evaluation_criteria) >= 3. Tests: test_exactly_3_criteria_passes (boundary 3), test_2_criteria_fails (boundary 2), test_1_criterion_fails. Uses model_construct() to bypass Pydantic min_length=3 for negative tests."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Evaluation Criteria: names checked for Python keyword collision (`class`, `import`, etc.)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented both Pydantic model-level validation (field_validator on EvaluationCriterion.name) and cross-section validator check in _validate_evaluation_criteria. Tests: test_python_keyword_as_criterion_name_rejected_by_model (parametrized: class, import, return, for, if), test_keyword_name_detected_by_validator (model_construct bypass), test_invalid_identifier_detected_by_validator.",
+        "notes": "Implemented both Pydantic model-level validation (field_validator on EvaluationCriterion.name) and cross-section validator check in _validate_evaluation_criteria. Tests: test_python_keyword_as_criterion_name_rejected_by_model (parametrized: class, import, return, for, if), test_keyword_name_detected_by_validator (model_construct bypass), test_invalid_identifier_detected_by_validator."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Output Schema: `messages` and `metadata` keys required",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_output_schema checking {'messages', 'metadata'} - set(parsed.output_schema.keys()). Tests: test_valid_output_schema_passes, test_missing_messages_key_fails, test_missing_metadata_key_fails, test_missing_both_keys_fails.",
+        "notes": "Implemented _validate_output_schema checking {'messages', 'metadata'} - set(parsed.output_schema.keys()). Tests: test_valid_output_schema_passes, test_missing_messages_key_fails, test_missing_metadata_key_fails, test_missing_both_keys_fails."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Source Documents: mode restricted to `standard` or `vlm` (reject `ocr`)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Mode restriction is enforced by the Pydantic model SourceDocument(mode: Literal['standard', 'vlm']). The validator adds a second line of defence via _validate_source_documents checking at least 1 entry exists. Tests verify model-level rejection of 'ocr' mode exists in test_models.py. Empty source_documents tested via test_empty_source_docs_fails.",
+        "notes": "Mode restriction is enforced by the Pydantic model SourceDocument(mode: Literal['standard', 'vlm']). The validator adds a second line of defence via _validate_source_documents checking at least 1 entry exists. Tests verify model-level rejection of 'ocr' mode exists in test_models.py. Empty source_documents tested via test_empty_source_docs_fails."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Layer Routing: both `behaviour` and `knowledge` rows required",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_layer_routing checking {'behaviour', 'knowledge'} - set(parsed.layer_routing.keys()). Tests: test_both_layers_present_passes, test_missing_knowledge_fails, test_missing_behaviour_fails, test_both_missing_fails.",
+        "notes": "Implemented _validate_layer_routing checking {'behaviour', 'knowledge'} - set(parsed.layer_routing.keys()). Tests: test_both_layers_present_passes, test_missing_knowledge_fails, test_missing_behaviour_fails, test_both_missing_fails."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Reasoning split: >= 70% of generation targets must be `reasoning` type (boundary: 70% passes, 69% fails)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _validate_reasoning_split computing reasoning_count/total_count * 100 >= 70. Uses counts as authoritative (not percentages). Tests: test_exactly_70_percent_reasoning_passes (70/100), test_69_percent_reasoning_fails (69/100), test_60_percent_reasoning_fails (60/100), test_100_percent_reasoning_passes, test_various_counts_at_or_above_70_percent_pass (700/1000, 7/10, 71/100).",
+        "notes": "Implemented _validate_reasoning_split computing reasoning_count/total_count * 100 >= 70. Uses counts as authoritative (not percentages). Tests: test_exactly_70_percent_reasoning_passes (70/100), test_69_percent_reasoning_fails (69/100), test_60_percent_reasoning_fails (60/100), test_100_percent_reasoning_passes, test_various_counts_at_or_above_70_percent_pass (700/1000, 7/10, 71/100)."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "Percentages in Generation Targets are advisory; counts are authoritative",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "The _validate_reasoning_split function computes the split from counts (sum(t.count for t in targets)), not from any percentage field. Tests: test_various_counts_at_or_above_70_percent_pass verifies counts 700/300, 7/3, 71/29 all pass regardless of any percentage values.",
+        "notes": "The _validate_reasoning_split function computes the split from counts (sum(t.count for t in targets)), not from any percentage field. Tests: test_various_counts_at_or_above_70_percent_pass verifies counts 700/300, 7/3, 71/29 all pass regardless of any percentage values."
+      },
+      {
+        "criterion_id": "AC-011",
+        "criterion_text": "Multiple validation failures reported together in a single error",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "validate_goal_config collects all errors in a list[tuple[str, str]], then raises a single GoalValidationError with all failures attached as err.failures. Tests: test_multiple_failures_aggregated (Goal + System Prompt + Evaluation Criteria all in one error), test_all_structural_failures_aggregated (all 9 sections failing simultaneously).",
+        "notes": "validate_goal_config collects all errors in a list[tuple[str, str]], then raises a single GoalValidationError with all failures attached as err.failures. Tests: test_multiple_failures_aggregated (Goal + System Prompt + Evaluation Criteria all in one error), test_all_structural_failures_aggregated (all 9 sections failing simultaneously)."
+      },
+      {
+        "criterion_id": "AC-012",
+        "criterion_text": "Error messages include section name and human-readable description",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Each failure tuple is (section_name, human_readable_message). The GoalValidationError str() includes all section names and messages. Tests: test_error_has_failures_attribute, test_error_message_includes_all_sections, test_single_failure_still_uses_failures_attribute.",
+        "notes": "Each failure tuple is (section_name, human_readable_message). The GoalValidationError str() includes all section names and messages. Tests: test_error_has_failures_attribute, test_error_message_includes_all_sections, test_single_failure_still_uses_failures_attribute."
+      },
+      {
+        "criterion_id": "AC-013",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Ran ruff check on both validators.py and test_validators.py \u2014 'All checks passed!' after removing unused imports (keyword, MagicMock).",
+        "notes": "Ran ruff check on both validators.py and test_validators.py \u2014 'All checks passed!' after removing unused imports (keyword, MagicMock)."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 432 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 1939/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- HAS_ERROR_HANDLER_FOR\n- DESCRIBES\n- ASSIGNS_TASK_TO\n- HAS_SEQUENCE_STEP\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- HAS_TASK_ID_FORMAT\n- PROVIDES_ISOLATION_FOR\n- HAS_TASK_ID_FORMAT\n\n### \u26a0\ufe0f Warnings\n- ALTERNATIVE_TO\n- IS_IMPLEMENTED_AS\n- HAS_IMPLEMENTATION_TARGET\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
