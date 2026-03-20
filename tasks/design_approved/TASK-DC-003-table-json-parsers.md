@@ -1,23 +1,27 @@
 ---
-id: TASK-DC-003
-title: "Implement table parser and JSON extractor"
-task_type: feature
-parent_review: TASK-REV-DC5D
-feature_id: FEAT-5606
-wave: 2
-implementation_mode: task-work
 complexity: 5
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-DC-001
-status: pending
+- TASK-DC-001
+feature_id: FEAT-5606
+id: TASK-DC-003
+implementation_mode: task-work
+parent_review: TASK-REV-DC5D
 priority: high
-tags: [domain-config, parser, markdown-tables, json]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- domain-config
+- parser
+- markdown-tables
+- json
+task_type: feature
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement table parser and JSON extractor
+updated: 2026-03-19 00:00:00+00:00
+wave: 2
 ---
 
 # Task: Implement table parser and JSON extractor

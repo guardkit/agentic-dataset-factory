@@ -1,0 +1,183 @@
+{
+  "task_id": "TASK-DC-003",
+  "turn": 1,
+  "files_modified": [
+    ".guardkit/autobuild/TASK-DC-001/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/parser.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parser.py",
+    "tasks/backlog/TASK-DC-003-table-json-parsers.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-DC-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-DC-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-DC-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-DC-003/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/.guardkit/autobuild/TASK-DC-003/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/parser.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parser.py",
+    "domain_config/parser.py",
+    "domain_config/tests/test_parser.py",
+    "tasks/design_approved/TASK-DC-003-table-json-parsers.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parser.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "parse_table() handles inconsistent column alignment and trailing whitespace",
+    "parse_table() trims all cell values",
+    "parse_table() handles missing trailing pipes",
+    "parse_table() skips separator rows",
+    "parse_table() validates rows against Pydantic models with type coercion",
+    "extract_json() finds first ```json block and parses it",
+    "extract_json() handles backticks in JSON strings",
+    "extract_json() raises GoalValidationError for malformed JSON",
+    "extract_json() validates required top-level keys (messages, metadata)",
+    "Weight values parsed as float with % conversion",
+    "Required column parsed as bool",
+    "Valid Values column parsed as list[str]",
+    "All files pass lint/format checks"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 38,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 349,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "parse_table() handles inconsistent column alignment and trailing whitespace",
+      "status": "complete",
+      "evidence": "Implemented _parse_row() that splits on | and strips each cell. Test test_handles_inconsistent_alignment verifies headers with extra spaces and data rows with inconsistent alignment all parse correctly to trimmed values.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "parse_table() trims all cell values",
+      "status": "complete",
+      "evidence": "Every cell is passed through str.strip() in _parse_row(). Test test_trims_all_cell_values confirms cells with extra leading/trailing whitespace are trimmed.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "parse_table() handles missing trailing pipes in table rows",
+      "status": "complete",
+      "evidence": "_parse_row() splits on | and strips empty leading/trailing segments, so rows without a trailing pipe produce the same cell list. Test test_handles_missing_trailing_pipe verifies this with a row ending without |.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "parse_table() skips the separator row (|---|---|)",
+      "status": "complete",
+      "evidence": "_is_separator() uses a regex _SEPARATOR_RE to detect separator rows including variations like |:---:|:---:|. The main loop calls _is_separator() and continues past matching lines. Test test_skips_separator_row verifies with :---: alignment markers.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "parse_table() validates each row against the Pydantic model (type coercion for int, float)",
+      "status": "complete",
+      "evidence": "Each row is passed as **raw_kwargs to the Pydantic model_class constructor, which performs validation and type coercion. Tests verify count is coerced to int (test_count_coerced_to_int) and weight percentage strings are coerced to float via _coerce_weight.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "extract_json() finds the first ```json block and parses it",
+      "status": "complete",
+      "evidence": "extract_json uses re.search with pattern r\"```json\\s*\\n(.*?)(?:^|\\n)\\s*```\" to find the first JSON code block. Test test_extracts_valid_json_block and test_finds_first_json_block_when_multiple_present verify correct extraction.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "extract_json() handles string values containing backticks within the JSON",
+      "status": "complete",
+      "evidence": "The regex uses a non-greedy match (.*?) with re.DOTALL and looks for a closing ``` on its own line, so inline backticks within JSON string values don't interfere. Test test_handles_backticks_in_json_strings verifies JSON containing `code` backtick strings parses correctly.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "extract_json() raises GoalValidationError for malformed JSON with descriptive message",
+      "status": "complete",
+      "evidence": "json.JSONDecodeError is caught and re-raised as GoalValidationError with section='Output Schema' and a message that includes the JSONDecodeError details. Tests test_malformed_json_raises_goal_validation_error and test_error_message_is_descriptive verify this.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "extract_json() validates required top-level keys (messages, metadata)",
+      "status": "complete",
+      "evidence": "After parsing JSON, extract_json checks for missing keys from the set {'messages', 'metadata'} and raises GoalValidationError listing the missing keys. Tests test_required_keys_validated, test_missing_messages_key_raises, and test_missing_metadata_key_raises all verify this.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "Weight values parsed as float (e.g., '25%' -> 0.25)",
+      "status": "complete",
+      "evidence": "_coerce_weight() strips the % suffix, divides by 100, and returns a decimal string for Pydantic to coerce. Test test_weight_percentage_converted_to_float verifies 25%->0.25, 50%->0.50. test_weight_without_percent_sign verifies plain decimals also work.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "Required column parsed as bool (e.g., 'yes' -> True)",
+      "status": "complete",
+      "evidence": "_coerce_required() normalises yes/no/y/n/true/false to 'true'/'false' strings for Pydantic bool coercion. Test test_required_column_parsed_as_bool verifies 'yes'->True and 'no'->False.",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "Valid Values column parsed as list[str] (comma-separated), empty column -> empty list",
+      "status": "complete",
+      "evidence": "_coerce_valid_values() splits on comma and strips each value; empty/whitespace strings return []. Tests test_valid_values_parsed_as_list verifies 'behaviour, knowledge' -> ['behaviour', 'knowledge']. test_empty_valid_values_gives_empty_list verifies empty cells return [].",
+      "test_file": "domain_config/tests/test_parser.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Ran `ruff check` and `ruff format --check` on both domain_config/parser.py and domain_config/tests/test_parser.py \u2014 all checks passed with zero errors, zero reformatting needed.",
+      "test_file": null,
+      "implementation_files": [
+        "domain_config/parser.py",
+        "domain_config/tests/test_parser.py"
+      ]
+    }
+  ]
+}
