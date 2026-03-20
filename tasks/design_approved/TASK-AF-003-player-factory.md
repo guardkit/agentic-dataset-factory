@@ -1,22 +1,27 @@
 ---
-id: TASK-AF-003
-title: "Implement Player factory"
-task_type: feature
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 2
-implementation_mode: task-work
 complexity: 3
-dependencies:
-  - TASK-AF-001
-status: pending
-tags: [player, factory, create-deep-agent, filesystem-backend]
 consumer_context:
-  - task: TASK-AF-001
-    consumes: ModelConfig
-    framework: "DeepAgents create_deep_agent"
-    driver: "deepagents"
-    format_note: "ModelConfig must be translated to a concrete model object via create_model() before passing to create_deep_agent"
+- consumes: ModelConfig
+  driver: deepagents
+  format_note: ModelConfig must be translated to a concrete model object via create_model()
+    before passing to create_deep_agent
+  framework: DeepAgents create_deep_agent
+  task: TASK-AF-001
+dependencies:
+- TASK-AF-001
+feature_id: FEAT-AF
+id: TASK-AF-003
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- player
+- factory
+- create-deep-agent
+- filesystem-backend
+task_type: feature
+title: Implement Player factory
+wave: 2
 ---
 
 # Task: Implement Player factory
