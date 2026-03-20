@@ -125,7 +125,7 @@ class TestPersistentClientInit:
 
         with patch("ingestion.chromadb_indexer.chromadb") as mock_chromadb:
             mock_chromadb.PersistentClient.return_value = MagicMock()
-            indexer = ChromaDBIndexer()
+            ChromaDBIndexer()
             mock_chromadb.PersistentClient.assert_called_once_with(
                 path="./chroma_data"
             )
@@ -343,10 +343,6 @@ class TestBatchSize:
 class TestEmbeddingFailureHandling:
     def test_skips_failed_chunks_and_continues(self, indexer, caplog):
         """If a chunk fails to embed, log + skip and continue with others."""
-        from ingestion.chromadb_indexer import ChromaDBIndexer
-
-        collection = indexer.create_or_replace_collection("fail-domain")
-
         # Create a mock collection that fails on the second add call
         mock_collection = MagicMock()
         mock_collection.name = "fail-domain"
@@ -377,11 +373,13 @@ class TestEmbeddingFailureHandling:
         ]
 
         with caplog.at_level(logging.WARNING):
-            count = indexer.index_chunks(mock_collection, chunks, batch_size=1)
+            indexer.index_chunks(mock_collection, chunks, batch_size=1)
 
         # Should have logged a warning about the failure
-        assert any("fail" in record.message.lower() or "error" in record.message.lower()
-                    for record in caplog.records)
+        assert any(
+            "fail" in record.message.lower() or "error" in record.message.lower()
+            for record in caplog.records
+        )
 
     def test_returns_count_of_successfully_indexed_only(self, indexer):
         """Return count should exclude failed chunks."""

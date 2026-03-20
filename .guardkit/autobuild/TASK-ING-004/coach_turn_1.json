@@ -1,0 +1,219 @@
+{
+  "task_id": "TASK-ING-004",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest ingestion/tests/test_chromadb_indexer.py ingestion/tests/test_chunker.py ingestion/tests/test_docling_processor.py ingestion/tests/test_errors.py ingestion/tests/test_goal_reader.py -v --tb=short",
+      "test_output_summary": "Error detail:\ningestion/tests/test_chromadb_indexer.py::TestForceReplaceCollection::test_force_true_on_nonexistent_collection_creates_new PASSED [  6%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_force_false_raises_collection_exists_error PASSED [  6%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_collection_exists_error_is_ingestion_error_subclass PASSED [  7%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_force_false_is_default PASSED [  8%]\ningestion/tests/test_chromadb_indexer.py::TestIndexChunksMetadata::test_indexes_chunks_with_correct_metadata PASSED [  8%]\nResult:\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_package_all PASSED [ 98%]\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_module_all PASSED [ 98%]\ningestion/tests/test_goal_reader.py::TestSeamContract::test_source_document_format PASSED [ 99%]\ningestion/tests/test_goal_reader...",
+      "duration_seconds": 11.330903053283691
+    },
+    "requirements": {
+      "criteria_total": 11,
+      "criteria_met": 11,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`ChromaDBIndexer` uses `PersistentClient` with configurable persist_directory",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "ChromaDBIndexer.__init__ accepts persist_directory parameter (default './chroma_data') and passes it to chromadb.PersistentClient(path=persist_directory). Verified by TestPersistentClientInit with 4 tests including mock-based verification of PersistentClient call args.",
+      "notes": "ChromaDBIndexer.__init__ accepts persist_directory parameter (default './chroma_data') and passes it to chromadb.PersistentClient(path=persist_directory). Verified by TestPersistentClientInit with 4 tests including mock-based verification of PersistentClient call args."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "`collection_exists()` correctly detects existing collections",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "collection_exists() queries client.list_collections() and checks if collection_name is in the list. Verified by TestCollectionExists with tests for nonexistent, existing, and deleted collections.",
+      "notes": "collection_exists() queries client.list_collections() and checks if collection_name is in the list. Verified by TestCollectionExists with tests for nonexistent, existing, and deleted collections."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "`create_or_replace_collection()` creates new collection when none exists",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "create_or_replace_collection() calls client.create_collection() when no existing collection is found. TestCreateCollection verifies creation and accessibility with 2 tests.",
+      "notes": "create_or_replace_collection() calls client.create_collection() when no existing collection is found. TestCreateCollection verifies creation and accessibility with 2 tests."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "`create_or_replace_collection()` with `force=True` deletes and recreates existing collection",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "When force=True and collection exists, it calls client.delete_collection() then client.create_collection(). TestForceReplaceCollection verifies the replaced collection is empty (count==0) and that force=True on nonexistent collection also works.",
+      "notes": "When force=True and collection exists, it calls client.delete_collection() then client.create_collection(). TestForceReplaceCollection verifies the replaced collection is empty (count==0) and that force=True on nonexistent collection also works."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "`create_or_replace_collection()` with `force=False` raises `CollectionExistsError` if collection exists",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "When force=False (default) and collection exists, raises CollectionExistsError. CollectionExistsError added to errors.py inheriting from IngestionError. TestCollectionExistsError has 3 tests verifying the error is raised, is an IngestionError subclass, and that force=False is the default.",
+      "notes": "When force=False (default) and collection exists, raises CollectionExistsError. CollectionExistsError added to errors.py inheriting from IngestionError. TestCollectionExistsError has 3 tests verifying the error is raised, is an IngestionError subclass, and that force=False is the default."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "`index_chunks()` indexes chunks with correct metadata (source_file, page_number, chunk_index, docling_mode, domain)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "index_chunks() passes chunk.metadata directly to collection.add(metadatas=[...]). TestIndexChunksMetadata verifies all 5 required metadata keys are present, chunk IDs are deterministic ({domain}_{source_file}_{chunk_index}), documents are stored, and empty list returns 0. 5 tests total.",
+      "notes": "index_chunks() passes chunk.metadata directly to collection.add(metadatas=[...]). TestIndexChunksMetadata verifies all 5 required metadata keys are present, chunk IDs are deterministic ({domain}_{source_file}_{chunk_index}), documents are stored, and empty list returns 0. 5 tests total."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "`index_chunks()` uses configurable batch_size for batch operations",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "index_chunks() accepts batch_size parameter (default 500) and processes chunks in range(0, len(chunks), batch_size) batches. TestBatchSize has 4 tests: custom batch_size=10 with 25 chunks, default batch_size, batch_size=1, and batch_size exactly equal to chunk count.",
+      "notes": "index_chunks() accepts batch_size parameter (default 500) and processes chunks in range(0, len(chunks), batch_size) batches. TestBatchSize has 4 tests: custom batch_size=10 with 25 chunks, default batch_size, batch_size=1, and batch_size exactly equal to chunk count."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "`index_chunks()` handles individual chunk embedding failures gracefully (log + skip)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "When collection.add() raises an exception for a batch, the error is caught, logged as WARNING with details (batch size, start index, collection name, error message), and the batch is skipped. Remaining batches continue. TestEmbeddingFailureHandling has 2 tests: verifying warning is logged and that return count excludes failed batches (3 chunks with 1 batch failure = 2 indexed).",
+      "notes": "When collection.add() raises an exception for a batch, the error is caught, logged as WARNING with details (batch size, start index, collection name, error message), and the batch is skipped. Remaining batches continue. TestEmbeddingFailureHandling has 2 tests: verifying warning is logged and that return count excludes failed batches (3 chunks with 1 batch failure = 2 indexed)."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Force re-ingestion logs a warning about concurrent access safety (ASSUM-004)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "When force=True and collection exists, logger.warning() is called with message containing 'concurrent' and referencing ASSUM-004. TestConcurrentAccessWarning verifies the warning is logged with 'concurrent' in the message.",
+      "notes": "When force=True and collection exists, logger.warning() is called with message containing 'concurrent' and referencing ASSUM-004. TestConcurrentAccessWarning verifies the warning is logged with 'concurrent' in the message."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "ChromaDB connection failure raises `IndexingError` with descriptive message",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "ChromaDBIndexer.__init__ wraps PersistentClient creation in try/except, raising IndexingError with descriptive message on failure. create_or_replace_collection() also wraps ChromaDB operations. TestConnectionFailure has 2 tests: one for init failure and one for collection creation failure, both verifying IndexingError is raised with the original error message.",
+      "notes": "ChromaDBIndexer.__init__ wraps PersistentClient creation in try/except, raising IndexingError with descriptive message on failure. create_or_replace_collection() also wraps ChromaDB operations. TestConnectionFailure has 2 tests: one for init failure and one for collection creation failure, both verifying IndexingError is raised with the original error message."
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Ran 'ruff check' on all 5 modified/created files (chromadb_indexer.py, errors.py, __init__.py, test_chromadb_indexer.py, test_errors.py) \u2014 output: 'All checks passed!' with zero errors.",
+      "notes": "Ran 'ruff check' on all 5 modified/created files (chromadb_indexer.py, errors.py, __init__.py, test_chromadb_indexer.py, test_errors.py) \u2014 output: 'All checks passed!' with zero errors."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`ChromaDBIndexer` uses `PersistentClient` with configurable persist_directory",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "ChromaDBIndexer.__init__ accepts persist_directory parameter (default './chroma_data') and passes it to chromadb.PersistentClient(path=persist_directory). Verified by TestPersistentClientInit with 4 tests including mock-based verification of PersistentClient call args.",
+        "notes": "ChromaDBIndexer.__init__ accepts persist_directory parameter (default './chroma_data') and passes it to chromadb.PersistentClient(path=persist_directory). Verified by TestPersistentClientInit with 4 tests including mock-based verification of PersistentClient call args."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`collection_exists()` correctly detects existing collections",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "collection_exists() queries client.list_collections() and checks if collection_name is in the list. Verified by TestCollectionExists with tests for nonexistent, existing, and deleted collections.",
+        "notes": "collection_exists() queries client.list_collections() and checks if collection_name is in the list. Verified by TestCollectionExists with tests for nonexistent, existing, and deleted collections."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`create_or_replace_collection()` creates new collection when none exists",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "create_or_replace_collection() calls client.create_collection() when no existing collection is found. TestCreateCollection verifies creation and accessibility with 2 tests.",
+        "notes": "create_or_replace_collection() calls client.create_collection() when no existing collection is found. TestCreateCollection verifies creation and accessibility with 2 tests."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "`create_or_replace_collection()` with `force=True` deletes and recreates existing collection",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "When force=True and collection exists, it calls client.delete_collection() then client.create_collection(). TestForceReplaceCollection verifies the replaced collection is empty (count==0) and that force=True on nonexistent collection also works.",
+        "notes": "When force=True and collection exists, it calls client.delete_collection() then client.create_collection(). TestForceReplaceCollection verifies the replaced collection is empty (count==0) and that force=True on nonexistent collection also works."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`create_or_replace_collection()` with `force=False` raises `CollectionExistsError` if collection exists",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "When force=False (default) and collection exists, raises CollectionExistsError. CollectionExistsError added to errors.py inheriting from IngestionError. TestCollectionExistsError has 3 tests verifying the error is raised, is an IngestionError subclass, and that force=False is the default.",
+        "notes": "When force=False (default) and collection exists, raises CollectionExistsError. CollectionExistsError added to errors.py inheriting from IngestionError. TestCollectionExistsError has 3 tests verifying the error is raised, is an IngestionError subclass, and that force=False is the default."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`index_chunks()` indexes chunks with correct metadata (source_file, page_number, chunk_index, docling_mode, domain)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "index_chunks() passes chunk.metadata directly to collection.add(metadatas=[...]). TestIndexChunksMetadata verifies all 5 required metadata keys are present, chunk IDs are deterministic ({domain}_{source_file}_{chunk_index}), documents are stored, and empty list returns 0. 5 tests total.",
+        "notes": "index_chunks() passes chunk.metadata directly to collection.add(metadatas=[...]). TestIndexChunksMetadata verifies all 5 required metadata keys are present, chunk IDs are deterministic ({domain}_{source_file}_{chunk_index}), documents are stored, and empty list returns 0. 5 tests total."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "`index_chunks()` uses configurable batch_size for batch operations",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "index_chunks() accepts batch_size parameter (default 500) and processes chunks in range(0, len(chunks), batch_size) batches. TestBatchSize has 4 tests: custom batch_size=10 with 25 chunks, default batch_size, batch_size=1, and batch_size exactly equal to chunk count.",
+        "notes": "index_chunks() accepts batch_size parameter (default 500) and processes chunks in range(0, len(chunks), batch_size) batches. TestBatchSize has 4 tests: custom batch_size=10 with 25 chunks, default batch_size, batch_size=1, and batch_size exactly equal to chunk count."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "`index_chunks()` handles individual chunk embedding failures gracefully (log + skip)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "When collection.add() raises an exception for a batch, the error is caught, logged as WARNING with details (batch size, start index, collection name, error message), and the batch is skipped. Remaining batches continue. TestEmbeddingFailureHandling has 2 tests: verifying warning is logged and that return count excludes failed batches (3 chunks with 1 batch failure = 2 indexed).",
+        "notes": "When collection.add() raises an exception for a batch, the error is caught, logged as WARNING with details (batch size, start index, collection name, error message), and the batch is skipped. Remaining batches continue. TestEmbeddingFailureHandling has 2 tests: verifying warning is logged and that return count excludes failed batches (3 chunks with 1 batch failure = 2 indexed)."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Force re-ingestion logs a warning about concurrent access safety (ASSUM-004)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "When force=True and collection exists, logger.warning() is called with message containing 'concurrent' and referencing ASSUM-004. TestConcurrentAccessWarning verifies the warning is logged with 'concurrent' in the message.",
+        "notes": "When force=True and collection exists, logger.warning() is called with message containing 'concurrent' and referencing ASSUM-004. TestConcurrentAccessWarning verifies the warning is logged with 'concurrent' in the message."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "ChromaDB connection failure raises `IndexingError` with descriptive message",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "ChromaDBIndexer.__init__ wraps PersistentClient creation in try/except, raising IndexingError with descriptive message on failure. create_or_replace_collection() also wraps ChromaDB operations. TestConnectionFailure has 2 tests: one for init failure and one for collection creation failure, both verifying IndexingError is raised with the original error message.",
+        "notes": "ChromaDBIndexer.__init__ wraps PersistentClient creation in try/except, raising IndexingError with descriptive message on failure. create_or_replace_collection() also wraps ChromaDB operations. TestConnectionFailure has 2 tests: one for init failure and one for collection creation failure, both verifying IndexingError is raised with the original error message."
+      },
+      {
+        "criterion_id": "AC-011",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Ran 'ruff check' on all 5 modified/created files (chromadb_indexer.py, errors.py, __init__.py, test_chromadb_indexer.py, test_errors.py) \u2014 output: 'All checks passed!' with zero errors.",
+        "notes": "Ran 'ruff check' on all 5 modified/created files (chromadb_indexer.py, errors.py, __init__.py, test_chromadb_indexer.py, test_errors.py) \u2014 output: 'All checks passed!' with zero errors."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 417 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2016/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- DESCRIBES\n- DESCRIPTION_OF\n- ASSIGNS_TASK_TO\n- SOURCE_OF_PATTERN\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- HAS_TASK_ID_FORMAT\n- PROVIDES_ISOLATION_FOR\n- HAS_TASK_ID_FORMAT\n\n### \u26a0\ufe0f Warnings\n- RESULTS_IN\n- CALLS\n- HAS_ROOT_CAUSE\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
