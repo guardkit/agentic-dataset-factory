@@ -1,0 +1,187 @@
+{
+  "task_id": "TASK-EP-004",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest entrypoint/tests/test_checkpoint_lock.py entrypoint/tests/test_startup.py -v --tb=short",
+      "test_output_summary": "Error detail:\nentrypoint/tests/test_startup.py::TestDomainPathResolution::test_resolve_domain_path_uses_domains_prefix PASSED [ 55%]\nentrypoint/tests/test_startup.py::TestDomainNotFoundError::test_nonexistent_domain_raises_domain_not_found_error PASSED [ 58%]\nentrypoint/tests/test_startup.py::TestDomainNotFoundError::test_domain_not_found_error_is_exception_subclass PASSED [ 60%]\nentrypoint/tests/test_startup.py::TestDomainNotFoundError::test_domain_not_found_error_includes_domain_name PASSED [ 62%]\nentrypoint/tests/test_startup.py::TestMissingGoalMd::test_missing_goal_md_raises_error PASSED [ 65%]\nResult:\nentrypoint/tests/test_startup.py::TestLangSmithTracingWarning::test_tracing_without_api_key_logs_warning PASSED [ 93%]\nentrypoint/tests/test_startup.py::TestLangSmithTracingWarning::test_tracing_without_api_key_does_not_raise PASSED [ 95%]\nentrypoint/tests/test_startup.py::TestLangSmithTracingWarning::test_no_warning_when_api_key_present PASSED [ 97%]\nentrypoint/tests/test_startup...",
+      "duration_seconds": 18.725780963897705
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 9,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Domain path resolved to `domains/{domain}/`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "resolve_domain() constructs Path(project_root / 'domains' / domain) and returns it when the directory exists and contains GOAL.md. Verified by TestDomainPathResolution (2 tests).",
+      "notes": "resolve_domain() constructs Path(project_root / 'domains' / domain) and returns it when the directory exists and contains GOAL.md. Verified by TestDomainPathResolution (2 tests)."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "`DomainNotFoundError` raised for non-existent domain (BDD: \"Startup with non-existent domain directory\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "resolve_domain() checks domain_path.is_dir() and raises DomainNotFoundError with the domain name in the message. DomainNotFoundError stores the domain attribute and inherits from Exception. Verified by TestDomainNotFoundError (3 tests).",
+      "notes": "resolve_domain() checks domain_path.is_dir() and raises DomainNotFoundError with the domain name in the message. DomainNotFoundError stores the domain attribute and inherits from Exception. Verified by TestDomainNotFoundError (3 tests)."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Error raised for missing GOAL.md (BDD: \"Startup with missing GOAL.md in domain directory\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "resolve_domain() checks goal_path.is_file() and raises FileNotFoundError with the GOAL.md path in the message. Verified by TestMissingGoalMd (2 tests).",
+      "notes": "resolve_domain() checks goal_path.is_file() and raises FileNotFoundError with the GOAL.md path in the message. Verified by TestMissingGoalMd (2 tests)."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "ChromaDB collection verified to contain chunks (BDD: \"ChromaDB collection is verified to contain chunks\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "verify_chromadb_collection() calls client.get_collection(name=domain) per DDR-003 naming, checks collection.count() > 0, and returns the collection. Verified by TestChromaDBCollectionVerified (2 tests).",
+      "notes": "verify_chromadb_collection() calls client.get_collection(name=domain) per DDR-003 naming, checks collection.count() > 0, and returns the collection. Verified by TestChromaDBCollectionVerified (2 tests)."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Error raised for empty collection with ingestion suggestion (BDD: \"Startup with empty ChromaDB collection\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "verify_chromadb_collection() raises RuntimeError with message \"No chunks found for '{domain}'. Run: python -m ingestion.ingest --domain {domain}\" when collection.count() == 0. Verified by TestEmptyCollectionError (2 tests).",
+      "notes": "verify_chromadb_collection() raises RuntimeError with message \"No chunks found for '{domain}'. Run: python -m ingestion.ingest --domain {domain}\" when collection.count() == 0. Verified by TestEmptyCollectionError (2 tests)."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Error raised when ChromaDB service unavailable (BDD: \"ChromaDB service is unavailable at startup\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "verify_chromadb_collection() catches exceptions from client.get_collection() and re-raises as ConnectionError with actionable message. Also handles default client creation failure. Verified by TestChromaDBUnavailable (4 tests).",
+      "notes": "verify_chromadb_collection() catches exceptions from client.get_collection() and re-raises as ConnectionError with actionable message. Also handles default client creation failure. Verified by TestChromaDBUnavailable (4 tests)."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "`LANGSMITH_PROJECT` set to `\"adf-{domain}\"` (BDD: \"LangSmith project environment variable is set\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "configure_langsmith() sets os.environ['LANGSMITH_PROJECT'] = f'adf-{config.domain}'. Verified by TestLangSmithProject (2 tests).",
+      "notes": "configure_langsmith() sets os.environ['LANGSMITH_PROJECT'] = f'adf-{config.domain}'. Verified by TestLangSmithProject (2 tests)."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Warning logged if tracing enabled without API key (BDD: \"LangSmith tracing enabled but API key is missing\")",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "configure_langsmith() checks if LANGSMITH_TRACING=='true' and LANGSMITH_API_KEY is not set, then logs a warning via logger.warning() without raising (ASSUM-004). Verified by TestLangSmithTracingWarning (4 tests including no-warning negative cases).",
+      "notes": "configure_langsmith() checks if LANGSMITH_TRACING=='true' and LANGSMITH_API_KEY is not set, then logs a warning via logger.warning() without raising (ASSUM-004). Verified by TestLangSmithTracingWarning (4 tests including no-warning negative cases)."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Both entrypoint/startup.py and entrypoint/tests/test_startup.py pass ruff check with zero errors. 'All checks passed!' from ruff output.",
+      "notes": "Both entrypoint/startup.py and entrypoint/tests/test_startup.py pass ruff check with zero errors. 'All checks passed!' from ruff output."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Domain path resolved to `domains/{domain}/`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "resolve_domain() constructs Path(project_root / 'domains' / domain) and returns it when the directory exists and contains GOAL.md. Verified by TestDomainPathResolution (2 tests).",
+        "notes": "resolve_domain() constructs Path(project_root / 'domains' / domain) and returns it when the directory exists and contains GOAL.md. Verified by TestDomainPathResolution (2 tests)."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`DomainNotFoundError` raised for non-existent domain (BDD: \"Startup with non-existent domain directory\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "resolve_domain() checks domain_path.is_dir() and raises DomainNotFoundError with the domain name in the message. DomainNotFoundError stores the domain attribute and inherits from Exception. Verified by TestDomainNotFoundError (3 tests).",
+        "notes": "resolve_domain() checks domain_path.is_dir() and raises DomainNotFoundError with the domain name in the message. DomainNotFoundError stores the domain attribute and inherits from Exception. Verified by TestDomainNotFoundError (3 tests)."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Error raised for missing GOAL.md (BDD: \"Startup with missing GOAL.md in domain directory\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "resolve_domain() checks goal_path.is_file() and raises FileNotFoundError with the GOAL.md path in the message. Verified by TestMissingGoalMd (2 tests).",
+        "notes": "resolve_domain() checks goal_path.is_file() and raises FileNotFoundError with the GOAL.md path in the message. Verified by TestMissingGoalMd (2 tests)."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "ChromaDB collection verified to contain chunks (BDD: \"ChromaDB collection is verified to contain chunks\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "verify_chromadb_collection() calls client.get_collection(name=domain) per DDR-003 naming, checks collection.count() > 0, and returns the collection. Verified by TestChromaDBCollectionVerified (2 tests).",
+        "notes": "verify_chromadb_collection() calls client.get_collection(name=domain) per DDR-003 naming, checks collection.count() > 0, and returns the collection. Verified by TestChromaDBCollectionVerified (2 tests)."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Error raised for empty collection with ingestion suggestion (BDD: \"Startup with empty ChromaDB collection\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "verify_chromadb_collection() raises RuntimeError with message \"No chunks found for '{domain}'. Run: python -m ingestion.ingest --domain {domain}\" when collection.count() == 0. Verified by TestEmptyCollectionError (2 tests).",
+        "notes": "verify_chromadb_collection() raises RuntimeError with message \"No chunks found for '{domain}'. Run: python -m ingestion.ingest --domain {domain}\" when collection.count() == 0. Verified by TestEmptyCollectionError (2 tests)."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Error raised when ChromaDB service unavailable (BDD: \"ChromaDB service is unavailable at startup\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "verify_chromadb_collection() catches exceptions from client.get_collection() and re-raises as ConnectionError with actionable message. Also handles default client creation failure. Verified by TestChromaDBUnavailable (4 tests).",
+        "notes": "verify_chromadb_collection() catches exceptions from client.get_collection() and re-raises as ConnectionError with actionable message. Also handles default client creation failure. Verified by TestChromaDBUnavailable (4 tests)."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "`LANGSMITH_PROJECT` set to `\"adf-{domain}\"` (BDD: \"LangSmith project environment variable is set\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "configure_langsmith() sets os.environ['LANGSMITH_PROJECT'] = f'adf-{config.domain}'. Verified by TestLangSmithProject (2 tests).",
+        "notes": "configure_langsmith() sets os.environ['LANGSMITH_PROJECT'] = f'adf-{config.domain}'. Verified by TestLangSmithProject (2 tests)."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Warning logged if tracing enabled without API key (BDD: \"LangSmith tracing enabled but API key is missing\")",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "configure_langsmith() checks if LANGSMITH_TRACING=='true' and LANGSMITH_API_KEY is not set, then logs a warning via logger.warning() without raising (ASSUM-004). Verified by TestLangSmithTracingWarning (4 tests including no-warning negative cases).",
+        "notes": "configure_langsmith() checks if LANGSMITH_TRACING=='true' and LANGSMITH_API_KEY is not set, then logs a warning via logger.warning() without raising (ASSUM-004). Verified by TestLangSmithTracingWarning (4 tests including no-warning negative cases)."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Both entrypoint/startup.py and entrypoint/tests/test_startup.py pass ruff check with zero errors. 'All checks passed!' from ruff output.",
+        "notes": "Both entrypoint/startup.py and entrypoint/tests/test_startup.py pass ruff check with zero errors. 'All checks passed!' from ruff output."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 436 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2021/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- IS_FIELD_TYPE_OF\n- SOURCE_PATTERN\n- HAS_DESCRIPTION\n- USES_TYPE_HINT\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- AVAILABLE_TEMPLATE\n- CONTAINS_FILE_PATTERN\n- INTEGRATES_WITH\n\n### \u26a0\ufe0f Warnings\n- HAS_FIX\n- FIX recommendation\n- HAS_ROOT_CAUSE\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- CHECKS_SOLOD_PRINCIPLE\n- HAS_ROLE_MUST_DO\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLICABLE_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

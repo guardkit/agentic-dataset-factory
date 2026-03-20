@@ -1,6 +1,22 @@
 {
   "task_id": "TASK-EP-004",
-  "turn": 1,
+  "timestamp": "2026-03-20T23:52:35.458244",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation (TDD Mode)",
+      "completed": false
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 19,
+    "tests_failed": 0,
+    "coverage": 100.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
   "files_modified": [
     ".claude/task-plans/TASK-EP-004-implementation-plan.md",
     ".claude/task-plans/TASK-EP-005-implementation-plan.md",
@@ -35,27 +51,12 @@
   "tests_written": [
     "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/tests/test_startup.py"
   ],
-  "tests_run": true,
-  "tests_passed": true,
-  "test_output_summary": "",
-  "implementation_notes": "Implementation via task-work delegation",
-  "concerns": [],
-  "requirements_addressed": [
-    "Domain path resolved to domains/{domain}/",
-    "DomainNotFoundError raised for non-existent domain",
-    "Error raised for missing GOAL.md",
-    "ChromaDB collection verified to contain chunks",
-    "Error raised for empty collection with ingestion suggestion",
-    "Error raised when ChromaDB service unavailable",
-    "LANGSMITH_PROJECT set to adf-{domain}",
-    "Warning logged if tracing enabled without API key",
-    "All files pass lint/format checks"
-  ],
-  "requirements_remaining": [],
-  "sdk_turns_used": 51,
-  "sdk_max_turns": 100,
-  "sdk_ceiling_hit": false,
-  "tests_passed_count": 19,
+  "summary": "19 tests passed, 100.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 51,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
   "completion_promises": [
     {
       "criterion_id": "AC-001",
