@@ -1,0 +1,261 @@
+{
+  "task_id": "TASK-LCT-002",
+  "turn": 2,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest src/tools/tests/test_rag_retrieval.py src/tools/tests/test_write_output.py -v --tb=short",
+      "test_output_summary": "Result:\nsrc/tools/tests/test_write_output.py::TestEdgeCases::test_metadata_field_with_no_valid_values_skipped PASSED [ 96%]\nsrc/tools/tests/test_write_output.py::TestEdgeCases::test_null_json_value_rejected PASSED [ 97%]\nsrc/tools/tests/test_write_output.py::TestEdgeCases::test_json_array_rejected PASSED [ 98%]\nsrc/tools/tests/test_write_output.py::TestEdgeCases::test_example_with_only_system_and_user_messages_direct PASSED [100%]\n======================== 97 passed, 1 warning in 0.28s =========================",
+      "duration_seconds": 18.631584882736206
+    },
+    "requirements": {
+      "criteria_total": 14,
+      "criteria_met": 14,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Factory returns a LangChain `@tool`-decorated callable",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "create_rag_retrieval_tool returns a LangChain StructuredTool (BaseTool subclass) with name='rag_retrieval' and a description. Verified by TestFactoryReturnsTool (3 tests).",
+      "notes": "create_rag_retrieval_tool returns a LangChain StructuredTool (BaseTool subclass) with name='rag_retrieval' and a description. Verified by TestFactoryReturnsTool (3 tests)."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Collection name is bound at factory time, not passed per call",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "collection_name is captured in the factory closure and used in get_collection(name=collection_name). The tool's args_schema only exposes 'query' and 'n_results', not 'collection_name'. Verified by TestCollectionNameBinding (2 tests).",
+      "notes": "collection_name is captured in the factory closure and used in get_collection(name=collection_name). The tool's args_schema only exposes 'query' and 'n_results', not 'collection_name'. Verified by TestCollectionNameBinding (2 tests)."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "ChromaDB `PersistentClient` is lazily initialised on first call",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "PersistentClient is not called during factory creation. It is created inside _get_client() on the first tool invocation using a nonlocal list holder pattern. Verified by TestLazyInitialisation (2 tests) and TestLazyImportPattern (1 test).",
+      "notes": "PersistentClient is not called during factory creation. It is created inside _get_client() on the first tool invocation using a nonlocal list holder pattern. Verified by TestLazyInitialisation (2 tests) and TestLazyImportPattern (1 test)."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Subsequent calls reuse the same client connection",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "The client_holder list stores the client after first creation; subsequent calls return client_holder[0] without calling PersistentClient again. Three invocations verified to produce exactly one PersistentClient call. Verified by TestClientReuse (1 test).",
+      "notes": "The client_holder list stores the client after first creation; subsequent calls return client_holder[0] without calling PersistentClient again. Three invocations verified to produce exactly one PersistentClient call. Verified by TestClientReuse (1 test)."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Returns formatted chunks with source metadata: `--- Chunk N (source: file.pdf, p.X) ---`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Chunks formatted as '--- Chunk {i} (source: {source}, p.{page}) ---\\n{text}\\n' using _format_chunk helper. Verified single chunk and multi-chunk formatting plus empty results. Verified by TestFormattedOutput (3 tests).",
+      "notes": "Chunks formatted as '--- Chunk {i} (source: {source}, p.{page}) ---\\n{text}\\n' using _format_chunk helper. Verified single chunk and multi-chunk formatting plus empty results. Verified by TestFormattedOutput (3 tests)."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Validates n_results: 1 \u2264 n_results \u2264 20 (returns error string if out of range)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "n_results validated at start of rag_retrieval function. Values <1 or >20 return 'Error: n_results must be between 1 and 20 inclusive' strings. Boundary values 1 and 20 accepted. Verified by TestNResultsValidation (7 tests).",
+      "notes": "n_results validated at start of rag_retrieval function. Values <1 or >20 return 'Error: n_results must be between 1 and 20 inclusive' strings. Boundary values 1 and 20 accepted. Verified by TestNResultsValidation (7 tests)."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Default n_results is 5",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "rag_retrieval tool function signature has n_results: int = 5. Verified that collection.query is called with n_results=5 when not explicitly provided. Verified by TestDefaultNResults (1 test).",
+      "notes": "rag_retrieval tool function signature has n_results: int = 5. Verified that collection.query is called with n_results=5 when not explicitly provided. Verified by TestDefaultNResults (1 test)."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Returns all available chunks if collection has fewer than n_results",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Tool formats whatever documents ChromaDB returns (even if fewer than requested). When 5 requested but only 2 returned, output contains Chunk 1 and Chunk 2 only. Verified by TestFewerChunksThanRequested (1 test).",
+      "notes": "Tool formats whatever documents ChromaDB returns (even if fewer than requested). When 5 requested but only 2 returned, output contains Chunk 1 and Chunk 2 only. Verified by TestFewerChunksThanRequested (1 test)."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Collection-not-found returns error string (not exception)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "get_collection ValueError is caught and returned as 'Error: ChromaDB collection '{name}' not found - {exc}'. No exception propagated. Verified by TestCollectionNotFound (2 tests).",
+      "notes": "get_collection ValueError is caught and returned as 'Error: ChromaDB collection '{name}' not found - {exc}'. No exception propagated. Verified by TestCollectionNotFound (2 tests)."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "ChromaDB unavailable returns error string (not exception)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "PersistentClient creation failures (ConnectionError, RuntimeError) are caught and returned as 'Error: ChromaDB unavailable - {exc}'. No exception propagated. Verified by TestChromaDBUnavailable (2 tests).",
+      "notes": "PersistentClient creation failures (ConnectionError, RuntimeError) are caught and returned as 'Error: ChromaDB unavailable - {exc}'. No exception propagated. Verified by TestChromaDBUnavailable (2 tests)."
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "Handles chunks with missing source metadata gracefully (returns available info)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "_format_chunk uses dict.get with defaults: source defaults to 'unknown', page defaults to '?'. None metadata treated as empty dict. Verified with missing source, missing page, empty dict, and None metadata. Verified by TestMissingMetadata (4 tests).",
+      "notes": "_format_chunk uses dict.get with defaults: source defaults to 'unknown', page defaults to '?'. None metadata treated as empty dict. Verified with missing source, missing page, empty dict, and None metadata. Verified by TestMissingMetadata (4 tests)."
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "Collection name with path traversal characters is rejected at factory time",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "_validate_collection_name uses regex ^[A-Za-z0-9][A-Za-z0-9_-]*$ to reject path traversal (../, /, \\), spaces, semicolons, dollar signs, and other unsafe characters. Raises ValueError at factory creation time, not at tool invocation. Verified with 9 bad names and 5 valid names. Verified by TestPathTraversalRejection (15 tests).",
+      "notes": "_validate_collection_name uses regex ^[A-Za-z0-9][A-Za-z0-9_-]*$ to reject path traversal (../, /, \\), spaces, semicolons, dollar signs, and other unsafe characters. Raises ValueError at factory creation time, not at tool invocation. Verified with 9 bad names and 5 valid names. Verified by TestPathTraversalRejection (15 tests)."
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "All errors returned as descriptive strings, never raised as exceptions (D7)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All runtime error paths (client init, collection not found, query failure, n_results validation) return descriptive error strings. Only factory-time validation (collection name) raises ValueError. Verified by TestD7ErrorStrings (2 tests) plus all error tests across other classes.",
+      "notes": "All runtime error paths (client init, collection not found, query failure, n_results validation) return descriptive error strings. Only factory-time validation (collection name) raises ValueError. Verified by TestD7ErrorStrings (2 tests) plus all error tests across other classes."
+    },
+    {
+      "criterion_id": "AC-014",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All files (src/tools/rag_retrieval.py, src/tools/tests/test_rag_retrieval.py, pyproject.toml) pass ruff check with zero errors.",
+      "notes": "All files (src/tools/rag_retrieval.py, src/tools/tests/test_rag_retrieval.py, pyproject.toml) pass ruff check with zero errors."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Factory returns a LangChain `@tool`-decorated callable",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "create_rag_retrieval_tool returns a LangChain StructuredTool (BaseTool subclass) with name='rag_retrieval' and a description. Verified by TestFactoryReturnsTool (3 tests).",
+        "notes": "create_rag_retrieval_tool returns a LangChain StructuredTool (BaseTool subclass) with name='rag_retrieval' and a description. Verified by TestFactoryReturnsTool (3 tests)."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Collection name is bound at factory time, not passed per call",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "collection_name is captured in the factory closure and used in get_collection(name=collection_name). The tool's args_schema only exposes 'query' and 'n_results', not 'collection_name'. Verified by TestCollectionNameBinding (2 tests).",
+        "notes": "collection_name is captured in the factory closure and used in get_collection(name=collection_name). The tool's args_schema only exposes 'query' and 'n_results', not 'collection_name'. Verified by TestCollectionNameBinding (2 tests)."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "ChromaDB `PersistentClient` is lazily initialised on first call",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "PersistentClient is not called during factory creation. It is created inside _get_client() on the first tool invocation using a nonlocal list holder pattern. Verified by TestLazyInitialisation (2 tests) and TestLazyImportPattern (1 test).",
+        "notes": "PersistentClient is not called during factory creation. It is created inside _get_client() on the first tool invocation using a nonlocal list holder pattern. Verified by TestLazyInitialisation (2 tests) and TestLazyImportPattern (1 test)."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Subsequent calls reuse the same client connection",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "The client_holder list stores the client after first creation; subsequent calls return client_holder[0] without calling PersistentClient again. Three invocations verified to produce exactly one PersistentClient call. Verified by TestClientReuse (1 test).",
+        "notes": "The client_holder list stores the client after first creation; subsequent calls return client_holder[0] without calling PersistentClient again. Three invocations verified to produce exactly one PersistentClient call. Verified by TestClientReuse (1 test)."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Returns formatted chunks with source metadata: `--- Chunk N (source: file.pdf, p.X) ---`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Chunks formatted as '--- Chunk {i} (source: {source}, p.{page}) ---\\n{text}\\n' using _format_chunk helper. Verified single chunk and multi-chunk formatting plus empty results. Verified by TestFormattedOutput (3 tests).",
+        "notes": "Chunks formatted as '--- Chunk {i} (source: {source}, p.{page}) ---\\n{text}\\n' using _format_chunk helper. Verified single chunk and multi-chunk formatting plus empty results. Verified by TestFormattedOutput (3 tests)."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Validates n_results: 1 \u2264 n_results \u2264 20 (returns error string if out of range)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "n_results validated at start of rag_retrieval function. Values <1 or >20 return 'Error: n_results must be between 1 and 20 inclusive' strings. Boundary values 1 and 20 accepted. Verified by TestNResultsValidation (7 tests).",
+        "notes": "n_results validated at start of rag_retrieval function. Values <1 or >20 return 'Error: n_results must be between 1 and 20 inclusive' strings. Boundary values 1 and 20 accepted. Verified by TestNResultsValidation (7 tests)."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Default n_results is 5",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "rag_retrieval tool function signature has n_results: int = 5. Verified that collection.query is called with n_results=5 when not explicitly provided. Verified by TestDefaultNResults (1 test).",
+        "notes": "rag_retrieval tool function signature has n_results: int = 5. Verified that collection.query is called with n_results=5 when not explicitly provided. Verified by TestDefaultNResults (1 test)."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Returns all available chunks if collection has fewer than n_results",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Tool formats whatever documents ChromaDB returns (even if fewer than requested). When 5 requested but only 2 returned, output contains Chunk 1 and Chunk 2 only. Verified by TestFewerChunksThanRequested (1 test).",
+        "notes": "Tool formats whatever documents ChromaDB returns (even if fewer than requested). When 5 requested but only 2 returned, output contains Chunk 1 and Chunk 2 only. Verified by TestFewerChunksThanRequested (1 test)."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Collection-not-found returns error string (not exception)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "get_collection ValueError is caught and returned as 'Error: ChromaDB collection '{name}' not found - {exc}'. No exception propagated. Verified by TestCollectionNotFound (2 tests).",
+        "notes": "get_collection ValueError is caught and returned as 'Error: ChromaDB collection '{name}' not found - {exc}'. No exception propagated. Verified by TestCollectionNotFound (2 tests)."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "ChromaDB unavailable returns error string (not exception)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "PersistentClient creation failures (ConnectionError, RuntimeError) are caught and returned as 'Error: ChromaDB unavailable - {exc}'. No exception propagated. Verified by TestChromaDBUnavailable (2 tests).",
+        "notes": "PersistentClient creation failures (ConnectionError, RuntimeError) are caught and returned as 'Error: ChromaDB unavailable - {exc}'. No exception propagated. Verified by TestChromaDBUnavailable (2 tests)."
+      },
+      {
+        "criterion_id": "AC-011",
+        "criterion_text": "Handles chunks with missing source metadata gracefully (returns available info)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "_format_chunk uses dict.get with defaults: source defaults to 'unknown', page defaults to '?'. None metadata treated as empty dict. Verified with missing source, missing page, empty dict, and None metadata. Verified by TestMissingMetadata (4 tests).",
+        "notes": "_format_chunk uses dict.get with defaults: source defaults to 'unknown', page defaults to '?'. None metadata treated as empty dict. Verified with missing source, missing page, empty dict, and None metadata. Verified by TestMissingMetadata (4 tests)."
+      },
+      {
+        "criterion_id": "AC-012",
+        "criterion_text": "Collection name with path traversal characters is rejected at factory time",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "_validate_collection_name uses regex ^[A-Za-z0-9][A-Za-z0-9_-]*$ to reject path traversal (../, /, \\), spaces, semicolons, dollar signs, and other unsafe characters. Raises ValueError at factory creation time, not at tool invocation. Verified with 9 bad names and 5 valid names. Verified by TestPathTraversalRejection (15 tests).",
+        "notes": "_validate_collection_name uses regex ^[A-Za-z0-9][A-Za-z0-9_-]*$ to reject path traversal (../, /, \\), spaces, semicolons, dollar signs, and other unsafe characters. Raises ValueError at factory creation time, not at tool invocation. Verified with 9 bad names and 5 valid names. Verified by TestPathTraversalRejection (15 tests)."
+      },
+      {
+        "criterion_id": "AC-013",
+        "criterion_text": "All errors returned as descriptive strings, never raised as exceptions (D7)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All runtime error paths (client init, collection not found, query failure, n_results validation) return descriptive error strings. Only factory-time validation (collection name) raises ValueError. Verified by TestD7ErrorStrings (2 tests) plus all error tests across other classes.",
+        "notes": "All runtime error paths (client init, collection not found, query failure, n_results validation) return descriptive error strings. Only factory-time validation (collection name) raises ValueError. Verified by TestD7ErrorStrings (2 tests) plus all error tests across other classes."
+      },
+      {
+        "criterion_id": "AC-014",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All files (src/tools/rag_retrieval.py, src/tools/tests/test_rag_retrieval.py, pyproject.toml) pass ruff check with zero errors.",
+        "notes": "All files (src/tools/rag_retrieval.py, src/tools/tests/test_rag_retrieval.py, pyproject.toml) pass ruff check with zero errors."
+      }
+    ]
+  },
+  "issues": [],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 2075 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2034/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- DESCRIBES\n- EXECUTES_STEP\n- ASSIGNS_TASK_TO\n- PROVIDES_OPTION\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- HAS_TASK_ID_FORMAT\n- PROVIDES_ISOLATION_FOR\n- INTEGRATES_WITH\n\n### \u26a0\ufe0f Warnings\n- IS_A_FAILURE_PATTERN_OF\n- REPLACES\n- REPORTED_BY\n\n### \ud83c\udfad Role Constraints\n- PROJECT_INVOLVES\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO_TASK\n\n\n## Previous Turn Summary (Turn 1)\n**What was attempted**: Implementation attempt\n**Player decision**: feedback\n**Coach decision**: feedback\n**Coach feedback**: - Tests failed due to infrastructure/environment issues (not code defects). Test command: pytest src/tools/tests/test_rag_retrieval.py src/tools/tests/test_write_output.py -v --tb=short. Remediation options: (1) Add mock fixtures for external services, (2) Use SQLite for test database, (3) Mark integration tests with @pytest.mark.integration and exclude via -m 'not integration'. Error detail: Error detail:\nExit code 4\nImportError while loading conftest '/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/conftest.py'.\nsrc/tools/__init__.py:10: in <module>\n    from tools.models import ExampleMetadata, RagRetrievalParams, TrainingExample\nE   ModuleNotFoundError: No module named 'tools'\nResult:\nImportError while loading conftest '/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktr...:\n  Error detail:\nExit code 4\nImportError while loading conftest '/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/conftest.py'.\nsrc/tools/__init__.py:10: in <module>\n    from tools.models import ExampleMetadata, RagRetrievalParams, TrainingExample\nE   ModuleNotFoundError: No module named 'tools'\nResult:\nImportError while loading conftest '/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D/src/tools/tests/conftest.py'.\nE   ModuleNotFoundError: No module named 'tools'",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
