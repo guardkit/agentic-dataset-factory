@@ -4,7 +4,7 @@ description: Parse GOAL.md files into validated GoalConfig using Pydantic v2 mod
   with regex section splitting, table parsing, JSON extraction, and cross-section
   validation with error aggregation
 created: '2026-03-19T20:50:03.400062'
-status: planned
+status: completed
 complexity: 5
 estimated_tasks: 5
 tasks:
@@ -13,30 +13,54 @@ tasks:
   file_path: tasks/backlog/goal-md-parser/TASK-DC-001-pydantic-models.md
   complexity: 3
   dependencies: []
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 3
+    final_decision: approved
+    error: null
+  turns_completed: 3
+  current_turn: 0
+  started_at: '2026-03-20T10:54:46.693681'
+  completed_at: '2026-03-20T11:07:21.251678'
 - id: TASK-DC-002
   name: Implement markdown section splitter
   file_path: tasks/backlog/goal-md-parser/TASK-DC-002-section-splitter.md
   complexity: 4
   dependencies:
   - TASK-DC-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 2
+    final_decision: approved
+    error: null
+  turns_completed: 2
+  current_turn: 0
+  started_at: '2026-03-20T14:49:10.979310'
+  completed_at: '2026-03-20T15:01:27.130365'
 - id: TASK-DC-003
   name: Implement table parser and JSON extractor
   file_path: tasks/backlog/goal-md-parser/TASK-DC-003-table-json-parsers.md
   complexity: 5
   dependencies:
   - TASK-DC-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T11:07:21.265742'
+  completed_at: '2026-03-20T11:47:21.301596'
 - id: TASK-DC-004
   name: Implement cross-section validation and error aggregation
   file_path: tasks/backlog/goal-md-parser/TASK-DC-004-cross-section-validation.md
@@ -44,20 +68,36 @@ tasks:
   dependencies:
   - TASK-DC-002
   - TASK-DC-003
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T15:01:27.144020'
+  completed_at: '2026-03-20T15:12:26.831323'
 - id: TASK-DC-005
   name: Implement parse_goal_md public API and integration tests
   file_path: tasks/backlog/goal-md-parser/TASK-DC-005-public-api-integration-tests.md
   complexity: 4
   dependencies:
   - TASK-DC-004
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T15:12:26.843616'
+  completed_at: '2026-03-20T15:21:59.969348'
 orchestration:
   parallel_groups:
   - - TASK-DC-001
@@ -67,3 +107,19 @@ orchestration:
   - - TASK-DC-005
   estimated_duration_minutes: 283
   recommended_parallel: 2
+execution:
+  started_at: '2026-03-20T10:54:46.615105'
+  completed_at: '2026-03-20T15:21:59.976155'
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  total_turns: 8
+  tasks_completed: 5
+  tasks_failed: 0
+  current_wave: 4
+  completed_waves:
+  - 1
+  - 2
+  - 3
+  - 4
+  last_updated: '2026-03-20T15:21:59.972576'
+  archived_at: null
+  archived_to: null

@@ -1,6 +1,6 @@
 ---
 id: TASK-DC-004
-title: "Implement cross-section validation and error aggregation"
+title: Implement cross-section validation and error aggregation
 task_type: feature
 parent_review: TASK-REV-DC5D
 feature_id: FEAT-5606
@@ -8,28 +8,46 @@ wave: 3
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-DC-002
-  - TASK-DC-003
-status: pending
+- TASK-DC-002
+- TASK-DC-003
+status: in_review
 priority: high
-tags: [domain-config, validation, error-handling]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- domain-config
+- validation
+- error-handling
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 consumer_context:
-  - task: TASK-DC-002
-    consumes: SECTION_DICT
-    framework: "Pydantic v2 (BaseModel)"
-    driver: "pydantic"
-    format_note: "dict[str, str] with 9 keys mapping section name to body text"
-  - task: TASK-DC-003
-    consumes: PARSED_MODELS
-    framework: "Pydantic v2 (BaseModel)"
-    driver: "pydantic"
-    format_note: "Lists of validated Pydantic model instances per section"
+- task: TASK-DC-002
+  consumes: SECTION_DICT
+  framework: Pydantic v2 (BaseModel)
+  driver: pydantic
+  format_note: dict[str, str] with 9 keys mapping section name to body text
+- task: TASK-DC-003
+  consumes: PARSED_MODELS
+  framework: Pydantic v2 (BaseModel)
+  driver: pydantic
+  format_note: Lists of validated Pydantic model instances per section
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606
+  base_branch: main
+  started_at: '2026-03-20T15:01:27.151678'
+  last_updated: '2026-03-20T15:12:26.827371'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T15:01:27.151678'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement cross-section validation and error aggregation
