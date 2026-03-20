@@ -1,0 +1,98 @@
+{
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "agents/player.py contains create_player() with the contract signature",
+      "status": "complete",
+      "evidence": "Created agents/player.py with create_player(model_config: ModelConfig, tools: list, system_prompt: str, memory: list[str]) -> CompiledStateGraph. Signature matches the API contract from docs/design/contracts/API-generation.md. Test test_create_player_accepts_contract_parameters verifies parameter names via inspect.signature.",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Factory delegates to create_deep_agent with correct kwargs",
+      "status": "complete",
+      "evidence": "create_player calls create_deep_agent(model=model, tools=tools, system_prompt=system_prompt, memory=memory, backend=backend) with all kwargs forwarded correctly. Tests test_delegates_to_create_deep_agent and test_returns_result_of_create_deep_agent verify delegation using patch-at-import-site pattern.",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "FilesystemBackend is instantiated and passed as backend kwarg",
+      "status": "complete",
+      "evidence": "FilesystemBackend(root_dir='.') is instantiated and passed as backend= kwarg to create_deep_agent. Test test_backend_is_filesystem_backend_with_root_dot uses two-part assertion: (1) mock_backend_cls.assert_called_once_with(root_dir='.') verifies constructor args, (2) assert kwargs['backend'] is fake_backend verifies forwarding.",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "tools parameter is passed through (expected: 2 tools)",
+      "status": "complete",
+      "evidence": "tools list is forwarded directly to create_deep_agent via tools=tools kwarg. Test test_tools_passed_through_to_create_deep_agent creates 2 mock tools, passes them, and asserts both appear in kwargs['tools'] with len==2.",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "system_prompt is passed as system_prompt kwarg",
+      "status": "complete",
+      "evidence": "system_prompt parameter is forwarded directly as system_prompt=system_prompt to create_deep_agent. Test test_system_prompt_forwarded_to_create_deep_agent verifies kwargs['system_prompt'] == the provided prompt string.",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "memory list is passed as memory kwarg",
+      "status": "complete",
+      "evidence": "memory parameter is forwarded directly as memory=memory to create_deep_agent. Test test_memory_forwarded_to_create_deep_agent verifies kwargs['memory'] == ['./AGENTS.md'].",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Empty system prompt raises a validation error",
+      "status": "complete",
+      "evidence": "create_player raises ValueError('system_prompt must not be empty or whitespace-only') when system_prompt is empty or whitespace. Tests test_empty_system_prompt_raises_value_error and test_whitespace_only_system_prompt_raises_value_error verify both cases with pytest.raises(ValueError, match='system_prompt').",
+      "test_file": "agents/tests/test_player.py",
+      "implementation_files": ["agents/player.py"]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "agents/__init__.py created",
+      "status": "complete",
+      "evidence": "agents/__init__.py already existed with docstring 'Agent factory functions for Player-Coach adversarial cooperation.' — no modification needed, pre-existing file satisfies this criterion.",
+      "test_file": null,
+      "implementation_files": ["agents/__init__.py"]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Ran 'ruff check' on both agents/player.py and agents/tests/test_player.py — 'All checks passed!' with zero errors. Both files use line-length=100 (pyproject.toml) and target-version py311.",
+      "test_file": null,
+      "implementation_files": ["agents/player.py", "agents/tests/test_player.py"]
+    }
+  ],
+  "task_id": "TASK-AF-003",
+  "turn": 1,
+  "files_modified": [],
+  "files_created": ["agents/player.py", "agents/tests/test_player.py"],
+  "tests_written": ["agents/tests/test_player.py"],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "12 tests passed, 0 failed. Coverage on agents/player.py: 93%. All 45 tests across agents/tests/ pass. Ruff lint: zero errors.",
+  "implementation_notes": "Implemented create_player factory in agents/player.py following TDD (RED-GREEN-REFACTOR). The factory translates ModelConfig to a provider:model string via create_model(), validates system_prompt is non-empty, and delegates to create_deep_agent with all kwargs including FilesystemBackend(root_dir='.'). Tests use patch-at-import-site pattern and call_args keyword assertion per specialist guidance. Seam test verifies ModelConfig contract from TASK-AF-001.",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: create_player with contract signature",
+    "AC-002: Delegates to create_deep_agent with correct kwargs",
+    "AC-003: FilesystemBackend instantiated and passed as backend kwarg",
+    "AC-004: tools parameter passed through",
+    "AC-005: system_prompt passed as system_prompt kwarg",
+    "AC-006: memory list passed as memory kwarg",
+    "AC-007: Empty system prompt raises validation error",
+    "AC-008: agents/__init__.py exists",
+    "AC-009: Lint/format checks pass with zero errors"
+  ],
+  "requirements_remaining": []
+}
