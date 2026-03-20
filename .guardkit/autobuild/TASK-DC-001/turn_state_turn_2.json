@@ -1,0 +1,36 @@
+{
+  "id": "TURN-FEAT-5606-2",
+  "feature_id": "FEAT-5606",
+  "task_id": "TASK-DC-001",
+  "turn_number": 2,
+  "player_summary": "Implementation attempt",
+  "player_decision": "feedback",
+  "coach_decision": "feedback",
+  "coach_feedback": "- Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models match the API contract field types exactly\n  \u2022 `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name` validated as Python identifier + not keyword\n  \u2022 `GoalValidationError` exception class with `section` and `message` attributes",
+  "mode": "recovering_state",
+  "blockers_found": [],
+  "progress_summary": "Turn 2: feedback",
+  "acceptance_criteria_status": {
+    "AC-001": "verified",
+    "AC-002": "rejected",
+    "AC-003": "rejected",
+    "AC-004": "rejected",
+    "AC-005": "rejected",
+    "AC-006": "rejected",
+    "AC-007": "verified",
+    "AC-008": "verified",
+    "AC-009": "verified"
+  },
+  "files_modified": [
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_passed": null,
+  "tests_failed": null,
+  "coverage": null,
+  "arch_score": null,
+  "started_at": "2026-03-20T11:03:41.519870",
+  "completed_at": "2026-03-20T11:03:41.519870",
+  "duration_seconds": null,
+  "lessons_from_turn": [],
+  "what_to_try_next": null
+}

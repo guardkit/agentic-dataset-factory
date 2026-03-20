@@ -709,3 +709,227 @@ class TestImports:
 
     def test_goal_validation_error_is_exception(self):
         assert issubclass(GoalValidationError, Exception)
+
+
+# ---------------------------------------------------------------------------
+# Acceptance criteria verification tests (AC-002 through AC-006)
+# Each test directly verifies one acceptance criterion by inspecting
+# the model class definitions and runtime behaviour.
+# ---------------------------------------------------------------------------
+
+
+class TestAC002_PydanticModelsMatchContract:
+    """AC-002: All 5 Pydantic models match the API contract field types."""
+
+    def test_source_document_fields_match_contract(self):
+        """SourceDocument: file_pattern(str), mode(Literal), notes(str)."""
+        doc = SourceDocument(
+            file_pattern="*.pdf", mode="standard", notes="n"
+        )
+        assert isinstance(doc.file_pattern, str)
+        assert isinstance(doc.mode, str)
+        assert doc.mode in ("standard", "vlm")
+        assert isinstance(doc.notes, str)
+        # Verify exact field names from API contract
+        assert set(SourceDocument.model_fields.keys()) == {
+            "file_pattern", "mode", "notes",
+        }
+
+    def test_generation_target_fields_match_contract(self):
+        """GenerationTarget: category(str), type(Literal), count(int)."""
+        t = GenerationTarget(
+            category="cat", type="reasoning", count=10
+        )
+        assert isinstance(t.category, str)
+        assert isinstance(t.type, str)
+        assert t.type in ("reasoning", "direct")
+        assert isinstance(t.count, int)
+        assert set(GenerationTarget.model_fields.keys()) == {
+            "category", "type", "count",
+        }
+
+    def test_evaluation_criterion_fields_match_contract(self):
+        """EvaluationCriterion: name(str), description(str), weight(float)."""
+        c = EvaluationCriterion(
+            name="crit_name", description="desc", weight=0.5
+        )
+        assert isinstance(c.name, str)
+        assert isinstance(c.description, str)
+        assert isinstance(c.weight, float)
+        assert set(EvaluationCriterion.model_fields.keys()) == {
+            "name", "description", "weight",
+        }
+
+    def test_metadata_field_fields_match_contract(self):
+        """MetadataField: field(str), type(str), required(bool),
+        valid_values(list[str])."""
+        mf = MetadataField(
+            field="f", type="string", required=True,
+            valid_values=["a"],
+        )
+        assert isinstance(mf.field, str)
+        assert isinstance(mf.type, str)
+        assert isinstance(mf.required, bool)
+        assert isinstance(mf.valid_values, list)
+        assert set(MetadataField.model_fields.keys()) == {
+            "field", "type", "required", "valid_values",
+        }
+
+    def test_goal_config_fields_match_contract(self):
+        """GoalConfig: all 9 fields with correct types."""
+        assert set(GoalConfig.model_fields.keys()) == {
+            "goal", "source_documents", "system_prompt",
+            "generation_targets", "generation_guidelines",
+            "evaluation_criteria", "output_schema",
+            "metadata_schema", "layer_routing",
+        }
+
+    def test_all_five_models_are_pydantic_base_model(self):
+        """All 5 models must be Pydantic BaseModel subclasses."""
+        from pydantic import BaseModel
+        for model_cls in [
+            SourceDocument, GenerationTarget,
+            EvaluationCriterion, MetadataField, GoalConfig,
+        ]:
+            assert issubclass(model_cls, BaseModel), (
+                f"{model_cls.__name__} is not a BaseModel"
+            )
+
+
+class TestAC003_SourceDocumentModeLiteral:
+    """AC-003: SourceDocument.mode constrained to Literal["standard","vlm"]."""
+
+    def test_standard_accepted(self):
+        doc = SourceDocument(
+            file_pattern="f.pdf", mode="standard"
+        )
+        assert doc.mode == "standard"
+
+    def test_vlm_accepted(self):
+        doc = SourceDocument(
+            file_pattern="f.pdf", mode="vlm"
+        )
+        assert doc.mode == "vlm"
+
+    def test_ocr_rejected(self):
+        with pytest.raises(ValidationError):
+            SourceDocument(
+                file_pattern="f.pdf", mode="ocr"
+            )
+
+    def test_arbitrary_string_rejected(self):
+        with pytest.raises(ValidationError):
+            SourceDocument(
+                file_pattern="f.pdf", mode="anything_else"
+            )
+
+
+class TestAC004_GenerationTargetTypeLiteral:
+    """AC-004: GenerationTarget.type constrained to
+    Literal["reasoning","direct"]."""
+
+    def test_reasoning_accepted(self):
+        t = GenerationTarget(
+            category="c", type="reasoning", count=1
+        )
+        assert t.type == "reasoning"
+
+    def test_direct_accepted(self):
+        t = GenerationTarget(
+            category="c", type="direct", count=1
+        )
+        assert t.type == "direct"
+
+    def test_invalid_type_rejected(self):
+        with pytest.raises(ValidationError):
+            GenerationTarget(
+                category="c", type="invalid", count=1
+            )
+
+
+class TestAC005_EvaluationCriterionNameValidation:
+    """AC-005: EvaluationCriterion.name validated as Python identifier
+    and not a keyword."""
+
+    def test_valid_identifier_accepted(self):
+        c = EvaluationCriterion(
+            name="socratic_approach", description="d", weight=0.1
+        )
+        assert c.name == "socratic_approach"
+        assert c.name.isidentifier()
+
+    def test_hyphenated_name_rejected_as_not_identifier(self):
+        with pytest.raises(ValidationError, match="identifier"):
+            EvaluationCriterion(
+                name="socratic-approach", description="d",
+                weight=0.1,
+            )
+
+    def test_keyword_class_rejected(self):
+        with pytest.raises(ValidationError, match="keyword"):
+            EvaluationCriterion(
+                name="class", description="d", weight=0.1
+            )
+
+    def test_keyword_import_rejected(self):
+        with pytest.raises(ValidationError, match="keyword"):
+            EvaluationCriterion(
+                name="import", description="d", weight=0.1
+            )
+
+    def test_uses_str_isidentifier(self):
+        """Verify the validator uses str.isidentifier()."""
+        # "123" is not a valid identifier per str.isidentifier()
+        assert not "123".isidentifier()
+        with pytest.raises(ValidationError):
+            EvaluationCriterion(
+                name="123", description="d", weight=0.1
+            )
+
+    def test_uses_keyword_iskeyword(self):
+        """Verify the validator uses keyword.iskeyword()."""
+        assert keyword.iskeyword("for")
+        with pytest.raises(ValidationError):
+            EvaluationCriterion(
+                name="for", description="d", weight=0.1
+            )
+
+
+class TestAC006_GoalValidationErrorException:
+    """AC-006: GoalValidationError exception class with section and
+    message attributes."""
+
+    def test_is_exception_subclass(self):
+        assert issubclass(GoalValidationError, Exception)
+
+    def test_has_section_attribute(self):
+        err = GoalValidationError(
+            section="Goal", message="too short"
+        )
+        assert hasattr(err, "section")
+        assert err.section == "Goal"
+
+    def test_has_message_attribute(self):
+        err = GoalValidationError(
+            section="Goal", message="too short"
+        )
+        assert hasattr(err, "message")
+        assert err.message == "too short"
+
+    def test_constructor_signature(self):
+        """Constructor takes exactly section and message params."""
+        import inspect
+        sig = inspect.signature(GoalValidationError.__init__)
+        params = list(sig.parameters.keys())
+        assert "self" in params
+        assert "section" in params
+        assert "message" in params
+
+    def test_raise_and_catch(self):
+        with pytest.raises(GoalValidationError) as exc_info:
+            raise GoalValidationError(
+                section="Source Documents",
+                message="at least one row required",
+            )
+        assert exc_info.value.section == "Source Documents"
+        assert exc_info.value.message == "at least one row required"

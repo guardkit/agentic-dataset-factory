@@ -1,0 +1,41 @@
+{
+  "turn_number": 2,
+  "files_modified": [
+    "domain_config/tests/test_models.py"
+  ],
+  "files_created": [],
+  "tests_written": [
+    "domain_config/tests/test_models.py"
+  ],
+  "tests_passed": true,
+  "test_count": 203,
+  "timestamp": "2026-03-20T11:03:33.339254",
+  "detection_method": "player_report",
+  "git_changes": {
+    "files_modified": [
+      ".guardkit/autobuild/TASK-DC-001/turn_context.json",
+      "domain_config/tests/test_models.py"
+    ],
+    "files_added": [
+      ".guardkit/autobuild/TASK-DC-001/checkpoints.json",
+      ".guardkit/autobuild/TASK-DC-001/coach_feedback_for_turn_2.json",
+      ".guardkit/autobuild/TASK-DC-001/player_turn_2.json"
+    ],
+    "files_deleted": [],
+    "diff_stats": ".guardkit/autobuild/TASK-DC-001/turn_context.json |   4 +-\n domain_config/tests/test_models.py                | 224 ++++++++++++++++++++++\n 2 files changed, 226 insertions(+), 2 deletions(-)",
+    "insertions": 226,
+    "deletions": 2,
+    "timestamp": "2026-03-20T11:03:32.474254"
+  },
+  "test_results": {
+    "tests_run": true,
+    "tests_passed": true,
+    "test_count": 203,
+    "passed_count": 203,
+    "failed_count": 0,
+    "output_summary": "........................................................................ [ 35%]\n........................................................................ [ 70%]\n...........................................................              [100%]\n203 passed in 0.43s\n",
+    "timestamp": "2026-03-20T11:03:33.338985",
+    "error": null
+  },
+  "player_report_available": true
+}

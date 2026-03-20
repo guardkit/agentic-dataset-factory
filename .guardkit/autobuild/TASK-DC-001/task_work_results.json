@@ -1,6 +1,6 @@
 {
   "task_id": "TASK-DC-001",
-  "timestamp": "2026-03-20T11:00:21.549137",
+  "timestamp": "2026-03-20T11:03:33.340144",
   "completed": true,
   "success": true,
   "implementation_mode": "direct",
@@ -19,13 +19,10 @@
     "quality_gates_relaxed": true,
     "all_passed": true
   },
-  "files_modified": [],
-  "files_created": [
-    "domain_config/__init__.py",
-    "domain_config/models.py",
-    "domain_config/tests/__init__.py",
+  "files_modified": [
     "domain_config/tests/test_models.py"
   ],
+  "files_created": [],
   "tests_written": [
     "domain_config/tests/test_models.py"
   ],
@@ -37,7 +34,7 @@
       "criterion_id": "AC-001",
       "criterion_text": "`domain_config/` package created with `__init__.py` and `models.py`",
       "status": "partial",
-      "evidence": "Git-analysis detected: Files: domain_config/tests/__init__.py (created), domain_config/__init__.py (created), domain_config/models.py (created)",
+      "evidence": "Git-analysis detected: Files: domain_config/tests/test_models.py (modified)",
       "evidence_type": "git_analysis"
     },
     {
@@ -79,7 +76,7 @@
       "criterion_id": "AC-007",
       "criterion_text": "`GoalConfig` model with all 9 fields typed correctly",
       "status": "partial",
-      "evidence": "Git-analysis detected: Files: domain_config/tests/__init__.py (created); Patterns: config",
+      "evidence": "Git-analysis detected: Files: domain_config/tests/test_models.py (modified); Patterns: config",
       "evidence_type": "git_analysis"
     },
     {
