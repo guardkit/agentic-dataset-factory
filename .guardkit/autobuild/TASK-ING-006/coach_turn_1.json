@@ -1,0 +1,187 @@
+{
+  "task_id": "TASK-ING-006",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest ingestion/tests/test_ingest.py -v --tb=short",
+      "test_output_summary": "Result:\ningestion/tests/test_ingest.py::TestForceFlag::test_force_true_forwarded_to_create_or_replace PASSED [ 90%]\ningestion/tests/test_ingest.py::TestImportContracts::test_ingest_domain_importable PASSED [ 93%]\ningestion/tests/test_ingest.py::TestImportContracts::test_build_parser_importable PASSED [ 96%]\ningestion/tests/test_ingest.py::TestImportContracts::test_cli_main_importable PASSED [100%]\n======================== 30 passed, 2 warnings in 0.49s ========================",
+      "duration_seconds": 9.177699089050293
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 9,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`ingest_domain()` orchestrates the full pipeline: read \u2192 process \u2192 chunk \u2192 index",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented ingest_domain() in ingestion/ingest.py which sequentially calls read_source_documents() \u2192 resolve_source_files() \u2192 process_document() \u2192 chunk_text() \u2192 ChromaDBIndexer.create_or_replace_collection() \u2192 index_chunks(). Tests TestIngestDomainOrchestration verify the full pipeline call chain with mocks.",
+      "notes": "Implemented ingest_domain() in ingestion/ingest.py which sequentially calls read_source_documents() \u2192 resolve_source_files() \u2192 process_document() \u2192 chunk_text() \u2192 ChromaDBIndexer.create_or_replace_collection() \u2192 index_chunks(). Tests TestIngestDomainOrchestration verify the full pipeline call chain with mocks."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Per-document Docling failures are logged and skipped (remaining documents continue)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "The orchestrator catches (DoclingError, FileNotFoundError) per document in a try/except block, logs a warning with the filename, and continues processing remaining documents. Tests TestDoclingFailureHandling.test_skips_failed_documents_and_continues verifies 2 of 3 docs succeed when middle one fails; test_logs_warning_for_failed_document verifies warning log includes filename.",
+      "notes": "The orchestrator catches (DoclingError, FileNotFoundError) per document in a try/except block, logs a warning with the filename, and continues processing remaining documents. Tests TestDoclingFailureHandling.test_skips_failed_documents_and_continues verifies 2 of 3 docs succeed when middle one fails; test_logs_warning_for_failed_document verifies warning log includes filename."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "`IngestResult` populated with correct document count, chunk count, elapsed time",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "IngestResult is populated with documents_processed (count of successful docs), chunks_created (from indexer.index_chunks return value), elapsed_seconds (from time.monotonic() delta), domain, and collection_name. Tests TestIngestResultPopulation verify correct document count (3), chunk count (7), and positive elapsed_seconds.",
+      "notes": "IngestResult is populated with documents_processed (count of successful docs), chunks_created (from indexer.index_chunks return value), elapsed_seconds (from time.monotonic() delta), domain, and collection_name. Tests TestIngestResultPopulation verify correct document count (3), chunk count (7), and positive elapsed_seconds."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "CLI parses `--domain`, `--chunk-size`, `--overlap`, `--force` arguments",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "build_parser() creates argparse.ArgumentParser with --domain (required), --chunk-size (int, default 512), --overlap (int, default 64), --force (store_true). Tests TestCLIArgumentParsing verify each argument is parsed correctly with 6 test cases including defaults and required validation.",
+      "notes": "build_parser() creates argparse.ArgumentParser with --domain (required), --chunk-size (int, default 512), --overlap (int, default 64), --force (store_true). Tests TestCLIArgumentParsing verify each argument is parsed correctly with 6 test cases including defaults and required validation."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "CLI returns correct exit codes (0-4) per API contract",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "cli_main() returns 0 on success, 1 for DomainNotFoundError, 2 for GoalValidationError, 3 for DoclingError, 4 for IndexingError/CollectionExistsError. Tests TestCLIExitCodes verify all 5 exit codes with mocked exceptions.",
+      "notes": "cli_main() returns 0 on success, 1 for DomainNotFoundError, 2 for GoalValidationError, 3 for DoclingError, 4 for IndexingError/CollectionExistsError. Tests TestCLIExitCodes verify all 5 exit codes with mocked exceptions."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "CLI prints human-readable summary on success",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "On success, cli_main() prints a formatted summary to stdout including domain name, collection name, documents processed count, chunks created count, and elapsed time. Test TestCLISummaryOutput.test_prints_summary_on_success verifies all key values appear in stdout.",
+      "notes": "On success, cli_main() prints a formatted summary to stdout including domain name, collection name, documents processed count, chunks created count, and elapsed time. Test TestCLISummaryOutput.test_prints_summary_on_success verifies all key values appear in stdout."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "CLI prints error messages to stderr on failure",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All error handlers in cli_main() print to sys.stderr with descriptive error messages including the exception text. Tests TestCLIErrorOutput verify stderr contains relevant error information for DomainNotFoundError and IndexingError.",
+      "notes": "All error handlers in cli_main() print to sys.stderr with descriptive error messages including the exception text. Tests TestCLIErrorOutput verify stderr contains relevant error information for DomainNotFoundError and IndexingError."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Structured JSON logging at key milestones (per ADR-ARCH-007)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "logger.info() calls at key milestones: pipeline start (with domain, chunk_size, overlap, force), file resolution count, per-document processing start/completion, document processing summary, and pipeline completion with stats. Tests TestStructuredLogging verify log messages are emitted for pipeline start (mentions domain name) and completion (mentions 'complete').",
+      "notes": "logger.info() calls at key milestones: pipeline start (with domain, chunk_size, overlap, force), file resolution count, per-document processing start/completion, document processing summary, and pipeline completion with stats. Tests TestStructuredLogging verify log messages are emitted for pipeline start (mentions domain name) and completion (mentions 'complete')."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All three files (ingestion/ingest.py, ingestion/__main__.py, ingestion/tests/test_ingest.py) pass ruff check with zero errors. Compilation verified via py_compile for all files.",
+      "notes": "All three files (ingestion/ingest.py, ingestion/__main__.py, ingestion/tests/test_ingest.py) pass ruff check with zero errors. Compilation verified via py_compile for all files."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`ingest_domain()` orchestrates the full pipeline: read \u2192 process \u2192 chunk \u2192 index",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented ingest_domain() in ingestion/ingest.py which sequentially calls read_source_documents() \u2192 resolve_source_files() \u2192 process_document() \u2192 chunk_text() \u2192 ChromaDBIndexer.create_or_replace_collection() \u2192 index_chunks(). Tests TestIngestDomainOrchestration verify the full pipeline call chain with mocks.",
+        "notes": "Implemented ingest_domain() in ingestion/ingest.py which sequentially calls read_source_documents() \u2192 resolve_source_files() \u2192 process_document() \u2192 chunk_text() \u2192 ChromaDBIndexer.create_or_replace_collection() \u2192 index_chunks(). Tests TestIngestDomainOrchestration verify the full pipeline call chain with mocks."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Per-document Docling failures are logged and skipped (remaining documents continue)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "The orchestrator catches (DoclingError, FileNotFoundError) per document in a try/except block, logs a warning with the filename, and continues processing remaining documents. Tests TestDoclingFailureHandling.test_skips_failed_documents_and_continues verifies 2 of 3 docs succeed when middle one fails; test_logs_warning_for_failed_document verifies warning log includes filename.",
+        "notes": "The orchestrator catches (DoclingError, FileNotFoundError) per document in a try/except block, logs a warning with the filename, and continues processing remaining documents. Tests TestDoclingFailureHandling.test_skips_failed_documents_and_continues verifies 2 of 3 docs succeed when middle one fails; test_logs_warning_for_failed_document verifies warning log includes filename."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`IngestResult` populated with correct document count, chunk count, elapsed time",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "IngestResult is populated with documents_processed (count of successful docs), chunks_created (from indexer.index_chunks return value), elapsed_seconds (from time.monotonic() delta), domain, and collection_name. Tests TestIngestResultPopulation verify correct document count (3), chunk count (7), and positive elapsed_seconds.",
+        "notes": "IngestResult is populated with documents_processed (count of successful docs), chunks_created (from indexer.index_chunks return value), elapsed_seconds (from time.monotonic() delta), domain, and collection_name. Tests TestIngestResultPopulation verify correct document count (3), chunk count (7), and positive elapsed_seconds."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "CLI parses `--domain`, `--chunk-size`, `--overlap`, `--force` arguments",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "build_parser() creates argparse.ArgumentParser with --domain (required), --chunk-size (int, default 512), --overlap (int, default 64), --force (store_true). Tests TestCLIArgumentParsing verify each argument is parsed correctly with 6 test cases including defaults and required validation.",
+        "notes": "build_parser() creates argparse.ArgumentParser with --domain (required), --chunk-size (int, default 512), --overlap (int, default 64), --force (store_true). Tests TestCLIArgumentParsing verify each argument is parsed correctly with 6 test cases including defaults and required validation."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "CLI returns correct exit codes (0-4) per API contract",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "cli_main() returns 0 on success, 1 for DomainNotFoundError, 2 for GoalValidationError, 3 for DoclingError, 4 for IndexingError/CollectionExistsError. Tests TestCLIExitCodes verify all 5 exit codes with mocked exceptions.",
+        "notes": "cli_main() returns 0 on success, 1 for DomainNotFoundError, 2 for GoalValidationError, 3 for DoclingError, 4 for IndexingError/CollectionExistsError. Tests TestCLIExitCodes verify all 5 exit codes with mocked exceptions."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "CLI prints human-readable summary on success",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "On success, cli_main() prints a formatted summary to stdout including domain name, collection name, documents processed count, chunks created count, and elapsed time. Test TestCLISummaryOutput.test_prints_summary_on_success verifies all key values appear in stdout.",
+        "notes": "On success, cli_main() prints a formatted summary to stdout including domain name, collection name, documents processed count, chunks created count, and elapsed time. Test TestCLISummaryOutput.test_prints_summary_on_success verifies all key values appear in stdout."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "CLI prints error messages to stderr on failure",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All error handlers in cli_main() print to sys.stderr with descriptive error messages including the exception text. Tests TestCLIErrorOutput verify stderr contains relevant error information for DomainNotFoundError and IndexingError.",
+        "notes": "All error handlers in cli_main() print to sys.stderr with descriptive error messages including the exception text. Tests TestCLIErrorOutput verify stderr contains relevant error information for DomainNotFoundError and IndexingError."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Structured JSON logging at key milestones (per ADR-ARCH-007)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "logger.info() calls at key milestones: pipeline start (with domain, chunk_size, overlap, force), file resolution count, per-document processing start/completion, document processing summary, and pipeline completion with stats. Tests TestStructuredLogging verify log messages are emitted for pipeline start (mentions domain name) and completion (mentions 'complete').",
+        "notes": "logger.info() calls at key milestones: pipeline start (with domain, chunk_size, overlap, force), file resolution count, per-document processing start/completion, document processing summary, and pipeline completion with stats. Tests TestStructuredLogging verify log messages are emitted for pipeline start (mentions domain name) and completion (mentions 'complete')."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All three files (ingestion/ingest.py, ingestion/__main__.py, ingestion/tests/test_ingest.py) pass ruff check with zero errors. Compilation verified via py_compile for all files.",
+        "notes": "All three files (ingestion/ingest.py, ingestion/__main__.py, ingestion/tests/test_ingest.py) pass ruff check with zero errors. Compilation verified via py_compile for all files."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 440 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 1919/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- REFERS_TO\n- HAS_ERROR_HANDLER\n- INSTRUCTS_USER_TO_START\n- ASSIGNS_TASK_TO\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- PROVIDES_ISOLATION_FOR\n- IS_COMPATIBLE_WITH\n- HAS_TASK_ID_FORMAT\n\n### \u26a0\ufe0f Warnings\n- HAS_IMPLEMENTATION_TARGET\n- USES_ENDPOINT\n- RESULTS_IN\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- MUST_PERFORM\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- HAS_PROJECT_ID\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

@@ -1,0 +1,154 @@
+{
+  "task_id": "TASK-ING-006",
+  "timestamp": "2026-03-20T17:10:42.300492",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation (TDD Mode)",
+      "completed": false
+    },
+    "phase_4": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 30,
+    "tests_failed": 0,
+    "coverage": 97.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    ".guardkit/bootstrap_state.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/ingest.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_ingest.py",
+    "ingestion/__main__.py",
+    "tasks/backlog/TASK-ING-006-implement-orchestrator-and-cli.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-ING-006-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ING-004/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-006/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-006/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-006/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/.guardkit/autobuild/TASK-ING-006/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/__main__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/ingest.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_ingest.py",
+    "ingestion/ingest.py",
+    "ingestion/tests/test_ingest.py",
+    "tasks/design_approved/TASK-ING-006-implement-orchestrator-and-cli.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_ingest.py"
+  ],
+  "summary": "30 tests passed, 97.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 44,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "code_review": {
+    "score": 95,
+    "solid": 95,
+    "dry": 95,
+    "yagni": 95
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "ingest_domain() orchestrates the full pipeline: read \u2192 process \u2192 chunk \u2192 index",
+      "status": "complete",
+      "evidence": "Implemented ingest_domain() in ingestion/ingest.py which sequentially calls read_source_documents() \u2192 resolve_source_files() \u2192 process_document() \u2192 chunk_text() \u2192 ChromaDBIndexer.create_or_replace_collection() \u2192 index_chunks(). Tests TestIngestDomainOrchestration verify the full pipeline call chain with mocks.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Per-document Docling failures are logged and skipped (remaining documents continue)",
+      "status": "complete",
+      "evidence": "The orchestrator catches (DoclingError, FileNotFoundError) per document in a try/except block, logs a warning with the filename, and continues processing remaining documents. Tests TestDoclingFailureHandling.test_skips_failed_documents_and_continues verifies 2 of 3 docs succeed when middle one fails; test_logs_warning_for_failed_document verifies warning log includes filename.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "IngestResult populated with correct document count, chunk count, elapsed time",
+      "status": "complete",
+      "evidence": "IngestResult is populated with documents_processed (count of successful docs), chunks_created (from indexer.index_chunks return value), elapsed_seconds (from time.monotonic() delta), domain, and collection_name. Tests TestIngestResultPopulation verify correct document count (3), chunk count (7), and positive elapsed_seconds.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "CLI parses --domain, --chunk-size, --overlap, --force arguments",
+      "status": "complete",
+      "evidence": "build_parser() creates argparse.ArgumentParser with --domain (required), --chunk-size (int, default 512), --overlap (int, default 64), --force (store_true). Tests TestCLIArgumentParsing verify each argument is parsed correctly with 6 test cases including defaults and required validation.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "CLI returns correct exit codes (0-4) per API contract",
+      "status": "complete",
+      "evidence": "cli_main() returns 0 on success, 1 for DomainNotFoundError, 2 for GoalValidationError, 3 for DoclingError, 4 for IndexingError/CollectionExistsError. Tests TestCLIExitCodes verify all 5 exit codes with mocked exceptions.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "CLI prints human-readable summary on success",
+      "status": "complete",
+      "evidence": "On success, cli_main() prints a formatted summary to stdout including domain name, collection name, documents processed count, chunks created count, and elapsed time. Test TestCLISummaryOutput.test_prints_summary_on_success verifies all key values appear in stdout.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "CLI prints error messages to stderr on failure",
+      "status": "complete",
+      "evidence": "All error handlers in cli_main() print to sys.stderr with descriptive error messages including the exception text. Tests TestCLIErrorOutput verify stderr contains relevant error information for DomainNotFoundError and IndexingError.",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Structured JSON logging at key milestones (per ADR-ARCH-007)",
+      "status": "complete",
+      "evidence": "logger.info() calls at key milestones: pipeline start (with domain, chunk_size, overlap, force), file resolution count, per-document processing start/completion, document processing summary, and pipeline completion with stats. Tests TestStructuredLogging verify log messages are emitted for pipeline start (mentions domain name) and completion (mentions 'complete').",
+      "test_file": "ingestion/tests/test_ingest.py",
+      "implementation_files": [
+        "ingestion/ingest.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "All three files (ingestion/ingest.py, ingestion/__main__.py, ingestion/tests/test_ingest.py) pass ruff check with zero errors. Compilation verified via py_compile for all files.",
+      "test_file": null,
+      "implementation_files": [
+        "ingestion/ingest.py",
+        "ingestion/__main__.py",
+        "ingestion/tests/test_ingest.py"
+      ]
+    }
+  ]
+}
