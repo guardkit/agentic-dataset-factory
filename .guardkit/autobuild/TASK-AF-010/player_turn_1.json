@@ -1,0 +1,126 @@
+{
+  "task_id": "TASK-AF-010",
+  "turn": 1,
+  "files_modified": [
+    ".claude/task-plans/TASK-AF-003-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-004-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-006-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-007-implementation-plan.md",
+    ".claude/task-plans/TASK-AF-010-implementation-plan.md",
+    ".guardkit/autobuild/TASK-AF-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-AF-003/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-004/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-006/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-007/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-007/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-007/task_work_results.json",
+    ".guardkit/autobuild/TASK-AF-007/turn_context.json",
+    ".guardkit/autobuild/TASK-AF-007/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-010/turn_context.json",
+    ".guardkit/bootstrap_state.json",
+    "agents/model_factory.py",
+    "agents/tests/test_coach_factory.py",
+    "agents/tests/test_model_factory.py",
+    "agents/tests/test_player.py",
+    "config/tests/test_models.py",
+    "coverage.json",
+    "tasks/design_approved/TASK-AF-003-player-factory.md",
+    "tasks/design_approved/TASK-AF-004-coach-factory.md",
+    "tasks/design_approved/TASK-AF-006-model-factory.md",
+    "tasks/design_approved/TASK-AF-007-unit-tests-modelconfig.md",
+    "tasks/design_approved/TASK-AF-010-unit-tests-prompt-builders.md",
+    "tests/test_prompt_builders.py"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-AF-007/checkpoints.json",
+    ".guardkit/autobuild/TASK-AF-010/player_turn_1.json",
+    ".guardkit/autobuild/TASK-AF-010/task_work_results.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/.guardkit/autobuild/TASK-AF-010/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/tests/test_prompt_builders.py",
+    "agents/coach.py",
+    "agents/player.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9/tests/test_prompt_builders.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Player prompt tests verify all 6 GOAL.md sections are present",
+    "Coach prompt tests verify all 5 GOAL.md sections are present",
+    "Tests verify base prompt appears before injected content",
+    "Tests verify missing section raises error",
+    "Tests verify evaluation criteria names are present for criteria_met alignment",
+    "Tests are in tests/test_prompt_builders.py"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 27,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 41,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Player prompt tests verify all 6 GOAL.md sections are present",
+      "status": "complete",
+      "evidence": "TestPlayerPromptSections class contains 8 tests verifying all 6 GOAL.md sections (Goal, System Prompt, Generation Guidelines, Output Schema, Metadata Schema, Layer Routing) are present in the built player prompt, including section heading verification and content assertions.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Coach prompt tests verify all 5 GOAL.md sections are present",
+      "status": "complete",
+      "evidence": "TestCoachPromptSections class contains 8 tests verifying all 5 GOAL.md sections (Goal, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing) are present in the built coach prompt, including section heading verification, content assertions, and explicit check that all evaluation criteria names appear.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Tests verify base prompt appears before injected content",
+      "status": "complete",
+      "evidence": "TestBasePromptPrecedence class contains 6 tests: base prompt index < goal content index for both player and coach, prompt starts with base prompt for both, and DOMAIN CONTEXT delimiter present in both. Also verifies GOAL.md content does not override base prompt.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Tests verify missing section raises error",
+      "status": "complete",
+      "evidence": "TestPlayerMissingSectionErrors (7 tests) and TestCoachMissingSectionErrors (5 tests) verify ValueError is raised for each empty/missing required section using model_construct to bypass Pydantic validators. Includes explicit test for partial GOAL.md parse producing error, not silent degradation.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Tests verify evaluation criteria names are present for criteria_met alignment",
+      "status": "complete",
+      "evidence": "TestEvaluationCriteriaAlignment class contains 3 tests: all 5 criterion names (socratic_approach, ao_accuracy, mark_scheme_aligned, age_appropriate, factual_accuracy) appear in the coach prompt, criteria_met is referenced, and criteria names appear specifically in the DOMAIN CONTEXT section.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Tests are in tests/test_prompt_builders.py",
+      "status": "complete",
+      "evidence": "All 41 tests are located at tests/test_prompt_builders.py as specified. Tests run successfully from this location.",
+      "test_file": "tests/test_prompt_builders.py",
+      "implementation_files": [
+        "tests/test_prompt_builders.py"
+      ]
+    }
+  ]
+}
