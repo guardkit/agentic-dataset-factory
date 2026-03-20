@@ -1,0 +1,187 @@
+{
+  "task_id": "TASK-ING-003",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest ingestion/tests/test_chromadb_indexer.py ingestion/tests/test_chunker.py ingestion/tests/test_docling_processor.py ingestion/tests/test_errors.py ingestion/tests/test_goal_reader.py -v --tb=short",
+      "test_output_summary": "Error detail:\ningestion/tests/test_chromadb_indexer.py::TestForceReplaceCollection::test_force_true_on_nonexistent_collection_creates_new PASSED [  6%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_force_false_raises_collection_exists_error PASSED [  6%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_collection_exists_error_is_ingestion_error_subclass PASSED [  7%]\ningestion/tests/test_chromadb_indexer.py::TestCollectionExistsError::test_force_false_is_default PASSED [  8%]\ningestion/tests/test_chromadb_indexer.py::TestIndexChunksMetadata::test_indexes_chunks_with_correct_metadata PASSED [  8%]\nResult:\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_package_all PASSED [ 98%]\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_module_all PASSED [ 98%]\ningestion/tests/test_goal_reader.py::TestSeamContract::test_source_document_format PASSED [ 99%]\ningestion/tests/test_goal_reader...",
+      "duration_seconds": 11.968194007873535
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 9,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`process_document()` extracts text from standard PDFs",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented process_document() with standard mode that uses Docling DocumentConverter to extract page-level text. Tests TestStandardModeExtraction verify extraction of 2-page documents with correct text content and default mode='standard'.",
+      "notes": "Implemented process_document() with standard mode that uses Docling DocumentConverter to extract page-level text. Tests TestStandardModeExtraction verify extraction of 2-page documents with correct text content and default mode='standard'."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "`process_document()` extracts text from scanned PDFs using VLM mode",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented _build_converter() that configures Docling with PipelineOptions for VLM mode when mode='vlm'. Test TestVLMModeExtraction verifies VLM extraction produces pages with text and sets mode='vlm' on result.",
+      "notes": "Implemented _build_converter() that configures Docling with PipelineOptions for VLM mode when mode='vlm'. Test TestVLMModeExtraction verifies VLM extraction produces pages with text and sets mode='vlm' on result."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Returns `ExtractedDocument` with page-level text and page numbers",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Defined ExtractedPage and ExtractedDocument dataclasses. process_document() returns ExtractedDocument with source_file, pages list of ExtractedPage (each with page_number and text), and mode. Tests TestExtractedDocumentStructure verify type, source_file, sequential page numbers, and dataclass nature.",
+      "notes": "Defined ExtractedPage and ExtractedDocument dataclasses. process_document() returns ExtractedDocument with source_file, pages list of ExtractedPage (each with page_number and text), and mode. Tests TestExtractedDocumentStructure verify type, source_file, sequential page numbers, and dataclass nature."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Raises `DoclingError` on processing failure (not generic Exception)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "process_document() catches all non-DoclingError exceptions from converter.convert() and wraps them in DoclingError with source file context. Tests TestDoclingErrorOnFailure verify DoclingError is raised on RuntimeError/ValueError, includes file path in message, and is catchable as IngestionError.",
+      "notes": "process_document() catches all non-DoclingError exceptions from converter.convert() and wraps them in DoclingError with source file context. Tests TestDoclingErrorOnFailure verify DoclingError is raised on RuntimeError/ValueError, includes file path in message, and is catchable as IngestionError."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Raises `FileNotFoundError` for non-existent files",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "process_document() checks path.exists() before processing and raises FileNotFoundError with the file path in the message. Tests TestFileNotFoundError verify the exception is raised and includes the filename.",
+      "notes": "process_document() checks path.exists() before processing and raises FileNotFoundError with the file path in the message. Tests TestFileNotFoundError verify the exception is raised and includes the filename."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Zero-byte files raise `DoclingError` with descriptive message",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "process_document() checks path.stat().st_size == 0 and raises DoclingError with message 'Cannot process zero-byte file: {path} (0 bytes)'. Tests TestZeroByteFile verify DoclingError is raised and message matches pattern '(zero.byte|empty|0 bytes)'.",
+      "notes": "process_document() checks path.stat().st_size == 0 and raises DoclingError with message 'Cannot process zero-byte file: {path} (0 bytes)'. Tests TestZeroByteFile verify DoclingError is raised and message matches pattern '(zero.byte|empty|0 bytes)'."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Empty extraction result (image-only PDF in standard mode) returns ExtractedDocument with empty pages list",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "When Docling returns empty pages dict, process_document() returns ExtractedDocument with pages=[] while preserving source_file and mode. Tests TestEmptyExtraction verify empty pages list and correct metadata.",
+      "notes": "When Docling returns empty pages dict, process_document() returns ExtractedDocument with pages=[] while preserving source_file and mode. Tests TestEmptyExtraction verify empty pages list and correct metadata."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Docling is lazy-imported (not at module level)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Docling imports are inside _get_document_converter() and _build_converter() functions only. No top-level 'import docling' or 'from docling' statements. Tests TestLazyImport verify: (1) importing docling_processor does not add 'docling' to sys.modules, (2) source code has no top-level docling imports.",
+      "notes": "Docling imports are inside _get_document_converter() and _build_converter() functions only. No top-level 'import docling' or 'from docling' statements. Tests TestLazyImport verify: (1) importing docling_processor does not add 'docling' to sys.modules, (2) source code has no top-level docling imports."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Both ingestion/docling_processor.py and ingestion/tests/test_docling_processor.py pass 'ruff check' and 'ruff format --check' with zero errors. Verified after implementation and formatting.",
+      "notes": "Both ingestion/docling_processor.py and ingestion/tests/test_docling_processor.py pass 'ruff check' and 'ruff format --check' with zero errors. Verified after implementation and formatting."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`process_document()` extracts text from standard PDFs",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented process_document() with standard mode that uses Docling DocumentConverter to extract page-level text. Tests TestStandardModeExtraction verify extraction of 2-page documents with correct text content and default mode='standard'.",
+        "notes": "Implemented process_document() with standard mode that uses Docling DocumentConverter to extract page-level text. Tests TestStandardModeExtraction verify extraction of 2-page documents with correct text content and default mode='standard'."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`process_document()` extracts text from scanned PDFs using VLM mode",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented _build_converter() that configures Docling with PipelineOptions for VLM mode when mode='vlm'. Test TestVLMModeExtraction verifies VLM extraction produces pages with text and sets mode='vlm' on result.",
+        "notes": "Implemented _build_converter() that configures Docling with PipelineOptions for VLM mode when mode='vlm'. Test TestVLMModeExtraction verifies VLM extraction produces pages with text and sets mode='vlm' on result."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Returns `ExtractedDocument` with page-level text and page numbers",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Defined ExtractedPage and ExtractedDocument dataclasses. process_document() returns ExtractedDocument with source_file, pages list of ExtractedPage (each with page_number and text), and mode. Tests TestExtractedDocumentStructure verify type, source_file, sequential page numbers, and dataclass nature.",
+        "notes": "Defined ExtractedPage and ExtractedDocument dataclasses. process_document() returns ExtractedDocument with source_file, pages list of ExtractedPage (each with page_number and text), and mode. Tests TestExtractedDocumentStructure verify type, source_file, sequential page numbers, and dataclass nature."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Raises `DoclingError` on processing failure (not generic Exception)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "process_document() catches all non-DoclingError exceptions from converter.convert() and wraps them in DoclingError with source file context. Tests TestDoclingErrorOnFailure verify DoclingError is raised on RuntimeError/ValueError, includes file path in message, and is catchable as IngestionError.",
+        "notes": "process_document() catches all non-DoclingError exceptions from converter.convert() and wraps them in DoclingError with source file context. Tests TestDoclingErrorOnFailure verify DoclingError is raised on RuntimeError/ValueError, includes file path in message, and is catchable as IngestionError."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Raises `FileNotFoundError` for non-existent files",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "process_document() checks path.exists() before processing and raises FileNotFoundError with the file path in the message. Tests TestFileNotFoundError verify the exception is raised and includes the filename.",
+        "notes": "process_document() checks path.exists() before processing and raises FileNotFoundError with the file path in the message. Tests TestFileNotFoundError verify the exception is raised and includes the filename."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Zero-byte files raise `DoclingError` with descriptive message",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "process_document() checks path.stat().st_size == 0 and raises DoclingError with message 'Cannot process zero-byte file: {path} (0 bytes)'. Tests TestZeroByteFile verify DoclingError is raised and message matches pattern '(zero.byte|empty|0 bytes)'.",
+        "notes": "process_document() checks path.stat().st_size == 0 and raises DoclingError with message 'Cannot process zero-byte file: {path} (0 bytes)'. Tests TestZeroByteFile verify DoclingError is raised and message matches pattern '(zero.byte|empty|0 bytes)'."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Empty extraction result (image-only PDF in standard mode) returns ExtractedDocument with empty pages list",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "When Docling returns empty pages dict, process_document() returns ExtractedDocument with pages=[] while preserving source_file and mode. Tests TestEmptyExtraction verify empty pages list and correct metadata.",
+        "notes": "When Docling returns empty pages dict, process_document() returns ExtractedDocument with pages=[] while preserving source_file and mode. Tests TestEmptyExtraction verify empty pages list and correct metadata."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Docling is lazy-imported (not at module level)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Docling imports are inside _get_document_converter() and _build_converter() functions only. No top-level 'import docling' or 'from docling' statements. Tests TestLazyImport verify: (1) importing docling_processor does not add 'docling' to sys.modules, (2) source code has no top-level docling imports.",
+        "notes": "Docling imports are inside _get_document_converter() and _build_converter() functions only. No top-level 'import docling' or 'from docling' statements. Tests TestLazyImport verify: (1) importing docling_processor does not add 'docling' to sys.modules, (2) source code has no top-level docling imports."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Both ingestion/docling_processor.py and ingestion/tests/test_docling_processor.py pass 'ruff check' and 'ruff format --check' with zero errors. Verified after implementation and formatting.",
+        "notes": "Both ingestion/docling_processor.py and ingestion/tests/test_docling_processor.py pass 'ruff check' and 'ruff format --check' with zero errors. Verified after implementation and formatting."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 419 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 1792/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- DESCRIBES\n- ASSIGNS_TASK_TO\n- BELONGS_TO_PROJECT\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- PROVIDES_ISOLATION_FOR\n- REFERENCE_FOR\n- HAS_TASK_ID_FORMAT\n\n### \u26a0\ufe0f Warnings\n- HAS_ROOT_CAUSE\n- USES_ENDPOINT\n- HAS_IMPLEMENTATION_TARGET\n\n### \ud83c\udfad Role Constraints\n- PROJECT_INVOLVES\n- DELEGATES_TO\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

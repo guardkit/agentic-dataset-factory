@@ -1,0 +1,179 @@
+{
+  "task_id": "TASK-ING-003",
+  "timestamp": "2026-03-20T17:00:12.020306",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation (TDD Mode)",
+      "completed": false
+    },
+    "phase_4": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 18,
+    "tests_failed": 0,
+    "coverage": 89.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    ".claude/task-plans/TASK-ING-002-implementation-plan.md",
+    ".claude/task-plans/TASK-ING-003-implementation-plan.md",
+    ".claude/task-plans/TASK-ING-004-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ING-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-ING-002/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-002/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-002/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-003/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-004/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-005/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-005/turn_context.json",
+    ".guardkit/autobuild/TASK-ING-005/turn_state_turn_1.json",
+    ".guardkit/bootstrap_state.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/docling_processor.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_docling_processor.py",
+    "=0.3.0",
+    "coverage.json",
+    "ingestion/__init__.py",
+    "ingestion/chromadb_indexer.py",
+    "ingestion/chunker.py",
+    "ingestion/docling_processor.py",
+    "ingestion/errors.py",
+    "ingestion/goal_reader.py",
+    "ingestion/tests/test_chromadb_indexer.py",
+    "ingestion/tests/test_chunker.py",
+    "ingestion/tests/test_docling_processor.py",
+    "ingestion/tests/test_errors.py",
+    "ingestion/tests/test_goal_reader.py",
+    "pyproject.toml",
+    "tasks/design_approved/TASK-ING-002-implement-chunker.md",
+    "tasks/design_approved/TASK-ING-003-implement-docling-processor.md",
+    "tasks/design_approved/TASK-ING-004-implement-chromadb-indexer.md"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-ING-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ING-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-ING-005/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/.guardkit/autobuild/TASK-ING-003/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/docling_processor.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_docling_processor.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D/ingestion/tests/test_docling_processor.py"
+  ],
+  "summary": "18 tests passed, 89.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 48,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "code_review": {
+    "score": 90,
+    "solid": 9,
+    "dry": 9,
+    "yagni": 9
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "process_document() extracts text from standard PDFs",
+      "status": "complete",
+      "evidence": "Implemented process_document() with standard mode that uses Docling DocumentConverter to extract page-level text. Tests TestStandardModeExtraction verify extraction of 2-page documents with correct text content and default mode='standard'.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "process_document() extracts text from scanned PDFs using VLM mode",
+      "status": "complete",
+      "evidence": "Implemented _build_converter() that configures Docling with PipelineOptions for VLM mode when mode='vlm'. Test TestVLMModeExtraction verifies VLM extraction produces pages with text and sets mode='vlm' on result.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Returns ExtractedDocument with page-level text and page numbers",
+      "status": "complete",
+      "evidence": "Defined ExtractedPage and ExtractedDocument dataclasses. process_document() returns ExtractedDocument with source_file, pages list of ExtractedPage (each with page_number and text), and mode. Tests TestExtractedDocumentStructure verify type, source_file, sequential page numbers, and dataclass nature.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Raises DoclingError on processing failure (not generic Exception)",
+      "status": "complete",
+      "evidence": "process_document() catches all non-DoclingError exceptions from converter.convert() and wraps them in DoclingError with source file context. Tests TestDoclingErrorOnFailure verify DoclingError is raised on RuntimeError/ValueError, includes file path in message, and is catchable as IngestionError.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Raises FileNotFoundError for non-existent files",
+      "status": "complete",
+      "evidence": "process_document() checks path.exists() before processing and raises FileNotFoundError with the file path in the message. Tests TestFileNotFoundError verify the exception is raised and includes the filename.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Zero-byte files raise DoclingError with descriptive message",
+      "status": "complete",
+      "evidence": "process_document() checks path.stat().st_size == 0 and raises DoclingError with message 'Cannot process zero-byte file: {path} (0 bytes)'. Tests TestZeroByteFile verify DoclingError is raised and message matches pattern '(zero.byte|empty|0 bytes)'.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Empty extraction result (image-only PDF in standard mode) returns ExtractedDocument with empty pages list",
+      "status": "complete",
+      "evidence": "When Docling returns empty pages dict, process_document() returns ExtractedDocument with pages=[] while preserving source_file and mode. Tests TestEmptyExtraction verify empty pages list and correct metadata.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Docling is lazy-imported (not at module level)",
+      "status": "complete",
+      "evidence": "Docling imports are inside _get_document_converter() and _build_converter() functions only. No top-level 'import docling' or 'from docling' statements. Tests TestLazyImport verify: (1) importing docling_processor does not add 'docling' to sys.modules, (2) source code has no top-level docling imports.",
+      "test_file": "ingestion/tests/test_docling_processor.py",
+      "implementation_files": [
+        "ingestion/docling_processor.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both ingestion/docling_processor.py and ingestion/tests/test_docling_processor.py pass 'ruff check' and 'ruff format --check' with zero errors. Verified after implementation and formatting.",
+      "test_file": null,
+      "implementation_files": [
+        "ingestion/docling_processor.py",
+        "ingestion/tests/test_docling_processor.py"
+      ]
+    }
+  ]
+}
