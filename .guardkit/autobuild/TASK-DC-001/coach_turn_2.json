@@ -1,0 +1,200 @@
+{
+  "task_id": "TASK-DC-001",
+  "turn": 2,
+  "decision": "feedback",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest domain_config/tests/test_models.py -v --tb=short",
+      "test_output_summary": "Error detail:\n\ndomain_config/tests/test_models.py::TestGoalValidationError::test_attributes_stored PASSED [  0%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_str_includes_section_and_message PASSED [  1%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_is_exception PASSED [  2%]\ndomain_config/tests/test_models.py::TestGoalValidationError::test_can_be_raised_and_caught PASSED [  3%]\nResult:\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_has_section_attribute PASSED [ 97%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_has_message_attribute PASSED [ 98%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_constructor_signature PASSED [ 99%]\ndomain_config/tests/test_models.py::TestAC006_GoalValidationErrorException::test_raise_and_catch PASSED [100%]\n============================= 110 passed in 0.11s ==============================",
+      "duration_seconds": 7.80190110206604
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 4,
+      "all_criteria_met": false,
+      "missing": [
+        "All 5 Pydantic models match the API contract field types exactly",
+        "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+        "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+        "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+        "`GoalValidationError` exception class with `section` and `message` attributes"
+      ]
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`domain_config/` package created with `__init__.py` and `models.py`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified)",
+      "notes": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified)"
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "All 5 Pydantic models match the API contract field types exactly",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Promise status: incomplete",
+      "notes": "Promise status: incomplete"
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Promise status: incomplete",
+      "notes": "Promise status: incomplete"
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Promise status: incomplete",
+      "notes": "Promise status: incomplete"
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Promise status: incomplete",
+      "notes": "Promise status: incomplete"
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "`GoalValidationError` exception class with `section` and `message` attributes",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Promise status: incomplete",
+      "notes": "Promise status: incomplete"
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "`GoalConfig` model with all 9 fields typed correctly",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified); Patterns: config",
+      "notes": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified); Patterns: config"
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Models importable from `domain_config` package root",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: models, domain_config",
+      "notes": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: models, domain_config"
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Unit tests for model construction and field validation",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: tests, model",
+      "notes": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: tests, model"
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`domain_config/` package created with `__init__.py` and `models.py`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified)",
+        "notes": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified)"
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "All 5 Pydantic models match the API contract field types exactly",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Promise status: incomplete",
+        "notes": "Promise status: incomplete"
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Promise status: incomplete",
+        "notes": "Promise status: incomplete"
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Promise status: incomplete",
+        "notes": "Promise status: incomplete"
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Promise status: incomplete",
+        "notes": "Promise status: incomplete"
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`GoalValidationError` exception class with `section` and `message` attributes",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Promise status: incomplete",
+        "notes": "Promise status: incomplete"
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "`GoalConfig` model with all 9 fields typed correctly",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified); Patterns: config",
+        "notes": "[Partial confidence - git_analysis] Git-analysis detected: Files: domain_config/tests/test_models.py (modified); Patterns: config"
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Models importable from `domain_config` package root",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: models, domain_config",
+        "notes": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: models, domain_config"
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Unit tests for model construction and field validation",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: tests, model",
+        "notes": "[Partial confidence - git_analysis] Git-analysis detected: Patterns: tests, model"
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "missing_requirement",
+      "description": "Not all acceptance criteria met",
+      "missing_criteria": [
+        "All 5 Pydantic models match the API contract field types exactly",
+        "`SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`",
+        "`GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`",
+        "`EvaluationCriterion.name` validated as Python identifier + not keyword",
+        "`GoalValidationError` exception class with `section` and `message` attributes"
+      ]
+    }
+  ],
+  "rationale": "Missing 5 acceptance criteria: All 5 Pydantic models match the API contract field types exactly, `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`, `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`, `EvaluationCriterion.name` validated as Python identifier + not keyword, `GoalValidationError` exception class with `section` and `message` attributes",
+  "context_used": "## Job-Specific Context\n\nBudget: 1978/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- USED_AS_TYPE\n- IMPLEMENTED_BY_CODE_PATTERN\n- IS_USED_IN_PATTERN\n- USED_IN_PATTERNS\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- PART_OF_DIRECTORY_LAYOUT\n- CREATED_AT\n- PART_OF_DIRECTORY_LAYOUT\n\n### \u26a0\ufe0f Warnings\n- CREATES\n- HAS_PROJECT_ID\n- CREATES\n\n### \ud83c\udfad Role Constraints\n- MUST_PERFORM\n- PROJECT_INVOLVES\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- IMPLEMENTATION_MODE_APPLIES_TO\n\n\n## Previous Turn Summary (Turn 1)\n**What was attempted**: Implementation attempt\n**Player decision**: feedback\n**Coach decision**: feedback\n**Coach feedback**: - Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models match the API contract field types exactly\n  \u2022 `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name` validated as Python identifier + not keyword\n  \u2022 `GoalValidationError` exception class with `section` and `message` attributes\n\n**Acceptance Criteria Status**:\n  \u25cb AC-001: verified\n  \u2717 AC-002: rejected\n  \u2717 AC-003: rejected\n  \u2717 AC-004: rejected\n  \u2717 AC-005: rejected\n  \u2717 AC-006: rejected\n  \u25cb AC-007: verified\n  \u25cb AC-008: verified\n  \u25cb AC-009: verified",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

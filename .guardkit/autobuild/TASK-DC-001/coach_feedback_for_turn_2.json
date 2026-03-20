@@ -1,0 +1,9 @@
+{
+  "turn": 2,
+  "feedback_from_turn": 1,
+  "feedback_summary": "- Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models match the API contract field types exactly\n  \u2022 `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name` validated as Python identifier + not keyword\n  \u2022 `GoalValidationError` exception class with `section` and `message` attributes",
+  "must_fix": [],
+  "should_fix": [],
+  "validation_results": {},
+  "raw_feedback": "- Not all acceptance criteria met:\n  \u2022 All 5 Pydantic models match the API contract field types exactly\n  \u2022 `SourceDocument.mode` constrained to `Literal[\"standard\", \"vlm\"]`\n  \u2022 `GenerationTarget.type` constrained to `Literal[\"reasoning\", \"direct\"]`\n  \u2022 `EvaluationCriterion.name` validated as Python identifier + not keyword\n  \u2022 `GoalValidationError` exception class with `section` and `message` attributes"
+}
