@@ -1,0 +1,144 @@
+{
+  "task_id": "TASK-ING-001",
+  "timestamp": "2026-03-20T16:48:19.838292",
+  "completed": true,
+  "success": true,
+  "implementation_mode": "direct",
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 2,
+    "tests_failed": 0,
+    "coverage": null,
+    "coverage_met": true,
+    "quality_gates_relaxed": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    "pyproject.toml"
+  ],
+  "files_created": [
+    "ingestion/__init__.py",
+    "ingestion/__main__.py",
+    "ingestion/errors.py",
+    "ingestion/models.py",
+    "ingestion/tests/__init__.py",
+    "ingestion/tests/test_errors.py",
+    "ingestion/tests/test_models.py"
+  ],
+  "tests_written": [
+    "ingestion/tests/test_errors.py",
+    "ingestion/tests/test_models.py"
+  ],
+  "requirements_addressed": [
+    "AC-001: ingestion/ package is importable",
+    "AC-002: All error classes are importable",
+    "AC-003: Chunk dataclass has text and metadata fields",
+    "AC-004: IngestResult dataclass matches API contract fields",
+    "AC-005: SourceDocument stub has file_pattern, mode, and notes fields",
+    "AC-006: Error hierarchy has correct inheritance chain",
+    "AC-007: __init__.py exports public API",
+    "AC-008: Unit tests for model construction and error instantiation"
+  ],
+  "requirements_met": [
+    "AC-001: ingestion/ package is importable",
+    "AC-002: All error classes are importable",
+    "AC-003: Chunk dataclass has text and metadata fields",
+    "AC-004: IngestResult dataclass matches API contract fields",
+    "AC-005: SourceDocument stub has file_pattern, mode, and notes fields",
+    "AC-006: Error hierarchy has correct inheritance chain",
+    "AC-007: __init__.py exports public API",
+    "AC-008: Unit tests for model construction and error instantiation"
+  ],
+  "summary": "Direct mode implementation completed successfully",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `ingestion/` package is importable (`from ingestion.models import Chunk, IngestResult`)",
+      "status": "complete",
+      "evidence": "Created ingestion/__init__.py that re-exports all models. Tests in TestImportContracts verify `from ingestion.models import Chunk, IngestResult` and `from ingestion import Chunk, IngestResult, SourceDocument` both work. All 91 tests pass.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/__init__.py",
+        "ingestion/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] All error classes are importable (`from ingestion.errors import IngestionError, ...`)",
+      "status": "complete",
+      "evidence": "Created ingestion/errors.py with all 5 error classes. Tests in TestErrorImportContracts verify `from ingestion.errors import IngestionError, DomainNotFoundError, GoalValidationError, DoclingError, IndexingError` and `from ingestion import ...` both work. Also verified all 5 names are in ingestion.__all__.",
+      "test_file": "ingestion/tests/test_errors.py",
+      "implementation_files": [
+        "ingestion/__init__.py",
+        "ingestion/errors.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] `Chunk` dataclass has `text` and `metadata` fields",
+      "status": "complete",
+      "evidence": "Chunk is a @dataclass with `text: str` and `metadata: dict` fields. Tests verify: is_dataclass(Chunk), has 'text' field, has 'metadata' field, metadata defaults to empty dict, metadata default is distinct per instance, field count is exactly 2.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] `IngestResult` dataclass matches the API contract fields",
+      "status": "complete",
+      "evidence": "IngestResult is a @dataclass with exactly 5 fields matching API-ingestion.md: domain(str), collection_name(str), documents_processed(int), chunks_created(int), elapsed_seconds(float). Tests verify all 5 fields exist, field count is exactly 5, and parametrized type checks confirm each field's runtime type matches the contract.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "[ ] `SourceDocument` stub has `file_pattern`, `mode`, and `notes` fields",
+      "status": "complete",
+      "evidence": "SourceDocument is a Pydantic BaseModel with file_pattern(str, min_length=1), mode(Literal['standard','vlm']), notes(str, default=''). Tests verify all 3 fields exist, field count is 3, valid/invalid modes are accepted/rejected, empty file_pattern is rejected, notes defaults to empty string.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "[ ] Error hierarchy has correct inheritance chain",
+      "status": "complete",
+      "evidence": "IngestionError inherits directly from Exception. DomainNotFoundError, GoalValidationError, DoclingError, and IndexingError each inherit directly from IngestionError. Tests in TestInheritanceChain verify: all 4 children are subclasses of IngestionError, all 5 errors are subclasses of Exception, IngestionError.__bases__ == (Exception,), and each child's __bases__ contains IngestionError. Also verified all 5 class names match errors.__all__.",
+      "test_file": "ingestion/tests/test_errors.py",
+      "implementation_files": [
+        "ingestion/errors.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "[ ] `__init__.py` exports public API",
+      "status": "complete",
+      "evidence": "ingestion/__init__.py imports and re-exports all 8 public names (Chunk, IngestResult, SourceDocument, IngestionError, DomainNotFoundError, GoalValidationError, DoclingError, IndexingError) via __all__. Tests verify all names are present in __all__ and importable from the top-level package.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/__init__.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "[ ] Unit tests for model construction and error instantiation",
+      "status": "complete",
+      "evidence": "91 tests across 2 test files: test_models.py (48 tests covering Chunk construction, IngestResult construction, SourceDocument validation, import contracts) and test_errors.py (43 tests covering all 5 error classes with instantiation, raise/catch, inheritance chain, and import contracts). All 91 tests pass.",
+      "test_file": "ingestion/tests/test_models.py",
+      "implementation_files": [
+        "ingestion/tests/test_models.py",
+        "ingestion/tests/test_errors.py"
+      ]
+    }
+  ]
+}

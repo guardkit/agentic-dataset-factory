@@ -20,14 +20,14 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["synthesis*"]
+include = ["synthesis*", "ingestion*"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 
 [tool.pytest.ini_options]
-testpaths = ["synthesis/tests", "domain_config/tests"]
+testpaths = ["synthesis/tests", "domain_config/tests", "ingestion/tests"]
 markers = [
     "seam: seam tests verifying integration contracts between tasks",
     "integration_contract: marks which integration contract is being verified",
