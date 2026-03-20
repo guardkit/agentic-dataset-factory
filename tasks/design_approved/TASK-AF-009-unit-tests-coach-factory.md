@@ -1,16 +1,22 @@
 ---
-id: TASK-AF-009
-title: "Unit tests for Coach factory"
-task_type: testing
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 3
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-004
-status: pending
-tags: [testing, coach, factory, mock, role-separation, d5]
+- TASK-AF-004
+feature_id: FEAT-AF
+id: TASK-AF-009
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- testing
+- coach
+- factory
+- mock
+- role-separation
+- d5
+task_type: testing
+title: Unit tests for Coach factory
+wave: 3
 ---
 
 # Task: Unit tests for Coach factory
