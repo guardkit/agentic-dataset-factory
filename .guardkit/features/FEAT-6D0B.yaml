@@ -1,0 +1,126 @@
+id: FEAT-6D0B
+name: Entrypoint — Config Loading, Validation, and Generation Loop Orchestration
+description: Pydantic config loading, domain resolution, ChromaDB readiness check,
+  DeepAgents SDK agent instantiation, and sequential Player-Coach generation loop
+  with ADR-ARCH-010 resilience (retry, checkpoint/resume, per-target timeout)
+created: '2026-03-19T22:32:01.955030'
+status: planned
+complexity: 6
+estimated_tasks: 10
+tasks:
+- id: TASK-EP-001
+  name: Pydantic config models
+  file_path: tasks/backlog/entrypoint/TASK-EP-001-pydantic-config-models.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-EP-002
+  name: Config loader
+  file_path: tasks/backlog/entrypoint/TASK-EP-002-config-loader.md
+  complexity: 3
+  dependencies:
+  - TASK-EP-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-EP-003
+  name: Structured JSON logging
+  file_path: tasks/backlog/entrypoint/TASK-EP-003-structured-json-logging.md
+  complexity: 2
+  dependencies:
+  - TASK-EP-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 22
+- id: TASK-EP-004
+  name: Domain resolution and ChromaDB check
+  file_path: tasks/backlog/entrypoint/TASK-EP-004-domain-resolution-chromadb-check.md
+  complexity: 3
+  dependencies:
+  - TASK-EP-002
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-EP-005
+  name: Checkpoint resume and lock file
+  file_path: tasks/backlog/entrypoint/TASK-EP-005-checkpoint-resume-lock.md
+  complexity: 4
+  dependencies:
+  - TASK-EP-002
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-EP-006
+  name: Output directory management
+  file_path: tasks/backlog/entrypoint/TASK-EP-006-output-directory-management.md
+  complexity: 2
+  dependencies:
+  - TASK-EP-005
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 22
+- id: TASK-EP-007
+  name: Generation loop Player-Coach cycle
+  file_path: tasks/backlog/entrypoint/TASK-EP-007-generation-loop.md
+  complexity: 6
+  dependencies:
+  - TASK-EP-005
+  - TASK-EP-006
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 113
+- id: TASK-EP-008
+  name: LangGraph thin wrapper
+  file_path: tasks/backlog/entrypoint/TASK-EP-008-langgraph-wrapper.md
+  complexity: 3
+  dependencies:
+  - TASK-EP-007
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-EP-009
+  name: Startup orchestration
+  file_path: tasks/backlog/entrypoint/TASK-EP-009-startup-orchestration.md
+  complexity: 4
+  dependencies:
+  - TASK-EP-004
+  - TASK-EP-007
+  - TASK-EP-008
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-EP-010
+  name: Integration tests
+  file_path: tasks/backlog/entrypoint/TASK-EP-010-integration-tests.md
+  complexity: 4
+  dependencies:
+  - TASK-EP-009
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+orchestration:
+  parallel_groups:
+  - - TASK-EP-001
+  - - TASK-EP-002
+    - TASK-EP-003
+  - - TASK-EP-004
+    - TASK-EP-005
+  - - TASK-EP-006
+  - - TASK-EP-007
+  - - TASK-EP-008
+  - - TASK-EP-009
+  - - TASK-EP-010
+  estimated_duration_minutes: 439
+  recommended_parallel: 2

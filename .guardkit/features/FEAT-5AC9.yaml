@@ -1,0 +1,131 @@
+id: FEAT-5AC9
+name: Agent Factories — Player and Coach
+description: Player and Coach agent factory functions delegating to create_deep_agent
+  with role separation via tool access asymmetry, FilesystemBackend assignment, prompt
+  injection from GOAL.md, memory injection from AGENTS.md, and ModelConfig validation
+created: '2026-03-19T22:14:24.793885'
+status: planned
+complexity: 5
+estimated_tasks: 11
+tasks:
+- id: TASK-AF-001
+  name: Create ModelConfig Pydantic model
+  file_path: tasks/backlog/agent-factories/TASK-AF-001-modelconfig-pydantic-model.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-002
+  name: Create prompt builder module
+  file_path: tasks/backlog/agent-factories/TASK-AF-002-prompt-builder-module.md
+  complexity: 4
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-AF-005
+  name: Create CoachVerdict Pydantic model
+  file_path: tasks/backlog/agent-factories/TASK-AF-005-coach-verdict-model.md
+  complexity: 2
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 22
+- id: TASK-AF-011
+  name: Update pyproject.toml for agent factories
+  file_path: tasks/backlog/agent-factories/TASK-AF-011-pyproject-updates.md
+  complexity: 1
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 15
+- id: TASK-AF-003
+  name: Implement Player factory
+  file_path: tasks/backlog/agent-factories/TASK-AF-003-player-factory.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-004
+  name: Implement Coach factory
+  file_path: tasks/backlog/agent-factories/TASK-AF-004-coach-factory.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-006
+  name: Create shared model factory
+  file_path: tasks/backlog/agent-factories/TASK-AF-006-model-factory.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-007
+  name: Unit tests for ModelConfig
+  file_path: tasks/backlog/agent-factories/TASK-AF-007-unit-tests-modelconfig.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-001
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-010
+  name: Unit tests for prompt builders
+  file_path: tasks/backlog/agent-factories/TASK-AF-010-unit-tests-prompt-builders.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-002
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-008
+  name: Unit tests for Player factory
+  file_path: tasks/backlog/agent-factories/TASK-AF-008-unit-tests-player-factory.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-003
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-AF-009
+  name: Unit tests for Coach factory
+  file_path: tasks/backlog/agent-factories/TASK-AF-009-unit-tests-coach-factory.md
+  complexity: 3
+  dependencies:
+  - TASK-AF-004
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+orchestration:
+  parallel_groups:
+  - - TASK-AF-001
+    - TASK-AF-002
+    - TASK-AF-005
+    - TASK-AF-011
+  - - TASK-AF-003
+    - TASK-AF-004
+    - TASK-AF-006
+    - TASK-AF-007
+    - TASK-AF-010
+  - - TASK-AF-008
+    - TASK-AF-009
+  estimated_duration_minutes: 351
+  recommended_parallel: 4

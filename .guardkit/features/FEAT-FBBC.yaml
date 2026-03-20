@@ -1,0 +1,70 @@
+id: FEAT-FBBC
+name: GCSE English Tutor GOAL.md — First Domain Configuration
+description: Author the complete GCSE English tutor GOAL.md with all 9 sections populated
+  from the research specification and AQA curriculum requirements, plus validation
+  tests ensuring metadata consistency with synthesis/validator.py Pydantic models
+created: '2026-03-19T22:42:12.519924'
+status: planned
+complexity: 5
+estimated_tasks: 5
+tasks:
+- id: TASK-GG-001
+  name: Create domain directory structure
+  file_path: tasks/backlog/gcse-goal-md/TASK-GG-001-domain-directory-structure.md
+  complexity: 3
+  dependencies: []
+  status: pending
+  description: ''
+  implementation_mode: direct
+  estimated_minutes: 33
+- id: TASK-GG-002
+  name: Author GOAL.md sections 1-5
+  file_path: tasks/backlog/gcse-goal-md/TASK-GG-002-goal-md-sections-1-to-5.md
+  complexity: 5
+  dependencies:
+  - TASK-GG-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-GG-003
+  name: Author GOAL.md sections 6-9
+  file_path: tasks/backlog/gcse-goal-md/TASK-GG-003-goal-md-sections-6-to-9.md
+  complexity: 5
+  dependencies:
+  - TASK-GG-001
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 75
+- id: TASK-GG-004
+  name: Write metadata consistency tests
+  file_path: tasks/backlog/gcse-goal-md/TASK-GG-004-metadata-consistency-tests.md
+  complexity: 4
+  dependencies:
+  - TASK-GG-002
+  - TASK-GG-003
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+- id: TASK-GG-005
+  name: Write structural smoke tests
+  file_path: tasks/backlog/gcse-goal-md/TASK-GG-005-structural-smoke-tests.md
+  complexity: 4
+  dependencies:
+  - TASK-GG-002
+  - TASK-GG-003
+  status: pending
+  description: ''
+  implementation_mode: task-work
+  estimated_minutes: 50
+orchestration:
+  parallel_groups:
+  - - TASK-GG-001
+  - - TASK-GG-002
+    - TASK-GG-003
+  - - TASK-GG-004
+    - TASK-GG-005
+  estimated_duration_minutes: 283
+  recommended_parallel: 2
