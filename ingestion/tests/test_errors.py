@@ -185,8 +185,8 @@ class TestInheritanceChain:
     def test_child_direct_parent_is_ingestion_error(self, error_cls):
         assert IngestionError in error_cls.__bases__
 
-    def test_all_five_error_classes_exist(self):
-        """Verify all 5 error classes are present in the module."""
+    def test_all_error_classes_exist(self):
+        """Verify all error classes are present in the module."""
         from ingestion import errors
 
         expected = {
@@ -195,6 +195,7 @@ class TestInheritanceChain:
             "GoalValidationError",
             "DoclingError",
             "IndexingError",
+            "CollectionExistsError",
         }
         actual = set(errors.__all__)
         assert expected == actual
