@@ -9,7 +9,12 @@ requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.40.0",
     "chromadb>=0.5",
+    "deepagents>=0.4.11",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-community>=0.3",
     "langchain-text-splitters>=0.3.0",
+    "langgraph>=0.2",
     "pyyaml>=6.0",
     "pydantic>=2.0",
 ]
@@ -22,7 +27,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["synthesis*", "ingestion*"]
+include = ["synthesis*", "ingestion*", "agents*", "prompts*", "config*"]
 
 [tool.ruff]
 line-length = 100
@@ -30,7 +35,7 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["synthesis/tests", "domain_config/tests", "ingestion/tests", "src/tools/tests"]
+testpaths = ["synthesis/tests", "domain_config/tests", "ingestion/tests", "src/tools/tests", "config/tests", "agents/tests", "prompts/tests"]
 markers = [
     "seam: seam tests verifying integration contracts between tasks",
     "integration_contract: marks which integration contract is being verified",
