@@ -27,7 +27,7 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["synthesis*", "ingestion*", "agents*", "prompts*", "config*"]
+include = ["synthesis*", "ingestion*", "agents*", "prompts*", "config*", "entrypoint*"]
 
 [tool.ruff]
 line-length = 100
@@ -35,7 +35,7 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["synthesis/tests", "domain_config/tests", "ingestion/tests", "src/tools/tests", "config/tests", "agents/tests", "prompts/tests"]
+testpaths = ["synthesis/tests", "domain_config/tests", "ingestion/tests", "src/tools/tests", "config/tests", "agents/tests", "prompts/tests", "entrypoint/tests"]
 markers = [
     "seam: seam tests verifying integration contracts between tasks",
     "integration_contract: marks which integration contract is being verified",

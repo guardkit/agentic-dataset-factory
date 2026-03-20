@@ -1,0 +1,137 @@
+{
+  "task_id": "TASK-EP-005",
+  "timestamp": "2026-03-20T23:52:05.237679",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation (TDD Mode)**.",
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 22,
+    "tests_failed": 0,
+    "coverage": 96.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/tests/test_checkpoint_lock.py",
+    "coverage.json",
+    "pyproject.toml",
+    "tasks/backlog/TASK-EP-004-domain-resolution-chromadb-check.md",
+    "tasks/backlog/TASK-EP-005-checkpoint-resume-lock.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-EP-004-implementation-plan.md",
+    ".claude/task-plans/TASK-EP-005-implementation-plan.md",
+    ".guardkit/autobuild/TASK-EP-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-EP-004/turn_context.json",
+    ".guardkit/autobuild/TASK-EP-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-EP-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-EP-005/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/.guardkit/autobuild/TASK-EP-005/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/__init__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/checkpoint.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/tests/__init__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/tests/test_checkpoint_lock.py",
+    "entrypoint/__init__.py",
+    "entrypoint/checkpoint.py",
+    "entrypoint/startup.py",
+    "entrypoint/tests/__init__.py",
+    "entrypoint/tests/test_checkpoint_lock.py",
+    "entrypoint/tests/test_startup.py",
+    "tasks/design_approved/TASK-EP-004-domain-resolution-chromadb-check.md",
+    "tasks/design_approved/TASK-EP-005-checkpoint-resume-lock.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/entrypoint/tests/test_checkpoint_lock.py"
+  ],
+  "summary": "22 tests passed, 96.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 36,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "code_review": {
+    "score": 95,
+    "solid": 95,
+    "dry": 95,
+    "yagni": 95
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Checkpoint written atomically after each target completion",
+      "status": "complete",
+      "evidence": "CheckpointManager.save() writes to a tempfile via tempfile.mkstemp() in the same directory, calls os.fsync() for durability, then os.rename() for atomic replacement. Tested by test_save_checkpoint_creates_file, test_save_checkpoint_overwrites_previous, test_save_checkpoint_atomically, and test_save_zero_index.",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "--resume reads checkpoint and continues from saved index (BDD: \"Resuming from a checkpoint\")",
+      "status": "complete",
+      "evidence": "CheckpointManager.load() reads the .checkpoint file, parses the integer target index, and returns it for the generation loop to resume from index+1. prepare_output_directory(resume=True) preserves existing output files. Tested by test_load_checkpoint_returns_saved_index, test_resume_preserves_output_files, test_resume_creates_rag_index_if_missing.",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Error raised if --resume without checkpoint file (BDD: \"Resume requested but no checkpoint file\")",
+      "status": "complete",
+      "evidence": "CheckpointManager.load() raises NoCheckpointError (subclass of FileNotFoundError) when no .checkpoint file exists, when file content is not a valid integer, or when the index is negative. Tested by test_load_checkpoint_raises_when_no_file, test_load_checkpoint_raises_on_corrupt_content, test_load_checkpoint_raises_on_negative_index.",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Fresh start cleans output directory (BDD: \"Fresh start cleans the output directory\")",
+      "status": "complete",
+      "evidence": "prepare_output_directory(resume=False) calls shutil.rmtree() on the output directory then recreates it with output/ and output/rag_index/ subdirectories (ADR-ARCH-008). Tested by test_fresh_start_cleans_output_directory and test_fresh_start_creates_output_directory.",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Lock file prevents concurrent processes (BDD: \"Concurrent entrypoint processes\")",
+      "status": "complete",
+      "evidence": "LockManager.acquire() uses fcntl.flock(fd, LOCK_EX | LOCK_NB) for non-blocking exclusive lock. If the lock is already held, raises LockFileError with clear error message. Supports context manager pattern for auto-release. Tested by test_acquire_creates_lock_file, test_release_unlocks_file, test_concurrent_lock_raises_error, test_context_manager_acquires_and_releases, test_release_without_acquire_is_safe, test_double_release_is_safe.",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Checkpoint file survives process interruption (BDD: \"Checkpoint file is written atomically\")",
+      "status": "complete",
+      "evidence": "Atomic write pattern: tempfile.mkstemp() in same directory -> write + fsync -> os.rename(). On failure, temp file is cleaned up and previous checkpoint remains intact. Tested by test_save_checkpoint_atomically and test_save_checkpoint_atomic_rename_preserves_previous_on_failure (which patches os.rename to simulate failure and verifies previous checkpoint survives).",
+      "test_file": "entrypoint/tests/test_checkpoint_lock.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both entrypoint/checkpoint.py and entrypoint/tests/test_checkpoint_lock.py pass ruff check with zero errors. Output: 'All checks passed!'",
+      "test_file": null,
+      "implementation_files": [
+        "entrypoint/checkpoint.py",
+        "entrypoint/tests/test_checkpoint_lock.py"
+      ]
+    }
+  ]
+}

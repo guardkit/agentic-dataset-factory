@@ -1,0 +1,98 @@
+{
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Domain path resolved to domains/{domain}/",
+      "status": "complete",
+      "evidence": "resolve_domain() constructs Path(project_root / 'domains' / domain) and returns it when the directory exists and contains GOAL.md. Verified by TestDomainPathResolution (2 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "DomainNotFoundError raised for non-existent domain (BDD: 'Startup with non-existent domain directory')",
+      "status": "complete",
+      "evidence": "resolve_domain() checks domain_path.is_dir() and raises DomainNotFoundError with the domain name in the message. DomainNotFoundError stores the domain attribute and inherits from Exception. Verified by TestDomainNotFoundError (3 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Error raised for missing GOAL.md (BDD: 'Startup with missing GOAL.md in domain directory')",
+      "status": "complete",
+      "evidence": "resolve_domain() checks goal_path.is_file() and raises FileNotFoundError with the GOAL.md path in the message. Verified by TestMissingGoalMd (2 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "ChromaDB collection verified to contain chunks (BDD: 'ChromaDB collection is verified to contain chunks')",
+      "status": "complete",
+      "evidence": "verify_chromadb_collection() calls client.get_collection(name=domain) per DDR-003 naming, checks collection.count() > 0, and returns the collection. Verified by TestChromaDBCollectionVerified (2 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Error raised for empty collection with ingestion suggestion (BDD: 'Startup with empty ChromaDB collection')",
+      "status": "complete",
+      "evidence": "verify_chromadb_collection() raises RuntimeError with message \"No chunks found for '{domain}'. Run: python -m ingestion.ingest --domain {domain}\" when collection.count() == 0. Verified by TestEmptyCollectionError (2 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Error raised when ChromaDB service unavailable (BDD: 'ChromaDB service is unavailable at startup')",
+      "status": "complete",
+      "evidence": "verify_chromadb_collection() catches exceptions from client.get_collection() and re-raises as ConnectionError with actionable message. Also handles default client creation failure. Verified by TestChromaDBUnavailable (4 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "LANGSMITH_PROJECT set to 'adf-{domain}' (BDD: 'LangSmith project environment variable is set')",
+      "status": "complete",
+      "evidence": "configure_langsmith() sets os.environ['LANGSMITH_PROJECT'] = f'adf-{config.domain}'. Verified by TestLangSmithProject (2 tests).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Warning logged if tracing enabled without API key (BDD: 'LangSmith tracing enabled but API key is missing')",
+      "status": "complete",
+      "evidence": "configure_langsmith() checks if LANGSMITH_TRACING=='true' and LANGSMITH_API_KEY is not set, then logs a warning via logger.warning() without raising (ASSUM-004). Verified by TestLangSmithTracingWarning (4 tests including no-warning negative cases).",
+      "test_file": "entrypoint/tests/test_startup.py",
+      "implementation_files": ["entrypoint/startup.py"]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Both entrypoint/startup.py and entrypoint/tests/test_startup.py pass ruff check with zero errors. 'All checks passed!' from ruff output.",
+      "test_file": null,
+      "implementation_files": ["entrypoint/startup.py", "entrypoint/tests/test_startup.py"]
+    }
+  ],
+  "task_id": "TASK-EP-004",
+  "turn": 1,
+  "files_modified": ["pyproject.toml"],
+  "files_created": ["entrypoint/startup.py", "entrypoint/tests/test_startup.py"],
+  "tests_written": ["entrypoint/tests/test_startup.py"],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "21 tests passed, 0 tests failed. Coverage: 100.0% on entrypoint/startup.py. Full suite: 852 passed, 0 failures (no regressions).",
+  "implementation_notes": "Implemented startup steps 3-6 from the API-entrypoint contract in entrypoint/startup.py. Three public functions: configure_langsmith() sets LANGSMITH_PROJECT and warns if tracing without API key (ASSUM-004); resolve_domain() validates domain directory exists and contains GOAL.md; verify_chromadb_collection() connects to ChromaDB, retrieves collection by domain name (DDR-003), and checks chunk count > 0. DomainNotFoundError defined in startup module (consolidated per 2-file limit). All functions use dependency injection for testability. TDD approach: RED (19 failing tests) -> GREEN (all passing) -> REFACTOR (added 2 more tests for default client path, achieving 100% coverage).",
+  "concerns": [],
+  "requirements_addressed": [
+    "Domain path resolved to domains/{domain}/",
+    "DomainNotFoundError raised for non-existent domain",
+    "Error raised for missing GOAL.md",
+    "ChromaDB collection verified to contain chunks",
+    "Error raised for empty collection with ingestion suggestion",
+    "Error raised when ChromaDB service unavailable",
+    "LANGSMITH_PROJECT set to adf-{domain}",
+    "Warning logged if tracing enabled without API key",
+    "All files pass lint/format checks"
+  ],
+  "requirements_remaining": []
+}

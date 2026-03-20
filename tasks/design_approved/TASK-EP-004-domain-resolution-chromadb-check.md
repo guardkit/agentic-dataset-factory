@@ -1,15 +1,15 @@
 ---
-id: TASK-EP-004
-title: "Domain resolution and ChromaDB readiness check"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 2
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-EP-002
-status: pending
+- TASK-EP-002
+feature_id: FEAT-2CF1
+id: TASK-EP-004
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: Domain resolution and ChromaDB readiness check
+wave: 2
 ---
 
 # Task: Domain Resolution and ChromaDB Readiness Check
