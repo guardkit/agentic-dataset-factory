@@ -1,7 +1,9 @@
 """Tests for agents.coach — Coach agent factory.
 
-Covers all acceptance criteria for TASK-AF-004 and the seam test
-validating the ModelConfig integration contract from TASK-AF-001.
+Covers all acceptance criteria for TASK-AF-009 (unit tests for Coach factory),
+verifying the D5 invariant (no tools, no backend) using the exemplar testing
+methodology. Also includes the seam test validating the ModelConfig integration
+contract from TASK-AF-001.
 
 TDD approach: these tests are written FIRST (RED), then create_coach()
 is implemented to make them pass (GREEN).
@@ -351,3 +353,103 @@ class TestCoachToolsInvariant:
 
         call_kwargs = mock_create_deep.call_args
         assert call_kwargs.kwargs.get("model") == mock_model
+
+
+# ---------------------------------------------------------------------------
+# Edge cases: provider and temperature independence
+# ---------------------------------------------------------------------------
+
+
+class TestCoachEdgeCases:
+    """Edge cases: Coach works with different providers and temperatures."""
+
+    @patch("agents.coach.create_deep_agent")
+    @patch("agents.coach.create_model")
+    def test_coach_with_different_provider_than_player(
+        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
+    ) -> None:
+        """Coach can use a different provider (e.g. openai) independently."""
+        from agents.coach import create_coach
+
+        mock_create_model.return_value = MagicMock()
+        # Coach uses openai while Player might use anthropic — both work
+        config = ModelConfig(provider="openai", model="gpt-4o")
+
+        create_coach(
+            model_config=config,
+            system_prompt="Evaluate quality.",
+            memory=["./AGENTS.md"],
+        )
+
+        mock_create_deep.assert_called_once()
+        mock_create_model.assert_called_once_with(config)
+
+    @patch("agents.coach.create_deep_agent")
+    @patch("agents.coach.create_model")
+    def test_coach_with_custom_temperature(
+        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
+    ) -> None:
+        """Coach correctly passes through a custom temperature via ModelConfig."""
+        from agents.coach import create_coach
+
+        mock_create_model.return_value = MagicMock()
+        # Coach with low temperature (0.3) for deterministic evaluation
+        config = ModelConfig(provider="anthropic", model="claude-3-opus", temperature=0.3)
+
+        create_coach(
+            model_config=config,
+            system_prompt="Evaluate quality.",
+            memory=["./AGENTS.md"],
+        )
+
+        # Temperature is handled by ModelConfig → create_model, verify config forwarded
+        mock_create_model.assert_called_once_with(config)
+        assert config.temperature == 0.3
+
+    @patch("agents.coach.create_deep_agent")
+    @patch("agents.coach.create_model")
+    def test_coach_default_temperature_from_model_config(
+        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
+    ) -> None:
+        """When temperature is not specified, ModelConfig default (0.7) applies."""
+        from agents.coach import create_coach
+
+        mock_create_model.return_value = MagicMock()
+        config = ModelConfig(provider="anthropic", model="claude-3-opus")
+
+        create_coach(
+            model_config=config,
+            system_prompt="Evaluate quality.",
+            memory=["./AGENTS.md"],
+        )
+
+        mock_create_model.assert_called_once_with(config)
+        assert config.temperature == 0.7
+
+    @patch("agents.coach.create_deep_agent")
+    @patch("agents.coach.create_model")
+    def test_coach_with_local_provider(
+        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
+    ) -> None:
+        """Coach works with local provider requiring an endpoint."""
+        from agents.coach import create_coach
+
+        mock_create_model.return_value = MagicMock()
+        config = ModelConfig(
+            provider="local",
+            model="nemotron-3-super-120b",
+            endpoint="http://localhost:8000/v1",
+            temperature=0.3,
+        )
+
+        create_coach(
+            model_config=config,
+            system_prompt="Evaluate quality.",
+            memory=["./AGENTS.md"],
+        )
+
+        mock_create_deep.assert_called_once()
+        call_kwargs = mock_create_deep.call_args
+        # Even with local provider, Coach still gets no tools and no backend
+        assert call_kwargs.kwargs.get("tools") == []
+        assert call_kwargs.kwargs.get("backend") is None

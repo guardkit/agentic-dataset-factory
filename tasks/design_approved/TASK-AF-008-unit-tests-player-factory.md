@@ -1,16 +1,21 @@
 ---
-id: TASK-AF-008
-title: "Unit tests for Player factory"
-task_type: testing
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 3
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-003
-status: pending
-tags: [testing, player, factory, mock, create-deep-agent]
+- TASK-AF-003
+feature_id: FEAT-AF
+id: TASK-AF-008
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- testing
+- player
+- factory
+- mock
+- create-deep-agent
+task_type: testing
+title: Unit tests for Player factory
+wave: 3
 ---
 
 # Task: Unit tests for Player factory

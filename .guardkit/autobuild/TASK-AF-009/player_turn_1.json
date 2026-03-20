@@ -1,0 +1,74 @@
+{
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Tests mock `create_deep_agent` at the import site (`agents.coach.create_deep_agent`)",
+      "status": "complete",
+      "evidence": "All @patch decorators in TestDelegationToCreateDeepAgent, TestNoBackend, TestSystemPromptPassthrough, TestMemoryPassthrough, TestCoachToolsInvariant, and TestCoachEdgeCases use `agents.coach.create_deep_agent` as the patch target (import site, not definition site).",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Tests verify `tools=[]` in `call_args`",
+      "status": "complete",
+      "evidence": "TestDelegationToCreateDeepAgent.test_passes_empty_tools_list verifies `call_kwargs.kwargs.get('tools') == []`. TestCoachEdgeCases.test_coach_with_local_provider also verifies tools=[] as belt-and-suspenders across providers.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Tests verify `backend` is NOT in `call_args` kwargs (or is `None`)",
+      "status": "complete",
+      "evidence": "TestNoBackend.test_no_backend_kwarg_or_none asserts `backend_value is None` from call_args. TestCoachEdgeCases.test_coach_with_local_provider also verifies backend is None.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Module-level import assertion: `FilesystemBackend` NOT in `agents/coach.py` attributes",
+      "status": "complete",
+      "evidence": "TestNoFilesystemBackendImport has two methods: test_filesystem_backend_not_in_source (AST inspection of all imports) and test_filesystem_backend_not_in_source_text (string search in source text). Both verify FilesystemBackend is never imported.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Signature inspection test: `create_coach` has no `tools` parameter",
+      "status": "complete",
+      "evidence": "TestCreateCoachSignature.test_create_coach_has_no_tools_parameter uses inspect.signature to verify 'tools' is not in the parameter set, with a descriptive assertion message referencing D5.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Tests are in `tests/test_coach_factory.py`",
+      "status": "complete",
+      "evidence": "All 21 tests are in agents/tests/test_coach_factory.py, which is within the agents/tests/ testpath configured in pyproject.toml.",
+      "test_file": "agents/tests/test_coach_factory.py",
+      "implementation_files": ["agents/tests/test_coach_factory.py"]
+    }
+  ],
+  "task_id": "TASK-AF-009",
+  "turn": 1,
+  "files_modified": ["agents/tests/test_coach_factory.py"],
+  "files_created": [],
+  "tests_written": ["agents/tests/test_coach_factory.py"],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "21 tests passed, 0 failed. Coverage: 100.0% for agents/coach.py (13 statements, 0 missed).",
+  "implementation_notes": "Updated existing test file: corrected docstring to reference TASK-AF-009 (was TASK-AF-004), added TestCoachEdgeCases class with 4 new tests covering provider independence (openai, local), custom temperature (0.3), default temperature (0.7), and local provider with endpoint while maintaining D5 invariant. All 6 acceptance criteria fully satisfied. The file uses patch-at-import-site pattern, call_args.kwargs destructuring, AST-based module inspection, and inspect.signature for structural enforcement.",
+  "concerns": [],
+  "requirements_addressed": [
+    "Tests mock create_deep_agent at import site",
+    "Tests verify tools=[] in call_args",
+    "Tests verify backend is None in call_args",
+    "Module-level import assertion for FilesystemBackend absence",
+    "Signature inspection for tools parameter absence",
+    "Tests located in test_coach_factory.py",
+    "Edge case: Coach with different provider than Player",
+    "Edge case: Coach with custom temperature",
+    "Edge case: Default temperature applied"
+  ],
+  "requirements_remaining": []
+}
