@@ -1,16 +1,21 @@
 ---
-id: TASK-AF-010
-title: "Unit tests for prompt builders"
-task_type: testing
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 2
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-002
-status: pending
-tags: [testing, prompts, goal-md, injection, criteria-met]
+- TASK-AF-002
+feature_id: FEAT-AF
+id: TASK-AF-010
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- testing
+- prompts
+- goal-md
+- injection
+- criteria-met
+task_type: testing
+title: Unit tests for prompt builders
+wave: 2
 ---
 
 # Task: Unit tests for prompt builders

@@ -1,16 +1,21 @@
 ---
-id: TASK-AF-007
-title: "Unit tests for ModelConfig"
-task_type: testing
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 2
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-001
-status: pending
-tags: [testing, pydantic, validation, model-config, boundary]
+- TASK-AF-001
+feature_id: FEAT-AF
+id: TASK-AF-007
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- testing
+- pydantic
+- validation
+- model-config
+- boundary
+task_type: testing
+title: Unit tests for ModelConfig
+wave: 2
 ---
 
 # Task: Unit tests for ModelConfig

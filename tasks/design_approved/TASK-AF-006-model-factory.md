@@ -1,22 +1,27 @@
 ---
-id: TASK-AF-006
-title: "Create shared model factory"
-task_type: feature
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 1
-implementation_mode: task-work
 complexity: 3
-dependencies:
-  - TASK-AF-001
-status: pending
-tags: [model-factory, langchain, init-chat-model, DRY]
 consumer_context:
-  - task: TASK-AF-001
-    consumes: ModelConfig
-    framework: "LangChain init_chat_model"
-    driver: "langchain"
-    format_note: "ModelConfig fields (provider, model, endpoint, temperature) must be translated to init_chat_model parameters"
+- consumes: ModelConfig
+  driver: langchain
+  format_note: ModelConfig fields (provider, model, endpoint, temperature) must be
+    translated to init_chat_model parameters
+  framework: LangChain init_chat_model
+  task: TASK-AF-001
+dependencies:
+- TASK-AF-001
+feature_id: FEAT-AF
+id: TASK-AF-006
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- model-factory
+- langchain
+- init-chat-model
+- DRY
+task_type: feature
+title: Create shared model factory
+wave: 1
 ---
 
 # Task: Create shared model factory

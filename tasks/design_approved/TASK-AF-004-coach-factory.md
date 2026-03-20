@@ -1,22 +1,28 @@
 ---
-id: TASK-AF-004
-title: "Implement Coach factory"
-task_type: feature
-parent_review: TASK-REV-DAA1
-feature_id: FEAT-AF
-wave: 2
-implementation_mode: task-work
 complexity: 3
-dependencies:
-  - TASK-AF-001
-status: pending
-tags: [coach, factory, create-deep-agent, no-tools, role-separation]
 consumer_context:
-  - task: TASK-AF-001
-    consumes: ModelConfig
-    framework: "DeepAgents create_deep_agent"
-    driver: "deepagents"
-    format_note: "ModelConfig must be translated to a concrete model object via create_model() before passing to create_deep_agent"
+- consumes: ModelConfig
+  driver: deepagents
+  format_note: ModelConfig must be translated to a concrete model object via create_model()
+    before passing to create_deep_agent
+  framework: DeepAgents create_deep_agent
+  task: TASK-AF-001
+dependencies:
+- TASK-AF-001
+feature_id: FEAT-AF
+id: TASK-AF-004
+implementation_mode: task-work
+parent_review: TASK-REV-DAA1
+status: design_approved
+tags:
+- coach
+- factory
+- create-deep-agent
+- no-tools
+- role-separation
+task_type: feature
+title: Implement Coach factory
+wave: 2
 ---
 
 # Task: Implement Coach factory
