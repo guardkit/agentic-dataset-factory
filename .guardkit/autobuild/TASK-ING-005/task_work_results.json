@@ -1,0 +1,149 @@
+{
+  "task_id": "TASK-ING-005",
+  "timestamp": "2026-03-20T16:59:34.969778",
+  "completed": true,
+  "success": true,
+  "implementation_mode": "direct",
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 1,
+    "tests_failed": 0,
+    "coverage": null,
+    "coverage_met": true,
+    "quality_gates_relaxed": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    "ingestion/__init__.py"
+  ],
+  "files_created": [
+    "ingestion/goal_reader.py",
+    "ingestion/tests/test_goal_reader.py"
+  ],
+  "tests_written": [
+    "ingestion/tests/test_goal_reader.py"
+  ],
+  "requirements_addressed": [
+    "AC-001: read_source_documents() parses Source Documents from GOAL.md",
+    "AC-002: resolve_source_files() expands glob patterns against sources/ directory",
+    "AC-003: Missing domain directory raises DomainNotFoundError",
+    "AC-004: Missing GOAL.md raises GoalValidationError",
+    "AC-005: Malformed Source Documents section raises GoalValidationError",
+    "AC-006: No matching files raises GoalValidationError with descriptive message",
+    "AC-007: Path traversal patterns rejected with error logged",
+    "AC-008: Resolved files are returned as (absolute_path, mode) tuples",
+    "AC-009: All modified files pass project-configured lint/format checks with zero errors"
+  ],
+  "requirements_met": [
+    "AC-001: read_source_documents() parses Source Documents from GOAL.md",
+    "AC-002: resolve_source_files() expands glob patterns against sources/ directory",
+    "AC-003: Missing domain directory raises DomainNotFoundError",
+    "AC-004: Missing GOAL.md raises GoalValidationError",
+    "AC-005: Malformed Source Documents section raises GoalValidationError",
+    "AC-006: No matching files raises GoalValidationError with descriptive message",
+    "AC-007: Path traversal patterns rejected with error logged",
+    "AC-008: Resolved files are returned as (absolute_path, mode) tuples",
+    "AC-009: All modified files pass project-configured lint/format checks with zero errors"
+  ],
+  "summary": "Direct mode implementation completed successfully",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `read_source_documents()` parses Source Documents from GOAL.md",
+      "status": "complete",
+      "evidence": "Implemented read_source_documents() in ingestion/goal_reader.py. It reads GOAL.md from the domain directory, extracts the '## Source Documents' section via regex, and parses the markdown table into a list of SourceDocument (Pydantic) instances. Tested with 4 tests in TestReadSourceDocuments covering valid parsing, correct patterns, modes, notes, and single-document edge case.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] `resolve_source_files()` expands glob patterns against `sources/` directory",
+      "status": "complete",
+      "evidence": "Implemented resolve_source_files() using pathlib.Path.glob() to expand each SourceDocument's file_pattern against domain_path/sources/. Tested with tests: test_expands_glob_patterns, test_unmatched_files_excluded, test_multiple_patterns_resolved, test_deduplicates_across_patterns, test_exact_filename_pattern.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] Missing domain directory raises `DomainNotFoundError`",
+      "status": "complete",
+      "evidence": "read_source_documents() checks domain_path.is_dir() and raises DomainNotFoundError with descriptive message. Tested with test_missing_domain_raises_domain_not_found_error and test_domain_not_found_is_ingestion_error.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] Missing GOAL.md raises `GoalValidationError`",
+      "status": "complete",
+      "evidence": "read_source_documents() checks goal_path.is_file() and raises GoalValidationError with message 'GOAL.md not found in domain directory'. Tested with test_missing_goal_md_raises_goal_validation_error.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "[ ] Malformed Source Documents section raises `GoalValidationError`",
+      "status": "complete",
+      "evidence": "Three failure modes raise GoalValidationError: (1) missing '## Source Documents' heading, (2) empty section body, (3) missing required columns (File Pattern, Mode). Tested with test_malformed_source_docs_raises_goal_validation_error, test_malformed_table_raises_goal_validation_error, test_empty_goal_md_raises_error, plus internal parser tests for empty, header-only, and wrong-column tables.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "[ ] No matching files raises `GoalValidationError` with descriptive message",
+      "status": "complete",
+      "evidence": "resolve_source_files() raises GoalValidationError when the resolved list is empty, including the patterns that were attempted and the sources directory path. Tested with test_no_matching_files_raises_error (checks 'No source files found'), test_no_match_error_includes_patterns, and test_missing_sources_dir_raises_error.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "[ ] Path traversal patterns (e.g., `../`, `..\\\\`) in filenames are rejected with error logged",
+      "status": "complete",
+      "evidence": "Three layers of path traversal protection: (1) _has_path_traversal() regex rejects patterns containing '../' or '..\\\\', (2) filename traversal check on matched files, (3) os.path.realpath() prefix check ensures resolved files are within sources/. All rejections are logged at ERROR level. Tested with test_path_traversal_pattern_rejected and test_path_traversal_backslash_rejected (both verify caplog contains 'path traversal'), plus test_path_traversal_in_filename_rejected.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "[ ] Resolved files are returned as (absolute_path, mode) tuples",
+      "status": "complete",
+      "evidence": "resolve_source_files() returns list[tuple[Path, str]] where each Path is absolute (via Path.resolve()) and mode is the string from the SourceDocument. Tested with test_returns_absolute_path_tuples (asserts is_absolute() and isinstance checks), test_mode_matches_source_document, and test_resolved_paths_exist.",
+      "test_file": "ingestion/tests/test_goal_reader.py",
+      "implementation_files": [
+        "ingestion/goal_reader.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "[ ] All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Ran 'ruff check' and 'ruff format --check' on all 3 modified/created files (ingestion/goal_reader.py, ingestion/tests/test_goal_reader.py, ingestion/__init__.py). All checks passed with zero errors and zero format violations.",
+      "test_file": null,
+      "implementation_files": [
+        "ingestion/goal_reader.py",
+        "ingestion/tests/test_goal_reader.py",
+        "ingestion/__init__.py"
+      ]
+    }
+  ]
+}

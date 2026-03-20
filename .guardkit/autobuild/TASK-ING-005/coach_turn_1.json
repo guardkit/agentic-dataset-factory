@@ -1,0 +1,187 @@
+{
+  "task_id": "TASK-ING-005",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest ingestion/tests/test_goal_reader.py -v --tb=short",
+      "test_output_summary": "Result:\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_package_all PASSED [ 93%]\ningestion/tests/test_goal_reader.py::TestImportContracts::test_functions_in_module_all PASSED [ 95%]\ningestion/tests/test_goal_reader.py::TestSeamContract::test_source_document_format PASSED [ 97%]\ningestion/tests/test_goal_reader.py::TestSeamContract::test_source_document_vlm_mode PASSED [100%]\n======================== 49 passed, 2 warnings in 0.35s ========================",
+      "duration_seconds": 9.620786905288696
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 9,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`read_source_documents()` parses Source Documents from GOAL.md",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented read_source_documents() in ingestion/goal_reader.py. It reads GOAL.md from the domain directory, extracts the '## Source Documents' section via regex, and parses the markdown table into a list of SourceDocument (Pydantic) instances. Tested with 4 tests in TestReadSourceDocuments covering valid parsing, correct patterns, modes, notes, and single-document edge case.",
+      "notes": "Implemented read_source_documents() in ingestion/goal_reader.py. It reads GOAL.md from the domain directory, extracts the '## Source Documents' section via regex, and parses the markdown table into a list of SourceDocument (Pydantic) instances. Tested with 4 tests in TestReadSourceDocuments covering valid parsing, correct patterns, modes, notes, and single-document edge case."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "`resolve_source_files()` expands glob patterns against `sources/` directory",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Implemented resolve_source_files() using pathlib.Path.glob() to expand each SourceDocument's file_pattern against domain_path/sources/. Tested with tests: test_expands_glob_patterns, test_unmatched_files_excluded, test_multiple_patterns_resolved, test_deduplicates_across_patterns, test_exact_filename_pattern.",
+      "notes": "Implemented resolve_source_files() using pathlib.Path.glob() to expand each SourceDocument's file_pattern against domain_path/sources/. Tested with tests: test_expands_glob_patterns, test_unmatched_files_excluded, test_multiple_patterns_resolved, test_deduplicates_across_patterns, test_exact_filename_pattern."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Missing domain directory raises `DomainNotFoundError`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "read_source_documents() checks domain_path.is_dir() and raises DomainNotFoundError with descriptive message. Tested with test_missing_domain_raises_domain_not_found_error and test_domain_not_found_is_ingestion_error.",
+      "notes": "read_source_documents() checks domain_path.is_dir() and raises DomainNotFoundError with descriptive message. Tested with test_missing_domain_raises_domain_not_found_error and test_domain_not_found_is_ingestion_error."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Missing GOAL.md raises `GoalValidationError`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "read_source_documents() checks goal_path.is_file() and raises GoalValidationError with message 'GOAL.md not found in domain directory'. Tested with test_missing_goal_md_raises_goal_validation_error.",
+      "notes": "read_source_documents() checks goal_path.is_file() and raises GoalValidationError with message 'GOAL.md not found in domain directory'. Tested with test_missing_goal_md_raises_goal_validation_error."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Malformed Source Documents section raises `GoalValidationError`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Three failure modes raise GoalValidationError: (1) missing '## Source Documents' heading, (2) empty section body, (3) missing required columns (File Pattern, Mode). Tested with test_malformed_source_docs_raises_goal_validation_error, test_malformed_table_raises_goal_validation_error, test_empty_goal_md_raises_error, plus internal parser tests for empty, header-only, and wrong-column tables.",
+      "notes": "Three failure modes raise GoalValidationError: (1) missing '## Source Documents' heading, (2) empty section body, (3) missing required columns (File Pattern, Mode). Tested with test_malformed_source_docs_raises_goal_validation_error, test_malformed_table_raises_goal_validation_error, test_empty_goal_md_raises_error, plus internal parser tests for empty, header-only, and wrong-column tables."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "No matching files raises `GoalValidationError` with descriptive message",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "resolve_source_files() raises GoalValidationError when the resolved list is empty, including the patterns that were attempted and the sources directory path. Tested with test_no_matching_files_raises_error (checks 'No source files found'), test_no_match_error_includes_patterns, and test_missing_sources_dir_raises_error.",
+      "notes": "resolve_source_files() raises GoalValidationError when the resolved list is empty, including the patterns that were attempted and the sources directory path. Tested with test_no_matching_files_raises_error (checks 'No source files found'), test_no_match_error_includes_patterns, and test_missing_sources_dir_raises_error."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Path traversal patterns (e.g., `../`, `..\\\\`) in filenames are rejected with error logged",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Three layers of path traversal protection: (1) _has_path_traversal() regex rejects patterns containing '../' or '..\\\\', (2) filename traversal check on matched files, (3) os.path.realpath() prefix check ensures resolved files are within sources/. All rejections are logged at ERROR level. Tested with test_path_traversal_pattern_rejected and test_path_traversal_backslash_rejected (both verify caplog contains 'path traversal'), plus test_path_traversal_in_filename_rejected.",
+      "notes": "Three layers of path traversal protection: (1) _has_path_traversal() regex rejects patterns containing '../' or '..\\\\', (2) filename traversal check on matched files, (3) os.path.realpath() prefix check ensures resolved files are within sources/. All rejections are logged at ERROR level. Tested with test_path_traversal_pattern_rejected and test_path_traversal_backslash_rejected (both verify caplog contains 'path traversal'), plus test_path_traversal_in_filename_rejected."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Resolved files are returned as (absolute_path, mode) tuples",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "resolve_source_files() returns list[tuple[Path, str]] where each Path is absolute (via Path.resolve()) and mode is the string from the SourceDocument. Tested with test_returns_absolute_path_tuples (asserts is_absolute() and isinstance checks), test_mode_matches_source_document, and test_resolved_paths_exist.",
+      "notes": "resolve_source_files() returns list[tuple[Path, str]] where each Path is absolute (via Path.resolve()) and mode is the string from the SourceDocument. Tested with test_returns_absolute_path_tuples (asserts is_absolute() and isinstance checks), test_mode_matches_source_document, and test_resolved_paths_exist."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Ran 'ruff check' and 'ruff format --check' on all 3 modified/created files (ingestion/goal_reader.py, ingestion/tests/test_goal_reader.py, ingestion/__init__.py). All checks passed with zero errors and zero format violations.",
+      "notes": "Ran 'ruff check' and 'ruff format --check' on all 3 modified/created files (ingestion/goal_reader.py, ingestion/tests/test_goal_reader.py, ingestion/__init__.py). All checks passed with zero errors and zero format violations."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`read_source_documents()` parses Source Documents from GOAL.md",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented read_source_documents() in ingestion/goal_reader.py. It reads GOAL.md from the domain directory, extracts the '## Source Documents' section via regex, and parses the markdown table into a list of SourceDocument (Pydantic) instances. Tested with 4 tests in TestReadSourceDocuments covering valid parsing, correct patterns, modes, notes, and single-document edge case.",
+        "notes": "Implemented read_source_documents() in ingestion/goal_reader.py. It reads GOAL.md from the domain directory, extracts the '## Source Documents' section via regex, and parses the markdown table into a list of SourceDocument (Pydantic) instances. Tested with 4 tests in TestReadSourceDocuments covering valid parsing, correct patterns, modes, notes, and single-document edge case."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`resolve_source_files()` expands glob patterns against `sources/` directory",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Implemented resolve_source_files() using pathlib.Path.glob() to expand each SourceDocument's file_pattern against domain_path/sources/. Tested with tests: test_expands_glob_patterns, test_unmatched_files_excluded, test_multiple_patterns_resolved, test_deduplicates_across_patterns, test_exact_filename_pattern.",
+        "notes": "Implemented resolve_source_files() using pathlib.Path.glob() to expand each SourceDocument's file_pattern against domain_path/sources/. Tested with tests: test_expands_glob_patterns, test_unmatched_files_excluded, test_multiple_patterns_resolved, test_deduplicates_across_patterns, test_exact_filename_pattern."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Missing domain directory raises `DomainNotFoundError`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "read_source_documents() checks domain_path.is_dir() and raises DomainNotFoundError with descriptive message. Tested with test_missing_domain_raises_domain_not_found_error and test_domain_not_found_is_ingestion_error.",
+        "notes": "read_source_documents() checks domain_path.is_dir() and raises DomainNotFoundError with descriptive message. Tested with test_missing_domain_raises_domain_not_found_error and test_domain_not_found_is_ingestion_error."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Missing GOAL.md raises `GoalValidationError`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "read_source_documents() checks goal_path.is_file() and raises GoalValidationError with message 'GOAL.md not found in domain directory'. Tested with test_missing_goal_md_raises_goal_validation_error.",
+        "notes": "read_source_documents() checks goal_path.is_file() and raises GoalValidationError with message 'GOAL.md not found in domain directory'. Tested with test_missing_goal_md_raises_goal_validation_error."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Malformed Source Documents section raises `GoalValidationError`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Three failure modes raise GoalValidationError: (1) missing '## Source Documents' heading, (2) empty section body, (3) missing required columns (File Pattern, Mode). Tested with test_malformed_source_docs_raises_goal_validation_error, test_malformed_table_raises_goal_validation_error, test_empty_goal_md_raises_error, plus internal parser tests for empty, header-only, and wrong-column tables.",
+        "notes": "Three failure modes raise GoalValidationError: (1) missing '## Source Documents' heading, (2) empty section body, (3) missing required columns (File Pattern, Mode). Tested with test_malformed_source_docs_raises_goal_validation_error, test_malformed_table_raises_goal_validation_error, test_empty_goal_md_raises_error, plus internal parser tests for empty, header-only, and wrong-column tables."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "No matching files raises `GoalValidationError` with descriptive message",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "resolve_source_files() raises GoalValidationError when the resolved list is empty, including the patterns that were attempted and the sources directory path. Tested with test_no_matching_files_raises_error (checks 'No source files found'), test_no_match_error_includes_patterns, and test_missing_sources_dir_raises_error.",
+        "notes": "resolve_source_files() raises GoalValidationError when the resolved list is empty, including the patterns that were attempted and the sources directory path. Tested with test_no_matching_files_raises_error (checks 'No source files found'), test_no_match_error_includes_patterns, and test_missing_sources_dir_raises_error."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Path traversal patterns (e.g., `../`, `..\\\\`) in filenames are rejected with error logged",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Three layers of path traversal protection: (1) _has_path_traversal() regex rejects patterns containing '../' or '..\\\\', (2) filename traversal check on matched files, (3) os.path.realpath() prefix check ensures resolved files are within sources/. All rejections are logged at ERROR level. Tested with test_path_traversal_pattern_rejected and test_path_traversal_backslash_rejected (both verify caplog contains 'path traversal'), plus test_path_traversal_in_filename_rejected.",
+        "notes": "Three layers of path traversal protection: (1) _has_path_traversal() regex rejects patterns containing '../' or '..\\\\', (2) filename traversal check on matched files, (3) os.path.realpath() prefix check ensures resolved files are within sources/. All rejections are logged at ERROR level. Tested with test_path_traversal_pattern_rejected and test_path_traversal_backslash_rejected (both verify caplog contains 'path traversal'), plus test_path_traversal_in_filename_rejected."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Resolved files are returned as (absolute_path, mode) tuples",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "resolve_source_files() returns list[tuple[Path, str]] where each Path is absolute (via Path.resolve()) and mode is the string from the SourceDocument. Tested with test_returns_absolute_path_tuples (asserts is_absolute() and isinstance checks), test_mode_matches_source_document, and test_resolved_paths_exist.",
+        "notes": "resolve_source_files() returns list[tuple[Path, str]] where each Path is absolute (via Path.resolve()) and mode is the string from the SourceDocument. Tested with test_returns_absolute_path_tuples (asserts is_absolute() and isinstance checks), test_mode_matches_source_document, and test_resolved_paths_exist."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Ran 'ruff check' and 'ruff format --check' on all 3 modified/created files (ingestion/goal_reader.py, ingestion/tests/test_goal_reader.py, ingestion/__init__.py). All checks passed with zero errors and zero format violations.",
+        "notes": "Ran 'ruff check' and 'ruff format --check' on all 3 modified/created files (ingestion/goal_reader.py, ingestion/tests/test_goal_reader.py, ingestion/__init__.py). All checks passed with zero errors and zero format violations."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 408 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2098/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- DESCRIBES\n- CREATES_FILE\n- ASSIGNS_TASK_TO\n- CREATES_FILES_IN\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- CONTAINS\n- SOURCE_METADATA_SOURCE\n- REFERENCE_FOR\n\n### \u26a0\ufe0f Warnings\n- SOURCE_OF\n- CREATES\n- REPORTED_IN_SOURCE\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- HAS_RESULT_LOCATION\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
