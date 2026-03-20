@@ -261,74 +261,88 @@ class TestCoachPrompts:
 class TestPlayerPromptValidation:
     """Builder functions validate all required GOAL.md sections are non-empty."""
 
+    @staticmethod
+    def _config_with_override(base: GoalConfig, **overrides: object) -> GoalConfig:
+        """Create a GoalConfig bypassing Pydantic validators for test scenarios."""
+        data = base.model_dump()
+        data.update(overrides)
+        return GoalConfig.model_construct(**data)
+
     def test_raises_on_empty_goal(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"goal": ""}, deep=True)
-        with pytest.raises(ValueError, match="(?i)goal.*empty|(?i)goal.*missing|(?i)goal.*required"):
+        config = self._config_with_override(valid_goal_config, goal="")
+        with pytest.raises(ValueError, match="(?i)goal.*(empty|missing|required)"):
             build_player_prompt(config)
 
     def test_raises_on_empty_system_prompt(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"system_prompt": ""}, deep=True)
-        with pytest.raises(ValueError, match="(?i)system.prompt.*empty|(?i)system.prompt.*missing"):
+        config = self._config_with_override(valid_goal_config, system_prompt="")
+        with pytest.raises(ValueError, match="(?i)system.prompt.*(empty|missing)"):
             build_player_prompt(config)
 
     def test_raises_on_empty_generation_guidelines(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"generation_guidelines": ""}, deep=True)
-        with pytest.raises(ValueError, match="(?i)generation.guidelines.*empty|(?i)generation.guidelines.*missing"):
+        config = self._config_with_override(valid_goal_config, generation_guidelines="")
+        with pytest.raises(ValueError, match="(?i)generation.guidelines.*(empty|missing)"):
             build_player_prompt(config)
 
     def test_raises_on_empty_output_schema(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"output_schema": {}}, deep=True)
-        with pytest.raises(ValueError, match="(?i)output.schema.*empty|(?i)output.schema.*missing"):
+        config = self._config_with_override(valid_goal_config, output_schema={})
+        with pytest.raises(ValueError, match="(?i)output.schema.*(empty|missing)"):
             build_player_prompt(config)
 
     def test_raises_on_empty_metadata_schema(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"metadata_schema": []}, deep=True)
-        with pytest.raises(ValueError, match="(?i)metadata.schema.*empty|(?i)metadata.schema.*missing"):
+        config = self._config_with_override(valid_goal_config, metadata_schema=[])
+        with pytest.raises(ValueError, match="(?i)metadata.schema.*(empty|missing)"):
             build_player_prompt(config)
 
     def test_raises_on_empty_layer_routing(self, valid_goal_config: GoalConfig) -> None:
         from prompts.player_prompts import build_player_prompt
-        config = valid_goal_config.model_copy(update={"layer_routing": {}}, deep=True)
-        with pytest.raises(ValueError, match="(?i)layer.routing.*empty|(?i)layer.routing.*missing"):
+        config = self._config_with_override(valid_goal_config, layer_routing={})
+        with pytest.raises(ValueError, match="(?i)layer.routing.*(empty|missing)"):
             build_player_prompt(config)
 
 
 class TestCoachPromptValidation:
     """Builder functions validate all required GOAL.md sections are non-empty."""
 
+    @staticmethod
+    def _config_with_override(base: GoalConfig, **overrides: object) -> GoalConfig:
+        """Create a GoalConfig bypassing Pydantic validators for test scenarios."""
+        data = base.model_dump()
+        data.update(overrides)
+        return GoalConfig.model_construct(**data)
+
     def test_raises_on_empty_goal(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
-        config = valid_goal_config.model_copy(update={"goal": ""}, deep=True)
-        with pytest.raises(ValueError, match="(?i)goal.*empty|(?i)goal.*missing|(?i)goal.*required"):
+        config = self._config_with_override(valid_goal_config, goal="")
+        with pytest.raises(ValueError, match="(?i)goal.*(empty|missing|required)"):
             build_coach_prompt(config)
 
     def test_raises_on_empty_evaluation_criteria(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
-        config = valid_goal_config.model_copy(update={"evaluation_criteria": []}, deep=True)
-        with pytest.raises(ValueError, match="(?i)evaluation.criteria.*empty|(?i)evaluation.criteria.*missing"):
+        config = self._config_with_override(valid_goal_config, evaluation_criteria=[])
+        with pytest.raises(ValueError, match="(?i)evaluation.criteria.*(empty|missing)"):
             build_coach_prompt(config)
 
     def test_raises_on_empty_output_schema(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
-        config = valid_goal_config.model_copy(update={"output_schema": {}}, deep=True)
-        with pytest.raises(ValueError, match="(?i)output.schema.*empty|(?i)output.schema.*missing"):
+        config = self._config_with_override(valid_goal_config, output_schema={})
+        with pytest.raises(ValueError, match="(?i)output.schema.*(empty|missing)"):
             build_coach_prompt(config)
 
     def test_raises_on_empty_metadata_schema(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
-        config = valid_goal_config.model_copy(update={"metadata_schema": []}, deep=True)
-        with pytest.raises(ValueError, match="(?i)metadata.schema.*empty|(?i)metadata.schema.*missing"):
+        config = self._config_with_override(valid_goal_config, metadata_schema=[])
+        with pytest.raises(ValueError, match="(?i)metadata.schema.*(empty|missing)"):
             build_coach_prompt(config)
 
     def test_raises_on_empty_layer_routing(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
-        config = valid_goal_config.model_copy(update={"layer_routing": {}}, deep=True)
-        with pytest.raises(ValueError, match="(?i)layer.routing.*empty|(?i)layer.routing.*missing"):
+        config = self._config_with_override(valid_goal_config, layer_routing={})
+        with pytest.raises(ValueError, match="(?i)layer.routing.*(empty|missing)"):
             build_coach_prompt(config)
 
 

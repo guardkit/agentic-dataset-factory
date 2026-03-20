@@ -1,0 +1,77 @@
+{
+  "task_id": "TASK-AF-011",
+  "turn": 1,
+  "files_modified": [
+    "pyproject.toml"
+  ],
+  "files_created": [
+    "agents/__init__.py",
+    "agents/tests/__init__.py",
+    "prompts/__init__.py",
+    "prompts/tests/__init__.py",
+    "tests/test_pyproject_config.py"
+  ],
+  "tests_written": [
+    "tests/test_pyproject_config.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "18 tests passed in tests/test_pyproject_config.py validating all 4 acceptance criteria. 53 existing config/tests also pass. pip install -e . succeeded.",
+  "implementation_notes": "Updated pyproject.toml to add deepagents>=0.4.11, langchain>=0.3, langchain-core>=0.3, langchain-community>=0.3, and langgraph>=0.2 to project dependencies. Added agents*, prompts*, config* to setuptools package discovery includes. Added config/tests, agents/tests, prompts/tests to pytest testpaths. Created agents/ and prompts/ package stubs with __init__.py and tests/ subdirectories. Verified pip install -e . succeeds with the updated configuration.",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: deepagents>=0.4.11 in project dependencies",
+    "AC-002: Package includes updated for agents*, prompts*, config*",
+    "AC-003: Test paths include new test locations",
+    "AC-004: pip install -e . succeeds"
+  ],
+  "requirements_remaining": [],
+  "implementation_mode": "direct",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `deepagents>=0.4.11` is in project dependencies (if not already)",
+      "status": "complete",
+      "evidence": "Added 'deepagents>=0.4.11' to [project].dependencies in pyproject.toml (line 12). Also added langchain>=0.3, langchain-core>=0.3, langchain-community>=0.3, and langgraph>=0.2 per the project tech stack requirements. Test test_deepagents_in_dependencies validates this exact string is present. pip install -e . successfully resolved and installed deepagents-0.4.12.",
+      "test_file": "tests/test_pyproject_config.py",
+      "implementation_files": [
+        "pyproject.toml"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] Package includes updated for `agents*`, `prompts*`, `config*` (if using packages discovery)",
+      "status": "complete",
+      "evidence": "Updated [tool.setuptools.packages.find].include from ['synthesis*', 'ingestion*'] to ['synthesis*', 'ingestion*', 'agents*', 'prompts*', 'config*']. Created agents/__init__.py and prompts/__init__.py package stubs (config/ already existed). Tests test_agents_in_package_includes, test_prompts_in_package_includes, test_config_in_package_includes all pass. test_existing_includes_preserved verifies synthesis* and ingestion* were not removed.",
+      "test_file": "tests/test_pyproject_config.py",
+      "implementation_files": [
+        "pyproject.toml",
+        "agents/__init__.py",
+        "agents/tests/__init__.py",
+        "prompts/__init__.py",
+        "prompts/tests/__init__.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] Test paths include new test locations",
+      "status": "complete",
+      "evidence": "Updated [tool.pytest.ini_options].testpaths to include 'config/tests', 'agents/tests', and 'prompts/tests' in addition to the 4 existing test paths. Tests test_config_tests_in_testpaths, test_agents_tests_in_testpaths, test_prompts_tests_in_testpaths validate this. test_existing_testpaths_preserved verifies all original paths remain.",
+      "test_file": "tests/test_pyproject_config.py",
+      "implementation_files": [
+        "pyproject.toml"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] `pip install -e .` succeeds with the updated pyproject.toml",
+      "status": "complete",
+      "evidence": "Ran 'python -m pip install -e .' which completed successfully: 'Successfully installed agentic-dataset-factory-0.1.0 deepagents-0.4.12 langchain-1.2.13 langchain-community-0.4.1 langgraph-1.1.3 ...' (28 packages installed). The editable wheel was built and installed without errors.",
+      "test_file": "tests/test_pyproject_config.py",
+      "implementation_files": [
+        "pyproject.toml"
+      ]
+    }
+  ],
+  "success": true
+}
