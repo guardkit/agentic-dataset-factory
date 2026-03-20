@@ -1,23 +1,27 @@
 ---
-id: TASK-ING-007
-title: "Integration tests covering BDD smoke scenarios"
-task_type: testing
-parent_review: TASK-REV-F479
-feature_id: FEAT-ING
-wave: 4
-implementation_mode: task-work
 complexity: 5
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-ING-006
-status: pending
+- TASK-ING-006
+feature_id: FEAT-ING
+id: TASK-ING-007
+implementation_mode: task-work
+parent_review: TASK-REV-F479
 priority: high
-tags: [ingestion, testing, integration, bdd]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- ingestion
+- testing
+- integration
+- bdd
+task_type: testing
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Integration tests covering BDD smoke scenarios
+updated: 2026-03-19 00:00:00+00:00
+wave: 4
 ---
 
 # Task: Integration tests covering BDD smoke scenarios
