@@ -1,0 +1,174 @@
+{
+  "task_id": "TASK-DC-005",
+  "timestamp": "2026-03-20T15:21:58.886409",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation (TDD Mode)",
+      "completed": false
+    },
+    "phase_4": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 266,
+    "tests_failed": 0,
+    "coverage": 99.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/__init__.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/parser.py",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/pyproject.toml",
+    "coverage.json",
+    "domain_config/__init__.py",
+    "domain_config/parser.py",
+    "pyproject.toml",
+    "tasks/backlog/TASK-DC-005-public-api-integration-tests.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-DC-005-implementation-plan.md",
+    ".guardkit/autobuild/TASK-DC-004/checkpoints.json",
+    ".guardkit/autobuild/TASK-DC-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-DC-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-DC-005/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/.guardkit/autobuild/TASK-DC-005/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/fixtures/valid_goal.md",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parse_goal_md.py",
+    "domain_config/tests/fixtures/valid_goal.md",
+    "domain_config/tests/test_parse_goal_md.py",
+    "tasks/design_approved/TASK-DC-005-public-api-integration-tests.md"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5606/domain_config/tests/test_parse_goal_md.py"
+  ],
+  "summary": "266 tests passed, 99.0% coverage, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 44,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "code_review": {
+    "score": 95,
+    "solid": 95,
+    "dry": 95,
+    "yagni": 95
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "parse_goal_md() reads file from disk and returns GoalConfig",
+      "status": "complete",
+      "evidence": "Implemented parse_goal_md(goal_path: Path) -> GoalConfig in domain_config/parser.py. The function reads the file via split_sections(goal_path), parses all 9 sections using parse_table() and extract_json(), constructs GoalConfig via model_construct(), and runs validate_goal_config() before returning. Integration test test_valid_goal_md_returns_complete_goal_config confirms full end-to-end flow.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "File not found raises GoalValidationError with descriptive message",
+      "status": "complete",
+      "evidence": "split_sections() already handles FileNotFoundError by raising GoalValidationError(section='GOAL.md', message='File not found: {path}'). Integration test test_file_not_found_raises_validation_error confirms this path through parse_goal_md().",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Empty file raises GoalValidationError indicating no sections found",
+      "status": "complete",
+      "evidence": "split_sections() raises GoalValidationError with 'No sections found' message when content is empty. Integration test test_empty_file_raises_validation_error confirms this path through parse_goal_md().",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "All 9 sections parsed and assembled into GoalConfig",
+      "status": "complete",
+      "evidence": "parse_goal_md() parses all 9 sections: Goal (free text), Source Documents (parse_table -> SourceDocument), System Prompt (free text), Generation Targets (parse_table -> GenerationTarget), Generation Guidelines (free text), Evaluation Criteria (parse_table -> EvaluationCriterion), Output Schema (extract_json), Metadata Schema (parse_table -> MetadataField), Layer Routing (parse_table -> dict). Test test_valid_goal_md_returns_complete_goal_config verifies all 9 fields are populated.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Public API exported from domain_config.__init__: parse_goal_md, GoalConfig, GoalValidationError",
+      "status": "complete",
+      "evidence": "Updated domain_config/__init__.py to import parse_goal_md from domain_config.parser and added it to __all__. Tests TestPublicApiExports::test_parse_goal_md_importable_from_package, test_goal_config_importable, and test_goal_validation_error_importable all confirm exports work.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/__init__.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Integration test with valid GOAL.md fixture returns complete GoalConfig",
+      "status": "complete",
+      "evidence": "Created domain_config/tests/fixtures/valid_goal.md based on the GCSE English tutor example from API-domain-config.md. TestParseGoalMdHappyPath contains 9 tests using this fixture: test_valid_goal_md_returns_complete_goal_config, test_goal_section_parsed_as_free_text, test_source_documents_parsed_as_structured_data, test_system_prompt_preserved_exactly, test_generation_targets_parsed, test_evaluation_criteria_parsed, test_output_schema_parsed_as_dict, test_layer_routing_parsed, test_metadata_schema_parsed.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/tests/fixtures/valid_goal.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Integration tests cover boundary conditions (50/49 chars, 100/99 chars, 3/2 criteria, 70%/69% reasoning)",
+      "status": "complete",
+      "evidence": "TestParseGoalMdBoundary contains 9 boundary tests: test_goal_exactly_50_chars_passes, test_goal_49_chars_fails, test_system_prompt_exactly_100_chars_passes, test_system_prompt_99_chars_fails, test_generation_guidelines_exactly_100_chars_passes, test_exactly_3_evaluation_criteria_passes, test_only_2_evaluation_criteria_fails, test_exactly_70_percent_reasoning_passes, test_69_percent_reasoning_fails.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Integration tests cover negative cases (missing sections, invalid mode, invalid identifier, malformed JSON, missing keys, missing layer, below 70%)",
+      "status": "complete",
+      "evidence": "TestParseGoalMdNegative contains 18 tests (9 parametrized for missing sections + 8 individual): test_missing_section_raises_validation_error[Goal/Source Documents/System Prompt/Generation Targets/Generation Guidelines/Evaluation Criteria/Output Schema/Metadata Schema/Layer Routing], test_file_not_found_raises_validation_error, test_invalid_source_document_mode_raises_error, test_invalid_criterion_identifier_raises_error, test_malformed_json_raises_error, test_output_schema_missing_messages_key_raises_error, test_layer_routing_missing_knowledge_raises_error, test_reasoning_below_70_percent_raises_error, test_empty_file_raises_validation_error.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Integration tests cover edge cases (whitespace variations, embedded headings, Unicode, percentage mismatch, nested fences, empty Valid Values)",
+      "status": "complete",
+      "evidence": "TestParseGoalMdEdgeCases contains 11 tests: test_whitespace_variations_in_headings, test_table_formatting_variations, test_validation_error_includes_section_name, test_multiple_validation_failures_reported_together, test_metadata_all_fields_required_true, test_embedded_heading_not_treated_as_section, test_python_keyword_criterion_name_raises_error, test_unicode_characters_preserved, test_percentage_mismatch_uses_counts, test_nested_code_fences_in_output_schema, test_empty_valid_values_column.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "pyproject.toml updated: testpaths includes domain_config tests",
+      "status": "complete",
+      "evidence": "Updated pyproject.toml [tool.pytest.ini_options] testpaths from [\"synthesis/tests\"] to [\"synthesis/tests\", \"domain_config/tests\"]. Running 'pytest tests/ -v' now discovers and runs all domain_config tests.",
+      "test_file": null,
+      "implementation_files": [
+        "pyproject.toml"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "All tests pass with pytest -v",
+      "status": "complete",
+      "evidence": "Full test suite: 266 passed, 0 failed. Integration tests: 49 passed, 0 failed. Coverage: 99% across domain_config package. All quality gates met.",
+      "test_file": "domain_config/tests/test_parse_goal_md.py",
+      "implementation_files": [
+        "domain_config/parser.py"
+      ]
+    }
+  ]
+}

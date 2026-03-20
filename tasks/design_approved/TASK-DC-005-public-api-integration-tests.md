@@ -1,23 +1,27 @@
 ---
-id: TASK-DC-005
-title: "Implement parse_goal_md public API and integration tests"
-task_type: testing
-parent_review: TASK-REV-DC5D
-feature_id: FEAT-5606
-wave: 3
-implementation_mode: task-work
 complexity: 4
+created: 2026-03-19 00:00:00+00:00
 dependencies:
-  - TASK-DC-004
-status: pending
+- TASK-DC-004
+feature_id: FEAT-5606
+id: TASK-DC-005
+implementation_mode: task-work
+parent_review: TASK-REV-DC5D
 priority: high
-tags: [domain-config, api, testing, integration]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+status: design_approved
+tags:
+- domain-config
+- api
+- testing
+- integration
+task_type: testing
 test_results:
-  status: pending
   coverage: null
   last_run: null
+  status: pending
+title: Implement parse_goal_md public API and integration tests
+updated: 2026-03-19 00:00:00+00:00
+wave: 3
 ---
 
 # Task: Implement parse_goal_md public API and integration tests
