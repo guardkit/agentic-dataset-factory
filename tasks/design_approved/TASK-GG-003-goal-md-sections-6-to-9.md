@@ -1,16 +1,17 @@
 ---
-id: TASK-GG-003
-title: "Author GOAL.md sections 6-9: Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing"
-task_type: feature
-parent_review: TASK-REV-843F
-feature_id: FEAT-GG
-wave: 1
-implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-GG-001
-status: pending
+- TASK-GG-001
 estimated_minutes: 90
+feature_id: FEAT-GG
+id: TASK-GG-003
+implementation_mode: task-work
+parent_review: TASK-REV-843F
+status: design_approved
+task_type: feature
+title: 'Author GOAL.md sections 6-9: Evaluation Criteria, Output Schema, Metadata
+  Schema, Layer Routing'
+wave: 1
 ---
 
 # Task: Author GOAL.md sections 6-9

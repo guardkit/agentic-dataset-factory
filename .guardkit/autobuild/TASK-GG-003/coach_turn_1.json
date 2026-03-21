@@ -1,0 +1,203 @@
+{
+  "task_id": "TASK-GG-003",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest tests/test_goal_md_sections_1_to_5.py tests/test_goal_md_sections_6_to_9.py -v --tb=short",
+      "test_output_summary": "Result:\ntests/test_goal_md_sections_6_to_9.py::TestLayerRouting::test_behaviour_routes_to_train_jsonl PASSED [ 94%]\ntests/test_goal_md_sections_6_to_9.py::TestLayerRouting::test_knowledge_routes_to_rag_index PASSED [ 96%]\ntests/test_goal_md_sections_6_to_9.py::TestLayerRouting::test_layer_routing_has_classification_rules PASSED [ 98%]\ntests/test_goal_md_sections_6_to_9.py::TestCrossSectionConsistency::test_no_todo_comments_in_sections_6_to_9 PASSED [100%]\n============================== 51 passed in 0.03s ==============================",
+      "duration_seconds": 9.568343162536621
+    },
+    "requirements": {
+      "criteria_total": 10,
+      "criteria_met": 10,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Section 6: 5 evaluation criteria; all names are valid Python identifiers (no hyphens); weights sum to 100%",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Section 6 contains exactly 5 criteria: socratic_approach (25%), ao_accuracy (25%), mark_scheme_aligned (20%), age_appropriate (15%), factual_accuracy (15%). All names use underscores (valid Python identifiers). Weights sum to 100%. Verified by tests: test_section_6_has_exactly_5_criteria, test_all_criterion_names_are_valid_python_identifiers, test_weights_sum_to_100_percent, test_expected_criteria_present.",
+      "notes": "Section 6 contains exactly 5 criteria: socratic_approach (25%), ao_accuracy (25%), mark_scheme_aligned (20%), age_appropriate (15%), factual_accuracy (15%). All names use underscores (valid Python identifiers). Weights sum to 100%. Verified by tests: test_section_6_has_exactly_5_criteria, test_all_criterion_names_are_valid_python_identifiers, test_weights_sum_to_100_percent, test_expected_criteria_present."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Section 6: Each criterion has a description and a weight column",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All 5 criteria have non-empty Description and Weight columns in the markdown table. Verified by test_each_criterion_has_description_and_weight.",
+      "notes": "All 5 criteria have non-empty Description and Weight columns in the markdown table. Verified by test_each_criterion_has_description_and_weight."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Section 7: Contains valid JSON code block with `messages` and `metadata` top-level keys",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Section 7 contains a valid JSON code block with ShareGPT format. The JSON object has 'messages' (array with system/user/assistant roles) and 'metadata' (object with layer, type, ao, text, topic, grade_target, source, turns). Verified by tests: test_contains_valid_json_code_block, test_json_has_messages_key, test_json_has_metadata_key, test_messages_is_array, test_metadata_is_object.",
+      "notes": "Section 7 contains a valid JSON code block with ShareGPT format. The JSON object has 'messages' (array with system/user/assistant roles) and 'metadata' (object with layer, type, ao, text, topic, grade_target, source, turns). Verified by tests: test_contains_valid_json_code_block, test_json_has_messages_key, test_json_has_metadata_key, test_messages_is_array, test_metadata_is_object."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Section 8: Markdown table with Field, Type, Required, Valid Values columns",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Section 8 contains a markdown table with all 4 required columns: Field, Type, Required, Valid Values. 8 data rows present. Verified by test_table_has_required_columns.",
+      "notes": "Section 8 contains a markdown table with all 4 required columns: Field, Type, Required, Valid Values. 8 data rows present. Verified by test_table_has_required_columns."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Section 8: All fields have Required = yes",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "All 8 metadata fields (layer, type, ao, text, topic, grade_target, source, turns) have Required = 'yes'. Verified by test_all_fields_required_yes.",
+      "notes": "All 8 metadata fields (layer, type, ao, text, topic, grade_target, source, turns) have Required = 'yes'. Verified by test_all_fields_required_yes."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Section 8: `text` valid values include all AQA set text identifiers",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "text field valid values include all 8 AQA set text identifiers: macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry. Verified by test_text_valid_values_include_all_aqa_set_texts.",
+      "notes": "text field valid values include all 8 AQA set text identifiers: macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry. Verified by test_text_valid_values_include_all_aqa_set_texts."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Section 8: `ao` valid values are AO1 through AO6 only (not AO7+)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "ao field valid values are exactly AO1, AO2, AO3, AO4, AO5, AO6 (with note 'can be empty'). No AO7+ values present. Verified by test_ao_valid_values_are_ao1_through_ao6_only.",
+      "notes": "ao field valid values are exactly AO1, AO2, AO3, AO4, AO5, AO6 (with note 'can be empty'). No AO7+ values present. Verified by test_ao_valid_values_are_ao1_through_ao6_only."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Section 8: `grade_target` valid values are 4-9 and null",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "grade_target field valid values are '4, 5, 6, 7, 8, 9, null'. No grades outside 4-9 (verified no 1, 2, 3, or 10). Verified by test_grade_target_valid_values_are_4_to_9_and_null.",
+      "notes": "grade_target field valid values are '4, 5, 6, 7, 8, 9, null'. No grades outside 4-9 (verified no 1, 2, 3, or 10). Verified by test_grade_target_valid_values_are_4_to_9_and_null."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Section 9: Contains `behaviour` and `knowledge` rows with destinations",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Section 9 Layer Routing table has 'behaviour' row routing to 'output/train.jsonl' and 'knowledge' row routing to 'output/rag_index/knowledge.jsonl'. Also includes Purpose column and classification rules text. Verified by tests: test_contains_behaviour_row, test_contains_knowledge_row, test_behaviour_routes_to_train_jsonl, test_knowledge_routes_to_rag_index, test_layer_routing_has_classification_rules.",
+      "notes": "Section 9 Layer Routing table has 'behaviour' row routing to 'output/train.jsonl' and 'knowledge' row routing to 'output/rag_index/knowledge.jsonl'. Also includes Purpose column and classification rules text. Verified by tests: test_contains_behaviour_row, test_contains_knowledge_row, test_behaviour_routes_to_train_jsonl, test_knowledge_routes_to_rag_index, test_layer_routing_has_classification_rules."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "The test file compiles with py_compile. GOAL.md is a markdown file \u2014 no lint/format tool applies. All 44 tests (22 existing domain structure + 22 new) pass with zero failures.",
+      "notes": "The test file compiles with py_compile. GOAL.md is a markdown file \u2014 no lint/format tool applies. All 44 tests (22 existing domain structure + 22 new) pass with zero failures."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Section 6: 5 evaluation criteria; all names are valid Python identifiers (no hyphens); weights sum to 100%",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Section 6 contains exactly 5 criteria: socratic_approach (25%), ao_accuracy (25%), mark_scheme_aligned (20%), age_appropriate (15%), factual_accuracy (15%). All names use underscores (valid Python identifiers). Weights sum to 100%. Verified by tests: test_section_6_has_exactly_5_criteria, test_all_criterion_names_are_valid_python_identifiers, test_weights_sum_to_100_percent, test_expected_criteria_present.",
+        "notes": "Section 6 contains exactly 5 criteria: socratic_approach (25%), ao_accuracy (25%), mark_scheme_aligned (20%), age_appropriate (15%), factual_accuracy (15%). All names use underscores (valid Python identifiers). Weights sum to 100%. Verified by tests: test_section_6_has_exactly_5_criteria, test_all_criterion_names_are_valid_python_identifiers, test_weights_sum_to_100_percent, test_expected_criteria_present."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Section 6: Each criterion has a description and a weight column",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All 5 criteria have non-empty Description and Weight columns in the markdown table. Verified by test_each_criterion_has_description_and_weight.",
+        "notes": "All 5 criteria have non-empty Description and Weight columns in the markdown table. Verified by test_each_criterion_has_description_and_weight."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Section 7: Contains valid JSON code block with `messages` and `metadata` top-level keys",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Section 7 contains a valid JSON code block with ShareGPT format. The JSON object has 'messages' (array with system/user/assistant roles) and 'metadata' (object with layer, type, ao, text, topic, grade_target, source, turns). Verified by tests: test_contains_valid_json_code_block, test_json_has_messages_key, test_json_has_metadata_key, test_messages_is_array, test_metadata_is_object.",
+        "notes": "Section 7 contains a valid JSON code block with ShareGPT format. The JSON object has 'messages' (array with system/user/assistant roles) and 'metadata' (object with layer, type, ao, text, topic, grade_target, source, turns). Verified by tests: test_contains_valid_json_code_block, test_json_has_messages_key, test_json_has_metadata_key, test_messages_is_array, test_metadata_is_object."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Section 8: Markdown table with Field, Type, Required, Valid Values columns",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Section 8 contains a markdown table with all 4 required columns: Field, Type, Required, Valid Values. 8 data rows present. Verified by test_table_has_required_columns.",
+        "notes": "Section 8 contains a markdown table with all 4 required columns: Field, Type, Required, Valid Values. 8 data rows present. Verified by test_table_has_required_columns."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Section 8: All fields have Required = yes",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All 8 metadata fields (layer, type, ao, text, topic, grade_target, source, turns) have Required = 'yes'. Verified by test_all_fields_required_yes.",
+        "notes": "All 8 metadata fields (layer, type, ao, text, topic, grade_target, source, turns) have Required = 'yes'. Verified by test_all_fields_required_yes."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Section 8: `text` valid values include all AQA set text identifiers",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "text field valid values include all 8 AQA set text identifiers: macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry. Verified by test_text_valid_values_include_all_aqa_set_texts.",
+        "notes": "text field valid values include all 8 AQA set text identifiers: macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry. Verified by test_text_valid_values_include_all_aqa_set_texts."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Section 8: `ao` valid values are AO1 through AO6 only (not AO7+)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "ao field valid values are exactly AO1, AO2, AO3, AO4, AO5, AO6 (with note 'can be empty'). No AO7+ values present. Verified by test_ao_valid_values_are_ao1_through_ao6_only.",
+        "notes": "ao field valid values are exactly AO1, AO2, AO3, AO4, AO5, AO6 (with note 'can be empty'). No AO7+ values present. Verified by test_ao_valid_values_are_ao1_through_ao6_only."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Section 8: `grade_target` valid values are 4-9 and null",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "grade_target field valid values are '4, 5, 6, 7, 8, 9, null'. No grades outside 4-9 (verified no 1, 2, 3, or 10). Verified by test_grade_target_valid_values_are_4_to_9_and_null.",
+        "notes": "grade_target field valid values are '4, 5, 6, 7, 8, 9, null'. No grades outside 4-9 (verified no 1, 2, 3, or 10). Verified by test_grade_target_valid_values_are_4_to_9_and_null."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Section 9: Contains `behaviour` and `knowledge` rows with destinations",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Section 9 Layer Routing table has 'behaviour' row routing to 'output/train.jsonl' and 'knowledge' row routing to 'output/rag_index/knowledge.jsonl'. Also includes Purpose column and classification rules text. Verified by tests: test_contains_behaviour_row, test_contains_knowledge_row, test_behaviour_routes_to_train_jsonl, test_knowledge_routes_to_rag_index, test_layer_routing_has_classification_rules.",
+        "notes": "Section 9 Layer Routing table has 'behaviour' row routing to 'output/train.jsonl' and 'knowledge' row routing to 'output/rag_index/knowledge.jsonl'. Also includes Purpose column and classification rules text. Verified by tests: test_contains_behaviour_row, test_contains_knowledge_row, test_behaviour_routes_to_train_jsonl, test_knowledge_routes_to_rag_index, test_layer_routing_has_classification_rules."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "The test file compiles with py_compile. GOAL.md is a markdown file \u2014 no lint/format tool applies. All 44 tests (22 existing domain structure + 22 new) pass with zero failures.",
+        "notes": "The test file compiles with py_compile. GOAL.md is a markdown file \u2014 no lint/format tool applies. All 44 tests (22 existing domain structure + 22 new) pass with zero failures."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "consider",
+      "category": "seam_test_recommendation",
+      "description": "No seam tests detected for cross-boundary feature. Consider adding seam/contract/boundary tests to validate technology boundary interactions. This is a recommendation, not a blocking gate."
+    }
+  ],
+  "rationale": "All quality gates passed. Independent verification confirmed. All acceptance criteria met. Architecture context: 465 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2453/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- CREATES_FILES_IN\n- HAS_FIELD\n- HAS_FIELD_WITH_LIST_TYPE\n- DISPLAYS_NEXT_STEPS\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- REFERENCE_FOR\n- PART_OF_DIRECTORY_LAYOUT\n- REFERENCE_FOR\n\n### \u26a0\ufe0f Warnings\n- APPLIES_TO\n- REQUIRES_USE_OF\n- HAS_ROOT_CAUSE\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n- HAS_ROLE_CONSTRAINT\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO\n- HAS_PROJECT_ID\n- APPLIES_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
