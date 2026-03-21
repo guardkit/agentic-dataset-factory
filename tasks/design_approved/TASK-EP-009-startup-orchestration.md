@@ -1,17 +1,17 @@
 ---
-id: TASK-EP-009
-title: "agent.py startup orchestration (steps 1-12)"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 4
-implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-EP-004
-  - TASK-EP-007
-  - TASK-EP-008
-status: pending
+- TASK-EP-004
+- TASK-EP-007
+- TASK-EP-008
+feature_id: FEAT-2CF1
+id: TASK-EP-009
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: agent.py startup orchestration (steps 1-12)
+wave: 4
 ---
 
 # Task: agent.py Startup Orchestration
