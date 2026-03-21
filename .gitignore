@@ -41,6 +41,9 @@ htmlcov/
 # ruff
 .ruff_cache/
 
+# Domain source PDFs (large binary files)
+domains/*/sources/*.pdf
+
 # Synthesis outputs
 output/
 checkpoints/
