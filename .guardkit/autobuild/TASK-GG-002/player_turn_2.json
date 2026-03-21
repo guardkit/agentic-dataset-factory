@@ -1,26 +1,6 @@
 {
   "task_id": "TASK-GG-002",
-  "timestamp": "2026-03-21T07:13:15.400185",
-  "completed": true,
-  "phases": {
-    "phase_3": {
-      "detected": true,
-      "text": "Implementation (Turn 2 - addressing coverage feedback)",
-      "completed": false
-    },
-    "phase_4": {
-      "detected": true,
-      "completed": true
-    }
-  },
-  "quality_gates": {
-    "tests_passing": true,
-    "tests_passed": 183,
-    "tests_failed": 0,
-    "coverage": 95.6,
-    "coverage_met": true,
-    "all_passed": true
-  },
+  "turn": 2,
   "files_modified": [
     ".claude/task-plans/TASK-GG-002-implementation-plan.md",
     ".claude/task-plans/TASK-GG-003-implementation-plan.md",
@@ -56,12 +36,26 @@
   "tests_written": [
     "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_1_to_5.py"
   ],
-  "summary": "183 tests passed, 95.6% coverage, all quality gates passed",
-  "sdk_turns": {
-    "turns_used": 25,
-    "max_turns": 100,
-    "ceiling_hit": false
-  },
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: Section 1 (Goal) references Socratic questioning, AQA specification, GCSE English",
+    "AC-002: Section 2 (Source Documents) table with File Pattern, Mode, Notes columns; standard/vlm modes",
+    "AC-003: Section 2 file patterns have no path traversal or absolute paths",
+    "AC-004: Section 3 (System Prompt) matches research doc verbatim; 100+ chars; refs AO1-AO6",
+    "AC-005: Section 4 (Generation Targets) table totalling 1,000; reasoning >= 75%",
+    "AC-006: Section 4 Type values are only reasoning or direct",
+    "AC-007: Section 5 (Generation Guidelines) 100+ chars; refs Socratic, mark scheme, think block",
+    "AC-008: All modified files pass lint/format checks"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 25,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 183,
   "completion_promises": [
     {
       "criterion_id": "AC-001",
