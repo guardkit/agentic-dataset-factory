@@ -1,16 +1,16 @@
 ---
-id: TASK-EP-007
-title: "Generation loop — Player-Coach cycle with DeepAgents SDK"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 3
-implementation_mode: task-work
 complexity: 6
 dependencies:
-  - TASK-EP-005
-  - TASK-EP-006
-status: pending
+- TASK-EP-005
+- TASK-EP-006
+feature_id: FEAT-2CF1
+id: TASK-EP-007
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: Generation loop — Player-Coach cycle with DeepAgents SDK
+wave: 3
 ---
 
 # Task: Generation Loop — Player-Coach Cycle with DeepAgents SDK
