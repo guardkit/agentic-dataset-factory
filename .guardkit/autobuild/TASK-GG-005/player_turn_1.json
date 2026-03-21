@@ -1,0 +1,162 @@
+{
+  "task_id": "TASK-GG-005",
+  "turn": 1,
+  "files_modified": [
+    ".guardkit/autobuild/TASK-GG-002/checkpoints.json",
+    "coverage.json",
+    "tasks/backlog/TASK-GG-004-metadata-consistency-tests.md",
+    "tasks/backlog/TASK-GG-005-structural-smoke-tests.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-GG-004-implementation-plan.md",
+    ".claude/task-plans/TASK-GG-005-implementation-plan.md",
+    ".guardkit/autobuild/TASK-GG-004/turn_context.json",
+    ".guardkit/autobuild/TASK-GG-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-GG-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-GG-005/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/.guardkit/autobuild/TASK-GG-005/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_structure.py",
+    "tasks/design_approved/TASK-GG-004-metadata-consistency-tests.md",
+    "tasks/design_approved/TASK-GG-005-structural-smoke-tests.md",
+    "tests/test_goal_md_consistency.py",
+    "tests/test_goal_md_structure.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_structure.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "Test file at tests/test_goal_md_structure.py",
+    "All 9 section headings verified (parametrized)",
+    "Generation targets sum to 1,000",
+    "Reasoning percentage >= 70%",
+    "System prompt >= 100 characters",
+    "Generation guidelines >= 100 characters",
+    "Output schema valid JSON with messages and metadata keys",
+    "Evaluation criteria weights sum to 100% (\u00b11%)",
+    "Layer routing contains behaviour and knowledge entries",
+    "No path traversal in source document patterns",
+    "All 20 tests pass"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 21,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 20,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Test file created at tests/test_goal_md_structure.py",
+      "status": "complete",
+      "evidence": "File created at tests/test_goal_md_structure.py with 20 tests across 8 test classes. File uses only stdlib + pytest (no project module dependencies).",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Test verifies all 9 section headings are present",
+      "status": "complete",
+      "evidence": "TestAllSectionsPresent class uses @pytest.mark.parametrize with all 9 required section headings (Goal, Source Documents, System Prompt, Generation Targets, Generation Guidelines, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing). Each heading is checked via regex pattern matching for '## <heading>' at the start of a line.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Test verifies generation targets sum to exactly 1,000",
+      "status": "complete",
+      "evidence": "TestGenerationTargets.test_targets_sum_to_1000 parses the Generation Targets markdown table, sums the Count column values, and asserts total == 1000.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Test verifies reasoning percentage >= 70%",
+      "status": "complete",
+      "evidence": "TestGenerationTargets.test_reasoning_percentage_gte_70 calculates the ratio of reasoning-type counts to total counts and asserts ratio >= 0.70.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Test verifies system prompt length >= 100 characters",
+      "status": "complete",
+      "evidence": "TestSystemPrompt.test_system_prompt_min_100_chars extracts the System Prompt section and asserts len(section) >= 100.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Test verifies generation guidelines length >= 100 characters",
+      "status": "complete",
+      "evidence": "TestGenerationGuidelines.test_generation_guidelines_min_100_chars extracts the Generation Guidelines section and asserts len(section) >= 100.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Test verifies output schema is valid JSON with required keys",
+      "status": "complete",
+      "evidence": "TestOutputSchema has 3 tests: test_output_schema_valid_json (parses JSON and checks it's a dict), test_output_schema_has_messages_key, and test_output_schema_has_metadata_key. JSON is extracted from ```json fenced code block via regex.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Test verifies evaluation criteria weights sum to ~100% (\u00b11%)",
+      "status": "complete",
+      "evidence": "TestEvaluationCriteria.test_weights_sum_to_100_within_tolerance parses the Evaluation Criteria table, extracts Weight column values (stripping % suffix), sums them, and asserts abs(total - 100) <= 1.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Test verifies layer routing contains behaviour and knowledge entries",
+      "status": "complete",
+      "evidence": "TestLayerRouting has 2 tests: test_layer_routing_has_behaviour and test_layer_routing_has_knowledge. Both parse the Layer Routing table and check the Layer column for the expected values.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "Test verifies no path traversal in source document patterns",
+      "status": "complete",
+      "evidence": "TestSourceDocumentsSecurity.test_no_path_traversal_in_file_patterns parses Source Documents table and asserts '..' is not in any file pattern value.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "All tests pass with pytest tests/test_goal_md_structure.py -v",
+      "status": "complete",
+      "evidence": "Ran pytest tests/test_goal_md_structure.py -v: 20 tests passed in 0.02s with zero failures.",
+      "test_file": "tests/test_goal_md_structure.py",
+      "implementation_files": [
+        "tests/test_goal_md_structure.py"
+      ]
+    }
+  ]
+}
