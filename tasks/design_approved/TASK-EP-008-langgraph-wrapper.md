@@ -1,15 +1,15 @@
 ---
-id: TASK-EP-008
-title: "LangGraph thin wrapper — graph export for langgraph.json"
-task_type: feature
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 3
-implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-EP-007
-status: pending
+- TASK-EP-007
+feature_id: FEAT-2CF1
+id: TASK-EP-008
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: feature
+title: LangGraph thin wrapper — graph export for langgraph.json
+wave: 3
 ---
 
 # Task: LangGraph Thin Wrapper — Graph Export
