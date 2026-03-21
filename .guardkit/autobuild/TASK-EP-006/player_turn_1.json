@@ -1,0 +1,70 @@
+{
+  "task_id": "TASK-EP-006",
+  "turn": 1,
+  "files_modified": [
+    "entrypoint/checkpoint.py"
+  ],
+  "files_created": [
+    "entrypoint/output.py",
+    "entrypoint/tests/test_output.py"
+  ],
+  "tests_written": [
+    "entrypoint/tests/test_output.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "32 new tests passed (test_output.py), 22 existing checkpoint tests passed (test_checkpoint_lock.py), 21 startup tests passed (test_startup.py) \u2014 75 total, 0 failures, 0 errors",
+  "implementation_notes": "Enhanced prepare_output_directory() in checkpoint.py to preserve .lock on fresh start (previously used shutil.rmtree which removed everything including .lock). Extracted _clean_output_directory() helper that iterates over output dir children and skips .lock. Created new entrypoint/output.py with OutputFileManager context manager that opens train.jsonl, rejected.jsonl, and rag_index/knowledge.jsonl in append mode ('a') with UTF-8 encoding. OutputFileManager supports both explicit open/close and context manager usage, with safe cleanup on partial open failure.",
+  "concerns": [],
+  "requirements_addressed": [
+    "Create output/ and output/rag_index/ directories if they don't exist",
+    "On fresh start (--fresh, default): remove all files in output directory except .lock",
+    "On resume (--resume): skip cleaning, preserve existing train.jsonl, rejected.jsonl, knowledge.jsonl",
+    "Ensure train.jsonl, rejected.jsonl, and knowledge.jsonl are opened in append mode for the generation loop"
+  ],
+  "requirements_remaining": [],
+  "implementation_mode": "direct",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] Output directory structure created on startup",
+      "status": "complete",
+      "evidence": "prepare_output_directory() creates output/ and output/rag_index/ via mkdir(parents=True, exist_ok=True). Tests verify creation from scratch (test_creates_output_dir_when_missing, test_creates_rag_index_subdir), nested parents (test_creates_nested_parent_directories), and idempotent calls (test_idempotent_creation). Both fresh and resume modes create the structure.",
+      "test_file": "entrypoint/tests/test_output.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] Fresh start removes previous output files (BDD: Fresh start cleans the output directory)",
+      "status": "complete",
+      "evidence": "Enhanced prepare_output_directory(resume=False) to use _clean_output_directory() which iterates over output dir children and removes all files/subdirectories except .lock. Previously used shutil.rmtree which removed .lock too. Tests verify: train.jsonl removed (test_fresh_start_removes_train_jsonl), rejected.jsonl removed (test_fresh_start_removes_rejected_jsonl), rag_index contents removed (test_fresh_start_removes_rag_index_contents), checkpoint removed (test_fresh_start_removes_checkpoint), .lock preserved (test_fresh_start_preserves_lock_file), all non-lock files removed (test_fresh_start_removes_all_non_lock_files).",
+      "test_file": "entrypoint/tests/test_output.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] Resume preserves existing output files",
+      "status": "complete",
+      "evidence": "prepare_output_directory(resume=True) skips cleaning entirely, only ensures directory structure exists. Tests verify preservation of: train.jsonl (test_resume_preserves_train_jsonl), rejected.jsonl (test_resume_preserves_rejected_jsonl), knowledge.jsonl (test_resume_preserves_knowledge_jsonl), checkpoint (test_resume_preserves_checkpoint), all files including lock (test_resume_preserves_all_existing_files). Also creates rag_index if missing (test_resume_creates_rag_index_if_missing).",
+      "test_file": "entrypoint/tests/test_output.py",
+      "implementation_files": [
+        "entrypoint/checkpoint.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] Files opened in append mode for generation loop compatibility",
+      "status": "complete",
+      "evidence": "Created OutputFileManager context manager in entrypoint/output.py that opens train.jsonl, rejected.jsonl, and rag_index/knowledge.jsonl in append mode ('a') with UTF-8 encoding. Tests verify: all three files opened (test_opens_all_three_files), append mode confirmed via .mode attribute (test_files_opened_in_append_mode), existing content preserved on append (test_append_preserves_existing_content), data written to all three files (test_write_to_all_three_files), handles closed on context exit (test_context_manager_closes_handles), multiple append sessions work (test_multiple_appends_across_sessions). Integration tests verify prepare_output_directory + OutputFileManager work together for both fresh and resume modes.",
+      "test_file": "entrypoint/tests/test_output.py",
+      "implementation_files": [
+        "entrypoint/output.py"
+      ]
+    }
+  ],
+  "success": true
+}

@@ -209,8 +209,9 @@ class LockManager:
 def prepare_output_directory(output_dir: Path, *, resume: bool) -> None:
     """Prepare the output directory for a generation run.
 
-    On fresh start (``resume=False``): cleans the output directory then
-    recreates the required subdirectory structure (ADR-ARCH-008).
+    On fresh start (``resume=False``): removes all files in the output
+    directory **except** the ``.lock`` file, then recreates the required
+    subdirectory structure (ADR-ARCH-008).
 
     On resume (``resume=True``): preserves existing files and ensures
     the required subdirectory structure exists.
@@ -226,8 +227,31 @@ def prepare_output_directory(output_dir: Path, *, resume: bool) -> None:
     else:
         logger.info("Fresh start: cleaning output directory %s", output_dir)
         if output_dir.exists():
-            shutil.rmtree(output_dir)
+            _clean_output_directory(output_dir)
 
     # Ensure directory structure exists
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / RAG_INDEX_DIRNAME).mkdir(exist_ok=True)
+
+
+def _clean_output_directory(output_dir: Path) -> None:
+    """Remove all files and subdirectories in *output_dir* except ``.lock``.
+
+    The ``.lock`` file is preserved because it may be held by the current
+    process via :class:`LockManager`.  All other files (``train.jsonl``,
+    ``rejected.jsonl``, ``.checkpoint``, etc.) and subdirectories
+    (``rag_index/``) are removed.
+
+    Args:
+        output_dir: Path to the output directory to clean.
+    """
+    for child in output_dir.iterdir():
+        if child.name == LOCK_FILENAME:
+            logger.debug("Preserving lock file: %s", child)
+            continue
+        if child.is_dir():
+            shutil.rmtree(child)
+            logger.debug("Removed directory: %s", child)
+        else:
+            child.unlink()
+            logger.debug("Removed file: %s", child)
