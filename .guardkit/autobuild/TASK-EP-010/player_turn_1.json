@@ -1,0 +1,95 @@
+{
+  "task_id": "TASK-EP-010",
+  "turn": 1,
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/pyproject.toml",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/tests/test_integration_smoke.py",
+    "coverage.json",
+    "pyproject.toml",
+    "tasks/backlog/TASK-EP-010-integration-tests.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-EP-010-implementation-plan.md",
+    ".guardkit/autobuild/TASK-EP-009/checkpoints.json",
+    ".guardkit/autobuild/TASK-EP-010/player_turn_1.json",
+    ".guardkit/autobuild/TASK-EP-010/task_work_results.json",
+    ".guardkit/autobuild/TASK-EP-010/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/.guardkit/autobuild/TASK-EP-010/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/tests/test_integration_smoke.py",
+    "tasks/design_approved/TASK-EP-010-integration-tests.md",
+    "tests/test_integration_smoke.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B/tests/test_integration_smoke.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "All 8 smoke BDD scenarios covered by integration tests",
+    "Key negative cases tested (missing config, domain, GOAL.md, empty ChromaDB)",
+    "Tests run with mocked external dependencies",
+    "All tests pass with pytest tests/ -v -m smoke",
+    "Test fixtures provide reusable config, domain, and agent setup"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 51,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 18,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "All 8 smoke BDD scenarios covered by integration tests",
+      "status": "complete",
+      "evidence": "Created tests/test_integration_smoke.py with 12 test classes covering all 8 @smoke BDD scenarios: (1) TestLoadValidConfig - config loading with all sections, (2) TestStructuredLogging - JSON logging active + level set, (3) TestLangSmithProject - env var set from domain, (4) TestDomainResolution - domain path resolved, (5) TestGoalMdParsing - GOAL.md parsed with targets available, (6) TestChromaDBVerification - collection verified, (7) TestFullStartupSequence - full pipeline with agents+tools+generation loop, (8) TestGenerationLoopPlayerCoachCycle - Player-Coach accept and reject-revise cycles. All 18 tests pass.",
+      "test_file": "tests/test_integration_smoke.py",
+      "implementation_files": [
+        "tests/test_integration_smoke.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Key negative cases tested (missing config, domain, GOAL.md, empty ChromaDB)",
+      "status": "complete",
+      "evidence": "Four negative test classes: TestMissingConfig (FileNotFoundError for missing agent-config.yaml), TestNonExistentDomain (DomainNotFoundError for missing domain dir), TestMissingGoalMd (FileNotFoundError for missing GOAL.md), TestEmptyChromaDB (RuntimeError with ingestion suggestion for empty collection). All 4 negative tests pass.",
+      "test_file": "tests/test_integration_smoke.py",
+      "implementation_files": [
+        "tests/test_integration_smoke.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Tests run with mocked external dependencies (no real LLM/ChromaDB needed)",
+      "status": "complete",
+      "evidence": "All tests use unittest.mock: ChromaDB client is MagicMock with configurable count(), LLM agents are AsyncMock with predetermined responses (accept/reject verdicts as JSON), agent.py functions patched via patch.object(). No real LLM or ChromaDB connections needed. Tests run in <1 second.",
+      "test_file": "tests/test_integration_smoke.py",
+      "implementation_files": [
+        "tests/test_integration_smoke.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "All tests pass with pytest tests/ -v -m smoke",
+      "status": "complete",
+      "evidence": "Ran 'pytest tests/test_integration_smoke.py -v -m smoke' \u2014 all 18 tests passed. Also verified full suite (1507 tests) passes with zero failures. Added 'tests' to pyproject.toml testpaths so 'pytest tests/ -v -m smoke' discovers the tests.",
+      "test_file": "tests/test_integration_smoke.py",
+      "implementation_files": [
+        "tests/test_integration_smoke.py",
+        "pyproject.toml"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Test fixtures provide reusable config, domain, and agent setup",
+      "status": "complete",
+      "evidence": "Seven reusable pytest fixtures defined: config_dict (valid YAML as dict), config_yaml_path (writes YAML to tmp_path), agent_config (validated AgentConfig), domain_dir (creates domain directory with valid GOAL.md), mock_chromadb_collection, mock_chromadb_client, generation_target, generation_config. Three helper functions: _make_accept_verdict_json, _make_reject_verdict_json, _make_mock_agent_response.",
+      "test_file": "tests/test_integration_smoke.py",
+      "implementation_files": [
+        "tests/test_integration_smoke.py"
+      ]
+    }
+  ]
+}

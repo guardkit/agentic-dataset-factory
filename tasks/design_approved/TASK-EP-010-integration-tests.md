@@ -1,15 +1,15 @@
 ---
-id: TASK-EP-010
-title: "Integration tests — BDD smoke scenarios"
-task_type: testing
-parent_review: TASK-REV-9EDC
-feature_id: FEAT-2CF1
-wave: 4
-implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-EP-009
-status: pending
+- TASK-EP-009
+feature_id: FEAT-2CF1
+id: TASK-EP-010
+implementation_mode: task-work
+parent_review: TASK-REV-9EDC
+status: design_approved
+task_type: testing
+title: Integration tests — BDD smoke scenarios
+wave: 4
 ---
 
 # Task: Integration Tests — BDD Smoke Scenarios
