@@ -1,0 +1,35 @@
+{
+  "task_id": "TASK-GG-002",
+  "turn": 1,
+  "decision": "feedback",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": false,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": false
+    },
+    "independent_tests": null,
+    "requirements": null
+  },
+  "criteria_verification": [],
+  "acceptance_criteria_verification": {
+    "criteria_results": []
+  },
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "coverage",
+      "description": "Coverage threshold not met",
+      "details": {
+        "line_coverage": 5.0,
+        "branch_coverage": 0
+      }
+    }
+  ],
+  "rationale": "1 quality gate(s) failed",
+  "context_used": "## Job-Specific Context\n\nBudget: 1949/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- CREATES_FILES_IN\n- HAS_FIELD_WITH_LIST_TYPE\n- HAS_FIELD\n- DISPLAYS_NEXT_STEPS\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- REFERENCE_FOR\n- PART_OF_DIRECTORY_LAYOUT\n- CONTAINS\n\n### \u26a0\ufe0f Warnings\n- CAUSES_MOCK_RESULT\n- REQUIRES_USE_OF\n- HAS_SYMPTOM\n\n### \ud83c\udfad Role Constraints\n- DELEGATES_TO\n- HAS_ROLE_MUST_DO\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}

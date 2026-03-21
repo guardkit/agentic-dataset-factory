@@ -1,0 +1,139 @@
+{
+  "task_id": "TASK-GG-002",
+  "turn": 1,
+  "files_modified": [
+    ".claude/task-plans/TASK-GG-002-implementation-plan.md",
+    ".claude/task-plans/TASK-GG-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-GG-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-GG-002/turn_context.json",
+    ".guardkit/autobuild/TASK-GG-003/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-GG-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-GG-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-GG-003/turn_context.json",
+    ".guardkit/autobuild/TASK-GG-003/turn_state_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_1_to_5.py",
+    "`domains/gcse-english-tutor/GOAL.md",
+    "coverage.json",
+    "domains/gcse-english-tutor/GOAL.md",
+    "tasks/design_approved/TASK-GG-002-goal-md-sections-1-to-5.md",
+    "tasks/design_approved/TASK-GG-003-goal-md-sections-6-to-9.md",
+    "tests/test_goal_md_sections_1_to_5.py",
+    "tests/test_goal_md_sections_6_to_9.py"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-GG-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-GG-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-GG-003/checkpoints.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/.guardkit/autobuild/TASK-GG-002/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/domains/gcse-english-tutor/GOAL.md",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_1_to_5.py",
+    "`tests/test_goal_md_sections_1_to_5.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_1_to_5.py",
+    "`tests/test_goal_md_sections_1_to_5.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: Section 1 (Goal) references Socratic questioning, AQA specification, GCSE English",
+    "AC-002: Section 2 (Source Documents) table with File Pattern, Mode, Notes columns; standard/vlm modes",
+    "AC-003: Section 2 file patterns have no path traversal or absolute paths",
+    "AC-004: Section 3 (System Prompt) matches research doc verbatim; 100+ chars; refs AO1-AO6",
+    "AC-005: Section 4 (Generation Targets) table totalling 1,000; reasoning >= 75%",
+    "AC-006: Section 4 Type values are only reasoning or direct",
+    "AC-007: Section 5 (Generation Guidelines) 100+ chars; refs Socratic, mark scheme, think block",
+    "AC-008: All modified files pass lint/format checks"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 34,
+  "sdk_max_turns": 100,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 29,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Section 1 (Goal): References Socratic questioning, AQA specification, and GCSE English",
+      "status": "complete",
+      "evidence": "Goal section written with explicit references to 'Socratic' questioning, 'AQA specification', 'GCSE English', and Year 10 students. Verified by test_goal_references_socratic_questioning, test_goal_references_aqa_specification, and test_goal_references_gcse_english \u2014 all pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Section 2 (Source Documents): Markdown table with File Pattern, Mode, Notes columns; mode values are \"standard\" or \"vlm\" only",
+      "status": "complete",
+      "evidence": "Source Documents table created with 3 columns (File Pattern, Mode, Notes) and 2 data rows: mr-bruff-*.pdf (standard) and aqa-mark-schemes/*.pdf (standard). Verified by test_source_documents_table_columns, test_source_documents_has_data_rows, and test_source_documents_mode_values \u2014 all pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Section 2: File patterns do not contain \"..\" or absolute paths (security constraint)",
+      "status": "complete",
+      "evidence": "File patterns are relative glob patterns (mr-bruff-*.pdf, aqa-mark-schemes/*.pdf) with no '..' or leading '/'. Verified by test_file_patterns_no_path_traversal and test_file_patterns_no_absolute_paths \u2014 both pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Section 3 (System Prompt): Matches research doc verbatim; minimum 100 characters; references AO1-AO6",
+      "status": "complete",
+      "evidence": "System Prompt copied verbatim from docs/research/gcse-tutor-training-data-format.md lines 35-47. Contains 659 characters. References AO1 through AO6 and Socratic questioning. Verified by test_system_prompt_matches_research_doc, test_system_prompt_minimum_length, test_system_prompt_references_ao1_through_ao6, and test_system_prompt_references_socratic \u2014 all pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Section 4 (Generation Targets): Table with Category, Type, Count columns; total = 1,000; reasoning >= 75%",
+      "status": "complete",
+      "evidence": "Generation Targets table has 7 category rows with Category, Type, Count columns. Counts sum to exactly 1,000 (200+250+150+150+100+75+75). Reasoning: 750/1000 = 75%. Verified by test_generation_targets_total_is_1000, test_generation_targets_reasoning_split_gte_75_percent, and test_generation_targets_has_7_categories \u2014 all pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Section 4: Type values are only \"reasoning\" or \"direct\"",
+      "status": "complete",
+      "evidence": "All 7 rows use type 'reasoning' (4 rows) or 'direct' (3 rows). Verified by test_generation_targets_type_values_valid \u2014 passes.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Section 5 (Generation Guidelines): Minimum 100 characters; references Socratic questioning, mark scheme, think block format",
+      "status": "complete",
+      "evidence": "Generation Guidelines section is 1,700+ characters covering: Socratic questioning method, AQA mark scheme alignment, think block format for reasoning examples, multi-turn format for essay feedback, and age-appropriate language. Verified by test_generation_guidelines_minimum_length, test_generation_guidelines_references_socratic, test_generation_guidelines_references_mark_scheme, and test_generation_guidelines_references_think_block \u2014 all pass.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Test file compiles cleanly via py_compile. GOAL.md is markdown (no lint/compile check applicable). Full test suite of 165 tests passes with zero failures.",
+      "test_file": "tests/test_goal_md_sections_1_to_5.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md",
+        "tests/test_goal_md_sections_1_to_5.py"
+      ]
+    }
+  ]
+}
