@@ -1,0 +1,157 @@
+{
+  "task_id": "TASK-GG-003",
+  "timestamp": "2026-03-21T07:06:40.929305",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation",
+      "completed": false
+    },
+    "phase_4": {
+      "detected": true,
+      "completed": true
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 22,
+    "tests_failed": 0,
+    "coverage": null,
+    "coverage_met": null,
+    "all_passed": true
+  },
+  "files_modified": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/domains/gcse-english-tutor/GOAL.md",
+    "coverage.json",
+    "domains/gcse-english-tutor/GOAL.md",
+    "tasks/backlog/TASK-GG-002-goal-md-sections-1-to-5.md",
+    "tasks/backlog/TASK-GG-003-goal-md-sections-6-to-9.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-GG-002-implementation-plan.md",
+    ".claude/task-plans/TASK-GG-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-GG-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-GG-002/turn_context.json",
+    ".guardkit/autobuild/TASK-GG-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-GG-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-GG-003/turn_context.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/.guardkit/autobuild/TASK-GG-003/player_turn_1.json",
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_6_to_9.py",
+    "tasks/design_approved/TASK-GG-002-goal-md-sections-1-to-5.md",
+    "tasks/design_approved/TASK-GG-003-goal-md-sections-6-to-9.md",
+    "tests/test_goal_md_sections_1_to_5.py",
+    "tests/test_goal_md_sections_6_to_9.py"
+  ],
+  "tests_written": [
+    "/Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC/tests/test_goal_md_sections_6_to_9.py"
+  ],
+  "summary": "22 tests passed, all quality gates passed",
+  "sdk_turns": {
+    "turns_used": 39,
+    "max_turns": 100,
+    "ceiling_hit": false
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Section 6: 5 evaluation criteria; all names are valid Python identifiers (no hyphens); weights sum to 100%",
+      "status": "complete",
+      "evidence": "Section 6 contains exactly 5 criteria: socratic_approach (25%), ao_accuracy (25%), mark_scheme_aligned (20%), age_appropriate (15%), factual_accuracy (15%). All names use underscores (valid Python identifiers). Weights sum to 100%. Verified by tests: test_section_6_has_exactly_5_criteria, test_all_criterion_names_are_valid_python_identifiers, test_weights_sum_to_100_percent, test_expected_criteria_present.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Section 6: Each criterion has a description and a weight column",
+      "status": "complete",
+      "evidence": "All 5 criteria have non-empty Description and Weight columns in the markdown table. Verified by test_each_criterion_has_description_and_weight.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Section 7: Contains valid JSON code block with messages and metadata top-level keys",
+      "status": "complete",
+      "evidence": "Section 7 contains a valid JSON code block with ShareGPT format. The JSON object has 'messages' (array with system/user/assistant roles) and 'metadata' (object with layer, type, ao, text, topic, grade_target, source, turns). Verified by tests: test_contains_valid_json_code_block, test_json_has_messages_key, test_json_has_metadata_key, test_messages_is_array, test_metadata_is_object.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Section 8: Markdown table with Field, Type, Required, Valid Values columns",
+      "status": "complete",
+      "evidence": "Section 8 contains a markdown table with all 4 required columns: Field, Type, Required, Valid Values. 8 data rows present. Verified by test_table_has_required_columns.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Section 8: All fields have Required = yes",
+      "status": "complete",
+      "evidence": "All 8 metadata fields (layer, type, ao, text, topic, grade_target, source, turns) have Required = 'yes'. Verified by test_all_fields_required_yes.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Section 8: text valid values include all AQA set text identifiers",
+      "status": "complete",
+      "evidence": "text field valid values include all 8 AQA set text identifiers: macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry. Verified by test_text_valid_values_include_all_aqa_set_texts.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Section 8: ao valid values are AO1 through AO6 only (not AO7+)",
+      "status": "complete",
+      "evidence": "ao field valid values are exactly AO1, AO2, AO3, AO4, AO5, AO6 (with note 'can be empty'). No AO7+ values present. Verified by test_ao_valid_values_are_ao1_through_ao6_only.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Section 8: grade_target valid values are 4-9 and null",
+      "status": "complete",
+      "evidence": "grade_target field valid values are '4, 5, 6, 7, 8, 9, null'. No grades outside 4-9 (verified no 1, 2, 3, or 10). Verified by test_grade_target_valid_values_are_4_to_9_and_null.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Section 9: Contains behaviour and knowledge rows with destinations",
+      "status": "complete",
+      "evidence": "Section 9 Layer Routing table has 'behaviour' row routing to 'output/train.jsonl' and 'knowledge' row routing to 'output/rag_index/knowledge.jsonl'. Also includes Purpose column and classification rules text. Verified by tests: test_contains_behaviour_row, test_contains_knowledge_row, test_behaviour_routes_to_train_jsonl, test_knowledge_routes_to_rag_index, test_layer_routing_has_classification_rules.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "The test file compiles with py_compile. GOAL.md is a markdown file \u2014 no lint/format tool applies. All 44 tests (22 existing domain structure + 22 new) pass with zero failures.",
+      "test_file": "tests/test_goal_md_sections_6_to_9.py",
+      "implementation_files": [
+        "domains/gcse-english-tutor/GOAL.md"
+      ]
+    }
+  ]
+}
