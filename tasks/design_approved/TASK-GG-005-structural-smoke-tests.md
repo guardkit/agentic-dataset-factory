@@ -1,17 +1,18 @@
 ---
-id: TASK-GG-005
-title: "Write GOAL.md structural smoke tests for section presence, format, and split ratio"
-task_type: testing
-parent_review: TASK-REV-843F
-feature_id: FEAT-GG
-wave: 2
-implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-GG-002
-  - TASK-GG-003
-status: pending
+- TASK-GG-002
+- TASK-GG-003
 estimated_minutes: 60
+feature_id: FEAT-GG
+id: TASK-GG-005
+implementation_mode: task-work
+parent_review: TASK-REV-843F
+status: design_approved
+task_type: testing
+title: Write GOAL.md structural smoke tests for section presence, format, and split
+  ratio
+wave: 2
 ---
 
 # Task: Write GOAL.md structural smoke tests

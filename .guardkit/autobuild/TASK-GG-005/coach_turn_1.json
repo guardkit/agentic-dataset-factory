@@ -1,0 +1,197 @@
+{
+  "task_id": "TASK-GG-005",
+  "turn": 1,
+  "decision": "approve",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "skipped",
+      "test_output_summary": "Independent test verification skipped (tests not required for testing tasks)",
+      "duration_seconds": 0.0
+    },
+    "requirements": {
+      "criteria_total": 10,
+      "criteria_met": 10,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Test file created at `tests/test_goal_md_structure.py`",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "File created at tests/test_goal_md_structure.py with 20 tests across 8 test classes. File uses only stdlib + pytest (no project module dependencies).",
+      "notes": "File created at tests/test_goal_md_structure.py with 20 tests across 8 test classes. File uses only stdlib + pytest (no project module dependencies)."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Test verifies all 9 section headings are present",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestAllSectionsPresent class uses @pytest.mark.parametrize with all 9 required section headings (Goal, Source Documents, System Prompt, Generation Targets, Generation Guidelines, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing). Each heading is checked via regex pattern matching for '## <heading>' at the start of a line.",
+      "notes": "TestAllSectionsPresent class uses @pytest.mark.parametrize with all 9 required section headings (Goal, Source Documents, System Prompt, Generation Targets, Generation Guidelines, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing). Each heading is checked via regex pattern matching for '## <heading>' at the start of a line."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Test verifies generation targets sum to exactly 1,000",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestGenerationTargets.test_targets_sum_to_1000 parses the Generation Targets markdown table, sums the Count column values, and asserts total == 1000.",
+      "notes": "TestGenerationTargets.test_targets_sum_to_1000 parses the Generation Targets markdown table, sums the Count column values, and asserts total == 1000."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Test verifies reasoning percentage >= 70%",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestGenerationTargets.test_reasoning_percentage_gte_70 calculates the ratio of reasoning-type counts to total counts and asserts ratio >= 0.70.",
+      "notes": "TestGenerationTargets.test_reasoning_percentage_gte_70 calculates the ratio of reasoning-type counts to total counts and asserts ratio >= 0.70."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Test verifies system prompt length >= 100 characters",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestSystemPrompt.test_system_prompt_min_100_chars extracts the System Prompt section and asserts len(section) >= 100.",
+      "notes": "TestSystemPrompt.test_system_prompt_min_100_chars extracts the System Prompt section and asserts len(section) >= 100."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Test verifies generation guidelines length >= 100 characters",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestGenerationGuidelines.test_generation_guidelines_min_100_chars extracts the Generation Guidelines section and asserts len(section) >= 100.",
+      "notes": "TestGenerationGuidelines.test_generation_guidelines_min_100_chars extracts the Generation Guidelines section and asserts len(section) >= 100."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Test verifies output schema is valid JSON with required keys",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestOutputSchema has 3 tests: test_output_schema_valid_json (parses JSON and checks it's a dict), test_output_schema_has_messages_key, and test_output_schema_has_metadata_key. JSON is extracted from ```json fenced code block via regex.",
+      "notes": "TestOutputSchema has 3 tests: test_output_schema_valid_json (parses JSON and checks it's a dict), test_output_schema_has_messages_key, and test_output_schema_has_metadata_key. JSON is extracted from ```json fenced code block via regex."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Test verifies evaluation criteria weights sum to ~100% (\u00b11%)",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestEvaluationCriteria.test_weights_sum_to_100_within_tolerance parses the Evaluation Criteria table, extracts Weight column values (stripping % suffix), sums them, and asserts abs(total - 100) <= 1.",
+      "notes": "TestEvaluationCriteria.test_weights_sum_to_100_within_tolerance parses the Evaluation Criteria table, extracts Weight column values (stripping % suffix), sums them, and asserts abs(total - 100) <= 1."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Test verifies layer routing contains behaviour and knowledge entries",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestLayerRouting has 2 tests: test_layer_routing_has_behaviour and test_layer_routing_has_knowledge. Both parse the Layer Routing table and check the Layer column for the expected values.",
+      "notes": "TestLayerRouting has 2 tests: test_layer_routing_has_behaviour and test_layer_routing_has_knowledge. Both parse the Layer Routing table and check the Layer column for the expected values."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "Test verifies no path traversal in source document patterns",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "TestSourceDocumentsSecurity.test_no_path_traversal_in_file_patterns parses Source Documents table and asserts '..' is not in any file pattern value.",
+      "notes": "TestSourceDocumentsSecurity.test_no_path_traversal_in_file_patterns parses Source Documents table and asserts '..' is not in any file pattern value."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Test file created at `tests/test_goal_md_structure.py`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "File created at tests/test_goal_md_structure.py with 20 tests across 8 test classes. File uses only stdlib + pytest (no project module dependencies).",
+        "notes": "File created at tests/test_goal_md_structure.py with 20 tests across 8 test classes. File uses only stdlib + pytest (no project module dependencies)."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Test verifies all 9 section headings are present",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestAllSectionsPresent class uses @pytest.mark.parametrize with all 9 required section headings (Goal, Source Documents, System Prompt, Generation Targets, Generation Guidelines, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing). Each heading is checked via regex pattern matching for '## <heading>' at the start of a line.",
+        "notes": "TestAllSectionsPresent class uses @pytest.mark.parametrize with all 9 required section headings (Goal, Source Documents, System Prompt, Generation Targets, Generation Guidelines, Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing). Each heading is checked via regex pattern matching for '## <heading>' at the start of a line."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Test verifies generation targets sum to exactly 1,000",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestGenerationTargets.test_targets_sum_to_1000 parses the Generation Targets markdown table, sums the Count column values, and asserts total == 1000.",
+        "notes": "TestGenerationTargets.test_targets_sum_to_1000 parses the Generation Targets markdown table, sums the Count column values, and asserts total == 1000."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Test verifies reasoning percentage >= 70%",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestGenerationTargets.test_reasoning_percentage_gte_70 calculates the ratio of reasoning-type counts to total counts and asserts ratio >= 0.70.",
+        "notes": "TestGenerationTargets.test_reasoning_percentage_gte_70 calculates the ratio of reasoning-type counts to total counts and asserts ratio >= 0.70."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Test verifies system prompt length >= 100 characters",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestSystemPrompt.test_system_prompt_min_100_chars extracts the System Prompt section and asserts len(section) >= 100.",
+        "notes": "TestSystemPrompt.test_system_prompt_min_100_chars extracts the System Prompt section and asserts len(section) >= 100."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Test verifies generation guidelines length >= 100 characters",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestGenerationGuidelines.test_generation_guidelines_min_100_chars extracts the Generation Guidelines section and asserts len(section) >= 100.",
+        "notes": "TestGenerationGuidelines.test_generation_guidelines_min_100_chars extracts the Generation Guidelines section and asserts len(section) >= 100."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Test verifies output schema is valid JSON with required keys",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestOutputSchema has 3 tests: test_output_schema_valid_json (parses JSON and checks it's a dict), test_output_schema_has_messages_key, and test_output_schema_has_metadata_key. JSON is extracted from ```json fenced code block via regex.",
+        "notes": "TestOutputSchema has 3 tests: test_output_schema_valid_json (parses JSON and checks it's a dict), test_output_schema_has_messages_key, and test_output_schema_has_metadata_key. JSON is extracted from ```json fenced code block via regex."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Test verifies evaluation criteria weights sum to ~100% (\u00b11%)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestEvaluationCriteria.test_weights_sum_to_100_within_tolerance parses the Evaluation Criteria table, extracts Weight column values (stripping % suffix), sums them, and asserts abs(total - 100) <= 1.",
+        "notes": "TestEvaluationCriteria.test_weights_sum_to_100_within_tolerance parses the Evaluation Criteria table, extracts Weight column values (stripping % suffix), sums them, and asserts abs(total - 100) <= 1."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Test verifies layer routing contains behaviour and knowledge entries",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestLayerRouting has 2 tests: test_layer_routing_has_behaviour and test_layer_routing_has_knowledge. Both parse the Layer Routing table and check the Layer column for the expected values.",
+        "notes": "TestLayerRouting has 2 tests: test_layer_routing_has_behaviour and test_layer_routing_has_knowledge. Both parse the Layer Routing table and check the Layer column for the expected values."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "Test verifies no path traversal in source document patterns",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "TestSourceDocumentsSecurity.test_no_path_traversal_in_file_patterns parses Source Documents table and asserts '..' is not in any file pattern value.",
+        "notes": "TestSourceDocumentsSecurity.test_no_path_traversal_in_file_patterns parses Source Documents table and asserts '..' is not in any file pattern value."
+      }
+    ]
+  },
+  "issues": [],
+  "rationale": "All quality gates passed. Tests not required for this task type. All acceptance criteria met. Architecture context: 480 chars provided.",
+  "context_used": "## Job-Specific Context\n\nBudget: 2292/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- CREATES_FILES_IN\n- HAS_CATEGORY\n- ASSIGNS_TASK_TO\n- CALLED_BY\n\n### \ud83c\udfd7\ufe0f Architecture Context\n- REFERENCE_FOR\n- CONTAINS\n- REFERENCE_FOR\n\n### \u26a0\ufe0f Warnings\n- APPLIES_TO\n- IS_IMPLEMENTED_AS\n- HAS_ROOT_CAUSE\n\n### \ud83c\udfad Role Constraints\n- HAS_ROLE_MUST_DO\n- ASKS_BEFORE_APPROVING_WITH_FAILING_TESTS\n- PROJECT_INVOLVES\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- PITFALL_OF_IMPLEMENTATION_MODE\n- HAS_PROJECT_ID\n- APPLIES_TO_TASK\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false
+}
