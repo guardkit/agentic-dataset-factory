@@ -1,0 +1,28 @@
+domain: gcse-english-tutor
+
+player:
+  provider: local
+  model: Qwen/Qwen3.5-35B-A3B-FP8
+  endpoint: http://promaxgb10-41b1:8002/v1
+  temperature: 0.6
+
+coach:
+  provider: local
+  model: Qwen/Qwen3.5-35B-A3B-FP8
+  endpoint: http://promaxgb10-41b1:8002/v1
+  temperature: 0.3
+
+generation:
+  max_turns: 3
+  llm_retry_attempts: 3
+  llm_retry_backoff: 2.0
+  llm_timeout: 300
+  target_timeout: 600
+
+chunking:
+  chunk_size: 512
+  overlap: 64
+
+logging:
+  level: DEBUG
+  format: json

@@ -1,10 +1,10 @@
 id: FEAT-6D0B
-name: Entrypoint — Config Loading, Validation, and Generation Loop Orchestration
+name: "Entrypoint \u2014 Config Loading, Validation, and Generation Loop Orchestration"
 description: Pydantic config loading, domain resolution, ChromaDB readiness check,
   DeepAgents SDK agent instantiation, and sequential Player-Coach generation loop
   with ADR-ARCH-010 resilience (retry, checkpoint/resume, per-target timeout)
 created: '2026-03-19T22:32:01.955030'
-status: planned
+status: completed
 complexity: 6
 estimated_tasks: 10
 tasks:
@@ -13,60 +13,108 @@ tasks:
   file_path: tasks/backlog/entrypoint/TASK-EP-001-pydantic-config-models.md
   complexity: 3
   dependencies: []
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:28:43.387217'
+  completed_at: '2026-03-20T23:36:11.484108'
 - id: TASK-EP-002
   name: Config loader
   file_path: tasks/backlog/entrypoint/TASK-EP-002-config-loader.md
   complexity: 3
   dependencies:
   - TASK-EP-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:36:11.500842'
+  completed_at: '2026-03-20T23:43:53.029719'
 - id: TASK-EP-003
   name: Structured JSON logging
   file_path: tasks/backlog/entrypoint/TASK-EP-003-structured-json-logging.md
   complexity: 2
   dependencies:
   - TASK-EP-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 22
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:36:11.504985'
+  completed_at: '2026-03-20T23:43:53.034126'
 - id: TASK-EP-004
   name: Domain resolution and ChromaDB check
   file_path: tasks/backlog/entrypoint/TASK-EP-004-domain-resolution-chromadb-check.md
   complexity: 3
   dependencies:
   - TASK-EP-002
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:43:53.049390'
+  completed_at: '2026-03-20T23:52:55.134422'
 - id: TASK-EP-005
   name: Checkpoint resume and lock file
   file_path: tasks/backlog/entrypoint/TASK-EP-005-checkpoint-resume-lock.md
   complexity: 4
   dependencies:
   - TASK-EP-002
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:43:53.053128'
+  completed_at: '2026-03-20T23:52:55.138793'
 - id: TASK-EP-006
   name: Output directory management
   file_path: tasks/backlog/entrypoint/TASK-EP-006-output-directory-management.md
   complexity: 2
   dependencies:
   - TASK-EP-005
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 22
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T23:52:58.918260'
+  completed_at: '2026-03-21T00:01:38.248377'
 - id: TASK-EP-007
   name: Generation loop Player-Coach cycle
   file_path: tasks/backlog/entrypoint/TASK-EP-007-generation-loop.md
@@ -74,20 +122,36 @@ tasks:
   dependencies:
   - TASK-EP-005
   - TASK-EP-006
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 113
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T00:01:38.263139'
+  completed_at: '2026-03-21T00:14:00.595417'
 - id: TASK-EP-008
   name: LangGraph thin wrapper
   file_path: tasks/backlog/entrypoint/TASK-EP-008-langgraph-wrapper.md
   complexity: 3
   dependencies:
   - TASK-EP-007
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T00:14:00.615269'
+  completed_at: '2026-03-21T00:21:34.329283'
 - id: TASK-EP-009
   name: Startup orchestration
   file_path: tasks/backlog/entrypoint/TASK-EP-009-startup-orchestration.md
@@ -96,20 +160,36 @@ tasks:
   - TASK-EP-004
   - TASK-EP-007
   - TASK-EP-008
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T00:21:34.346039'
+  completed_at: '2026-03-21T00:31:44.054894'
 - id: TASK-EP-010
   name: Integration tests
   file_path: tasks/backlog/entrypoint/TASK-EP-010-integration-tests.md
   complexity: 4
   dependencies:
   - TASK-EP-009
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T00:31:44.071254'
+  completed_at: '2026-03-21T00:41:34.926456'
 orchestration:
   parallel_groups:
   - - TASK-EP-001
@@ -124,3 +204,23 @@ orchestration:
   - - TASK-EP-010
   estimated_duration_minutes: 439
   recommended_parallel: 2
+execution:
+  started_at: '2026-03-20T23:28:43.360343'
+  completed_at: '2026-03-21T00:41:34.936191'
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B
+  total_turns: 10
+  tasks_completed: 10
+  tasks_failed: 0
+  current_wave: 8
+  completed_waves:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  last_updated: '2026-03-21T00:41:34.931293'
+  archived_at: null
+  archived_to: null

@@ -268,16 +268,16 @@ class TestIndexChunksMetadata:
         assert expected_keys.issubset(metadata_keys)
 
     def test_chunk_ids_are_deterministic(self, indexer, sample_chunks):
-        """IDs should be {domain}_{source_file}_{chunk_index}."""
+        """IDs should be {domain}_{source_file}_p{page}_c{chunk_index}."""
         collection = indexer.create_or_replace_collection("gcse-english-tutor")
         indexer.index_chunks(collection, sample_chunks)
 
         result = collection.get()
         ids = set(result["ids"])
         expected_ids = {
-            "gcse-english-tutor_mr-bruff-language.pdf_0",
-            "gcse-english-tutor_mr-bruff-language.pdf_1",
-            "gcse-english-tutor_mr-bruff-language.pdf_2",
+            "gcse-english-tutor_mr-bruff-language.pdf_p1_c0",
+            "gcse-english-tutor_mr-bruff-language.pdf_p1_c1",
+            "gcse-english-tutor_mr-bruff-language.pdf_p2_c2",
         }
         assert ids == expected_ids
 

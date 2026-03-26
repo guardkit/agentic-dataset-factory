@@ -1,6 +1,6 @@
 ---
 id: TASK-ING-005
-title: "Implement GOAL.md Source Documents reader"
+title: Implement GOAL.md Source Documents reader
 task_type: feature
 parent_review: TASK-REV-F479
 feature_id: FEAT-ING
@@ -8,22 +8,48 @@ wave: 2
 implementation_mode: direct
 complexity: 3
 dependencies:
-  - TASK-ING-001
-status: pending
+- TASK-ING-001
+status: in_review
 priority: high
-tags: [ingestion, goal-md, file-resolution]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- ingestion
+- goal-md
+- file-resolution
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 consumer_context:
-  - task: TASK-DC-001
-    consumes: SourceDocument
-    framework: "Pydantic v2 BaseModel"
-    driver: "pydantic"
-    format_note: "SourceDocument model with file_pattern (str), mode (Literal['standard', 'vlm']), and notes (str) fields. Until TASK-DC-001 completes, use the stub in ingestion/models.py"
+- task: TASK-DC-001
+  consumes: SourceDocument
+  framework: Pydantic v2 BaseModel
+  driver: pydantic
+  format_note: SourceDocument model with file_pattern (str), mode (Literal['standard',
+    'vlm']), and notes (str) fields. Until TASK-DC-001 completes, use the stub in
+    ingestion/models.py
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D
+  base_branch: main
+  started_at: '2026-03-20T16:48:21.488025'
+  last_updated: '2026-03-20T16:59:45.662156'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T16:48:21.488025'
+    player_summary: 'Implemented ingestion/goal_reader.py with two public functions:
+      read_source_documents() and resolve_source_files(). The module parses the Source
+      Documents markdown table from GOAL.md using regex-based section extraction and
+      table parsing, then resolves glob patterns against the sources/ directory. Security
+      measures include path traversal detection via regex and realpath-based prefix
+      checking. All functions use the existing error hierarchy (DomainNotFoundError,
+      GoalValidationError) from ingestion'
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement GOAL.md Source Documents reader

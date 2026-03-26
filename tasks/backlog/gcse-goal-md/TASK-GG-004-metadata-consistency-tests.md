@@ -1,6 +1,6 @@
 ---
 id: TASK-GG-004
-title: "Write metadata consistency tests cross-validating GOAL.md against validator.py"
+title: Write metadata consistency tests cross-validating GOAL.md against validator.py
 task_type: testing
 parent_review: TASK-REV-843F
 feature_id: FEAT-GG
@@ -8,16 +8,32 @@ wave: 2
 implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-GG-002
-  - TASK-GG-003
-status: pending
+- TASK-GG-002
+- TASK-GG-003
+status: in_review
 estimated_minutes: 60
 consumer_context:
-  - task: TASK-GG-003
-    consumes: METADATA_VALID_VALUES
-    framework: "pytest + synthesis.validator Pydantic models"
-    driver: "pydantic"
-    format_note: "Text and topic valid values in GOAL.md Metadata Schema table must be a superset of Literal values in synthesis/validator.py Metadata model"
+- task: TASK-GG-003
+  consumes: METADATA_VALID_VALUES
+  framework: pytest + synthesis.validator Pydantic models
+  driver: pydantic
+  format_note: Text and topic valid values in GOAL.md Metadata Schema table must be
+    a superset of Literal values in synthesis/validator.py Metadata model
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC
+  base_branch: main
+  started_at: '2026-03-21T07:13:25.500546'
+  last_updated: '2026-03-21T07:17:41.734466'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-21T07:13:25.500546'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Write metadata consistency tests cross-validating GOAL.md against validator.py

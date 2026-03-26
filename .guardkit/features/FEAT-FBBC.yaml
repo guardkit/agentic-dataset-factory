@@ -1,10 +1,10 @@
 id: FEAT-FBBC
-name: GCSE English Tutor GOAL.md — First Domain Configuration
+name: "GCSE English Tutor GOAL.md \u2014 First Domain Configuration"
 description: Author the complete GCSE English tutor GOAL.md with all 9 sections populated
   from the research specification and AQA curriculum requirements, plus validation
   tests ensuring metadata consistency with synthesis/validator.py Pydantic models
 created: '2026-03-19T22:42:12.519924'
-status: planned
+status: completed
 complexity: 5
 estimated_tasks: 5
 tasks:
@@ -13,30 +13,54 @@ tasks:
   file_path: tasks/backlog/gcse-goal-md/TASK-GG-001-domain-directory-structure.md
   complexity: 3
   dependencies: []
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T06:59:36.157249'
+  completed_at: '2026-03-21T07:02:36.415900'
 - id: TASK-GG-002
   name: Author GOAL.md sections 1-5
   file_path: tasks/backlog/gcse-goal-md/TASK-GG-002-goal-md-sections-1-to-5.md
   complexity: 5
   dependencies:
   - TASK-GG-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 2
+    final_decision: approved
+    error: null
+  turns_completed: 2
+  current_turn: 0
+  started_at: '2026-03-21T07:02:36.426857'
+  completed_at: '2026-03-21T07:13:25.465653'
 - id: TASK-GG-003
   name: Author GOAL.md sections 6-9
   file_path: tasks/backlog/gcse-goal-md/TASK-GG-003-goal-md-sections-6-to-9.md
   complexity: 5
   dependencies:
   - TASK-GG-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T07:02:36.429417'
+  completed_at: '2026-03-21T07:13:25.469307'
 - id: TASK-GG-004
   name: Write metadata consistency tests
   file_path: tasks/backlog/gcse-goal-md/TASK-GG-004-metadata-consistency-tests.md
@@ -44,10 +68,18 @@ tasks:
   dependencies:
   - TASK-GG-002
   - TASK-GG-003
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T07:13:25.489277'
+  completed_at: '2026-03-21T07:17:41.736969'
 - id: TASK-GG-005
   name: Write structural smoke tests
   file_path: tasks/backlog/gcse-goal-md/TASK-GG-005-structural-smoke-tests.md
@@ -55,10 +87,18 @@ tasks:
   dependencies:
   - TASK-GG-002
   - TASK-GG-003
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 50
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-21T07:13:25.491827'
+  completed_at: '2026-03-21T07:17:41.740097'
 orchestration:
   parallel_groups:
   - - TASK-GG-001
@@ -68,3 +108,18 @@ orchestration:
     - TASK-GG-005
   estimated_duration_minutes: 283
   recommended_parallel: 2
+execution:
+  started_at: '2026-03-21T06:59:36.132386'
+  completed_at: '2026-03-21T07:17:41.747248'
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC
+  total_turns: 6
+  tasks_completed: 5
+  tasks_failed: 0
+  current_wave: 3
+  completed_waves:
+  - 1
+  - 2
+  - 3
+  last_updated: '2026-03-21T07:17:41.743365'
+  archived_at: null
+  archived_to: null

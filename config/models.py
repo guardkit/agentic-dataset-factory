@@ -107,6 +107,7 @@ class GenerationConfig(BaseModel):
         llm_retry_backoff: Exponential backoff base in seconds.
         llm_timeout: Per-LLM-call timeout in seconds.
         target_timeout: Per-target timeout in seconds.
+        max_write_attempts: Max write_output retries per target before rejection.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -135,6 +136,11 @@ class GenerationConfig(BaseModel):
         default=600,
         ge=1,
         description="Per-target timeout in seconds (ADR-ARCH-010).",
+    )
+    max_write_attempts: int = Field(
+        default=3,
+        ge=1,
+        description="Max write_output retries per target before rejection (TASK-TRF-006).",
     )
 
     @field_validator("max_turns", mode="after")

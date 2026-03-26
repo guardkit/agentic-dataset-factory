@@ -146,8 +146,9 @@ class ChromaDBIndexer:
             for chunk in batch:
                 domain = chunk.metadata.get("domain", "unknown")
                 source_file = chunk.metadata.get("source_file", "unknown")
+                page_number = chunk.metadata.get("page_number", 0)
                 chunk_index = chunk.metadata.get("chunk_index", 0)
-                chunk_id = f"{domain}_{source_file}_{chunk_index}"
+                chunk_id = f"{domain}_{source_file}_p{page_number}_c{chunk_index}"
 
                 ids.append(chunk_id)
                 documents.append(chunk.text)

@@ -1,6 +1,6 @@
 ---
 id: TASK-AF-002
-title: "Create prompt builder module"
+title: Create prompt builder module
 task_type: feature
 parent_review: TASK-REV-DAA1
 feature_id: FEAT-AF
@@ -8,8 +8,28 @@ wave: 1
 implementation_mode: task-work
 complexity: 4
 dependencies: []
-status: pending
-tags: [prompts, goal-md, injection, player, coach]
+status: in_review
+tags:
+- prompts
+- goal-md
+- injection
+- player
+- coach
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9
+  base_branch: main
+  started_at: '2026-03-20T22:47:21.306581'
+  last_updated: '2026-03-20T22:58:22.059681'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T22:47:21.306581'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Create prompt builder module

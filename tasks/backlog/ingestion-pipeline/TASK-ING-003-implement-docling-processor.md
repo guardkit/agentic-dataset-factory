@@ -1,6 +1,6 @@
 ---
 id: TASK-ING-003
-title: "Implement Docling processor for standard and VLM modes"
+title: Implement Docling processor for standard and VLM modes
 task_type: feature
 parent_review: TASK-REV-F479
 feature_id: FEAT-ING
@@ -8,16 +8,34 @@ wave: 2
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-ING-001
-status: pending
+- TASK-ING-001
+status: in_review
 priority: high
-tags: [ingestion, docling, pdf-processing]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- ingestion
+- docling
+- pdf-processing
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D
+  base_branch: main
+  started_at: '2026-03-20T16:48:21.490058'
+  last_updated: '2026-03-20T17:00:25.060854'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T16:48:21.490058'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement Docling processor for standard and VLM modes

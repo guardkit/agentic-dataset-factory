@@ -1,6 +1,7 @@
 ---
 id: TASK-GG-003
-title: "Author GOAL.md sections 6-9: Evaluation Criteria, Output Schema, Metadata Schema, Layer Routing"
+title: 'Author GOAL.md sections 6-9: Evaluation Criteria, Output Schema, Metadata
+  Schema, Layer Routing'
 task_type: feature
 parent_review: TASK-REV-843F
 feature_id: FEAT-GG
@@ -8,9 +9,24 @@ wave: 1
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-GG-001
-status: pending
+- TASK-GG-001
+status: in_review
 estimated_minutes: 90
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC
+  base_branch: main
+  started_at: '2026-03-21T07:02:36.438405'
+  last_updated: '2026-03-21T07:06:51.065907'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-21T07:02:36.438405'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Author GOAL.md sections 6-9

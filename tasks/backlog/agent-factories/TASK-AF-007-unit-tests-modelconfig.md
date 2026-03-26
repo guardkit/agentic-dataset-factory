@@ -1,6 +1,6 @@
 ---
 id: TASK-AF-007
-title: "Unit tests for ModelConfig"
+title: Unit tests for ModelConfig
 task_type: testing
 parent_review: TASK-REV-DAA1
 feature_id: FEAT-AF
@@ -8,9 +8,29 @@ wave: 2
 implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-001
-status: pending
-tags: [testing, pydantic, validation, model-config, boundary]
+- TASK-AF-001
+status: in_review
+tags:
+- testing
+- pydantic
+- validation
+- model-config
+- boundary
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9
+  base_branch: main
+  started_at: '2026-03-20T22:58:25.791029'
+  last_updated: '2026-03-20T23:04:23.294985'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T22:58:25.791029'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Unit tests for ModelConfig

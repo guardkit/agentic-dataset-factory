@@ -1,6 +1,6 @@
 ---
 id: TASK-AF-006
-title: "Create shared model factory"
+title: Create shared model factory
 task_type: feature
 parent_review: TASK-REV-DAA1
 feature_id: FEAT-AF
@@ -8,15 +8,35 @@ wave: 1
 implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-001
-status: pending
-tags: [model-factory, langchain, init-chat-model, DRY]
+- TASK-AF-001
+status: in_review
+tags:
+- model-factory
+- langchain
+- init-chat-model
+- DRY
 consumer_context:
-  - task: TASK-AF-001
-    consumes: ModelConfig
-    framework: "LangChain init_chat_model"
-    driver: "langchain"
-    format_note: "ModelConfig fields (provider, model, endpoint, temperature) must be translated to init_chat_model parameters"
+- task: TASK-AF-001
+  consumes: ModelConfig
+  framework: LangChain init_chat_model
+  driver: langchain
+  format_note: ModelConfig fields (provider, model, endpoint, temperature) must be
+    translated to init_chat_model parameters
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9
+  base_branch: main
+  started_at: '2026-03-20T22:58:25.797682'
+  last_updated: '2026-03-20T23:06:39.686727'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T22:58:25.797682'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Create shared model factory

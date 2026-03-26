@@ -1,6 +1,6 @@
 ---
 id: TASK-LCT-005
-title: "Unit and integration tests for LangChain tools (41 BDD scenarios)"
+title: Unit and integration tests for LangChain tools (41 BDD scenarios)
 task_type: testing
 parent_review: TASK-REV-723B
 feature_id: FEAT-LCT
@@ -8,12 +8,31 @@ wave: 3
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-LCT-002
-  - TASK-LCT-003
-  - TASK-LCT-004
-status: pending
+- TASK-LCT-002
+- TASK-LCT-003
+- TASK-LCT-004
+status: in_review
 priority: high
-tags: [langchain-tools, testing, bdd, pytest]
+tags:
+- langchain-tools
+- testing
+- bdd
+- pytest
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D
+  base_branch: main
+  started_at: '2026-03-20T21:05:42.192664'
+  last_updated: '2026-03-20T21:16:23.055075'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T21:05:42.192664'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Unit and integration tests for LangChain tools

@@ -1,6 +1,6 @@
 ---
 id: TASK-AF-009
-title: "Unit tests for Coach factory"
+title: Unit tests for Coach factory
 task_type: testing
 parent_review: TASK-REV-DAA1
 feature_id: FEAT-AF
@@ -8,9 +8,30 @@ wave: 3
 implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-AF-004
-status: pending
-tags: [testing, coach, factory, mock, role-separation, d5]
+- TASK-AF-004
+status: in_review
+tags:
+- testing
+- coach
+- factory
+- mock
+- role-separation
+- d5
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9
+  base_branch: main
+  started_at: '2026-03-20T23:08:57.236402'
+  last_updated: '2026-03-20T23:15:03.951086'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T23:08:57.236402'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Unit tests for Coach factory

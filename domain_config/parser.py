@@ -217,8 +217,22 @@ def parse_table(
             return {}
         return []
 
-    # --- Identify header row and extract column order ---
-    header_cells = _parse_row(lines[0])
+    # --- Locate the header row (first pipe-delimited line matching column_map) ---
+    header_line_idx = None
+    for i, ln in enumerate(lines):
+        if "|" in ln and not _is_separator(ln):
+            cells = _parse_row(ln)
+            # Check if any cell matches a known column header
+            if any(c.strip() in column_map for c in cells):
+                header_line_idx = i
+                break
+
+    if header_line_idx is None:
+        if model_class is dict:
+            return {}
+        return []
+
+    header_cells = _parse_row(lines[header_line_idx])
     # Build an ordered mapping: column_index -> model_field_name
     col_index_to_field: dict[int, str] = {}
     for idx, header in enumerate(header_cells):
@@ -226,12 +240,16 @@ def parse_table(
         if header_stripped in column_map:
             col_index_to_field[idx] = column_map[header_stripped]
 
-    # --- Process data rows (skip header + separator) ---
+    # --- Process data rows (skip everything before header + separator) ---
     dict_result: dict[str, str] = {}
     model_results: list[BaseModel] = []
 
-    for line in lines[1:]:
+    for line in lines[header_line_idx + 1:]:
         if _is_separator(line):
+            continue
+
+        # Skip non-table lines (no pipes)
+        if "|" not in line:
             continue
 
         cells = _parse_row(line)

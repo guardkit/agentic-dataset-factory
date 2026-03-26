@@ -25,8 +25,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from pathlib import Path
 from typing import TypedDict
+
+from dotenv import load_dotenv
+
+# Load .env (ANTHROPIC_API_KEY, LANGSMITH_*, etc.) before any SDK imports
+load_dotenv()
+
+# Add src/ to Python path so that `from tools.*` imports resolve at runtime
+# (matches pyproject.toml [tool.pytest.ini_options] pythonpath = ["src"])
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from langgraph.graph import END, StateGraph
 
@@ -41,7 +51,7 @@ from entrypoint.output import OutputFileManager
 from entrypoint.startup import configure_langsmith, resolve_domain, verify_chromadb_collection
 from prompts.coach_prompts import build_coach_prompt
 from prompts.player_prompts import build_player_prompt
-from src.tools.tool_factory import create_player_tools
+from tools.tool_factory import create_player_tools, create_write_tool
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +145,11 @@ def run_pipeline(state: PipelineState) -> PipelineState:
         # Step 9: Create tools
         tools = create_player_tools(
             collection_name=config.domain,
+        )
+
+        # Step 9b: Create write tool for orchestrator-gated writes
+        # (TASK-TRF-005: only the orchestrator writes, after Coach acceptance)
+        write_tool = create_write_tool(
             output_dir=OUTPUT_DIR,
             metadata_schema=goal.metadata_schema,
         )
@@ -178,6 +193,7 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                         config=config.generation,
                         checkpoint=checkpoint_mgr,
                         output_manager=output_mgr,
+                        write_tool=write_tool,
                         start_index=start_index,
                     )
                 )

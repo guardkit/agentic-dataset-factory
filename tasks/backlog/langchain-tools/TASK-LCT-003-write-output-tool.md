@@ -1,6 +1,7 @@
 ---
 id: TASK-LCT-003
-title: "Implement create_write_output_tool factory and write_output tool with layer routing"
+title: Implement create_write_output_tool factory and write_output tool with layer
+  routing
 task_type: feature
 parent_review: TASK-REV-723B
 feature_id: FEAT-LCT
@@ -8,16 +9,36 @@ wave: 2
 implementation_mode: task-work
 complexity: 6
 dependencies:
-  - TASK-LCT-001
-status: pending
+- TASK-LCT-001
+status: in_review
 priority: high
-tags: [langchain-tools, write-output, layer-routing, validation]
+tags:
+- langchain-tools
+- write-output
+- layer-routing
+- validation
 consumer_context:
-  - task: TASK-LCT-001
-    consumes: METADATA_SCHEMA
-    framework: "Pydantic v2 (BaseModel + field_validator)"
-    driver: "pydantic"
-    format_note: "list[MetadataField] where each MetadataField has field, type, required, valid_values attributes"
+- task: TASK-LCT-001
+  consumes: METADATA_SCHEMA
+  framework: Pydantic v2 (BaseModel + field_validator)
+  driver: pydantic
+  format_note: list[MetadataField] where each MetadataField has field, type, required,
+    valid_values attributes
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D
+  base_branch: main
+  started_at: '2026-03-20T20:44:57.922841'
+  last_updated: '2026-03-20T20:55:13.858729'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T20:44:57.922841'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement create_write_output_tool factory and write_output tool with layer routing

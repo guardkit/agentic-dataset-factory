@@ -1,6 +1,7 @@
 ---
 id: TASK-GG-005
-title: "Write GOAL.md structural smoke tests for section presence, format, and split ratio"
+title: Write GOAL.md structural smoke tests for section presence, format, and split
+  ratio
 task_type: testing
 parent_review: TASK-REV-843F
 feature_id: FEAT-GG
@@ -8,10 +9,25 @@ wave: 2
 implementation_mode: task-work
 complexity: 4
 dependencies:
-  - TASK-GG-002
-  - TASK-GG-003
-status: pending
+- TASK-GG-002
+- TASK-GG-003
+status: in_review
 estimated_minutes: 60
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC
+  base_branch: main
+  started_at: '2026-03-21T07:13:25.501007'
+  last_updated: '2026-03-21T07:16:42.368608'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-21T07:13:25.501007'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Write GOAL.md structural smoke tests

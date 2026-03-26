@@ -519,7 +519,8 @@ class TestFullStartupSequence:
             patch.object(agent, "build_coach_prompt", return_value="coach prompt"),
             patch.object(agent, "create_player", return_value=mock_player) as mock_create_player,
             patch.object(agent, "create_coach", return_value=mock_coach) as mock_create_coach,
-            patch.object(agent, "create_player_tools", return_value=[mock_rag_tool, mock_write_tool]),
+            patch.object(agent, "create_player_tools", return_value=[mock_rag_tool]),
+            patch.object(agent, "create_write_tool", return_value=mock_write_tool),
             patch.object(agent, "run_generation_loop", new_callable=AsyncMock, return_value=mock_gen_result) as mock_gen_loop,
             patch.object(agent, "LockManager") as mock_lock_cls,
             patch.object(agent, "OutputFileManager") as mock_output_cls,
@@ -532,12 +533,12 @@ class TestFullStartupSequence:
         mock_create_player.assert_called_once()
         mock_create_coach.assert_called_once()
 
-        # Verify tools contain rag_retrieval and write_output
+        # Verify Player tools contain only rag_retrieval (TASK-TRF-005)
         tools_arg = mock_create_player.call_args.kwargs.get("tools")
         assert tools_arg is not None
         tool_names = [t.name for t in tools_arg]
         assert "rag_retrieval" in tool_names
-        assert "write_output" in tool_names
+        assert "write_output" not in tool_names
 
         # Verify generation loop invoked with agents, targets, and config
         mock_gen_loop.assert_called_once()
@@ -583,14 +584,17 @@ class TestGenerationLoopPlayerCoachCycle:
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
 
-        # Player returns a training example
+        # Player returns a training example as JSON (TASK-TRF-005)
         player.ainvoke.return_value = _make_mock_agent_response(
-            "Generated training example for macbeth"
+            '{"messages": [{"role": "system", "content": "tutor"}, {"role": "user", "content": "macbeth"}], "metadata": {"layer": "behaviour", "type": "direct"}}'
         )
         # Coach accepts on first turn
         coach.ainvoke.return_value = _make_mock_agent_response(
             _make_accept_verdict_json()
         )
+
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Written to output/train.jsonl (example #1)"
 
         result = await run_generation_loop(
             player=player,
@@ -599,6 +603,7 @@ class TestGenerationLoopPlayerCoachCycle:
             config=generation_config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
         )
 
         # Player was called (generated example)
@@ -629,15 +634,18 @@ class TestGenerationLoopPlayerCoachCycle:
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
 
-        # Player always returns content
+        # Player always returns content as JSON (TASK-TRF-005)
         player.ainvoke.return_value = _make_mock_agent_response(
-            "Generated training example"
+            '{"messages": [{"role": "system", "content": "tutor"}, {"role": "user", "content": "q"}], "metadata": {"layer": "behaviour", "type": "direct"}}'
         )
         # Coach rejects first, accepts second
         coach.ainvoke.side_effect = [
             _make_mock_agent_response(_make_reject_verdict_json()),
             _make_mock_agent_response(_make_accept_verdict_json()),
         ]
+
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Written to output/train.jsonl (example #1)"
 
         result = await run_generation_loop(
             player=player,
@@ -646,6 +654,7 @@ class TestGenerationLoopPlayerCoachCycle:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
         )
 
         # Player called twice (original + revision)

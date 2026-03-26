@@ -167,7 +167,8 @@ class TestPlayerPrompts:
         from prompts.player_prompts import PLAYER_BASE_PROMPT
 
         assert "rag_retrieval" in PLAYER_BASE_PROMPT
-        assert "write_output" in PLAYER_BASE_PROMPT
+        # write_output removed from Player (TASK-TRF-005: orchestrator-gated writes)
+        assert "write_output" not in PLAYER_BASE_PROMPT
 
     def test_player_base_prompt_mentions_sharegpt(self) -> None:
         from prompts.player_prompts import PLAYER_BASE_PROMPT

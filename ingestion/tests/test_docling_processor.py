@@ -47,25 +47,29 @@ def zero_byte_pdf(tmp_path: Path) -> Path:
     return pdf
 
 
+def _make_content_item(text: str, page_no: int):
+    """Create a mock content item with text and provenance."""
+    prov_item = MagicMock()
+    prov_item.page_no = page_no
+    item = MagicMock()
+    item.text = text
+    item.prov = [prov_item]
+    return item
+
+
 @pytest.fixture()
 def mock_docling_standard():
     """Mock Docling DocumentConverter for standard mode.
 
     Returns a converter whose convert() produces a result with
-    two pages of text.
+    two pages of text via iterate_items().
     """
-    mock_page_1 = MagicMock()
-    mock_page_1.text = "Page one text content."
-
-    mock_page_2 = MagicMock()
-    mock_page_2.text = "Page two text content."
+    item1 = _make_content_item("Page one text content.", page_no=1)
+    item2 = _make_content_item("Page two text content.", page_no=2)
 
     mock_result = MagicMock()
     mock_result.document = MagicMock()
-    mock_result.document.pages = {1: mock_page_1, 2: mock_page_2}
-    mock_result.document.export_to_text.return_value = (
-        "Page one text content.\nPage two text content."
-    )
+    mock_result.document.iterate_items.return_value = [(item1, 0), (item2, 0)]
 
     mock_converter_instance = MagicMock()
     mock_converter_instance.convert.return_value = mock_result
@@ -80,15 +84,13 @@ def mock_docling_vlm():
     """Mock Docling DocumentConverter for VLM mode.
 
     Returns a converter whose convert() produces a result with
-    one page of VLM-extracted text.
+    one page of VLM-extracted text via iterate_items().
     """
-    mock_page_1 = MagicMock()
-    mock_page_1.text = "VLM extracted text from scanned page."
+    item1 = _make_content_item("VLM extracted text from scanned page.", page_no=1)
 
     mock_result = MagicMock()
     mock_result.document = MagicMock()
-    mock_result.document.pages = {1: mock_page_1}
-    mock_result.document.export_to_text.return_value = "VLM extracted text from scanned page."
+    mock_result.document.iterate_items.return_value = [(item1, 0)]
 
     mock_converter_instance = MagicMock()
     mock_converter_instance.convert.return_value = mock_result
@@ -103,8 +105,7 @@ def mock_docling_empty():
     """Mock Docling for empty extraction (image-only PDF in standard mode)."""
     mock_result = MagicMock()
     mock_result.document = MagicMock()
-    mock_result.document.pages = {}
-    mock_result.document.export_to_text.return_value = ""
+    mock_result.document.iterate_items.return_value = []
 
     mock_converter_instance = MagicMock()
     mock_converter_instance.convert.return_value = mock_result
