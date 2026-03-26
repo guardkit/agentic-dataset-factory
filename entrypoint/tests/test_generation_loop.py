@@ -1,6 +1,6 @@
 """Tests for entrypoint.generation_loop — Player-Coach adversarial generation cycle.
 
-Covers all acceptance criteria for TASK-EP-007:
+Covers all acceptance criteria for TASK-EP-007 and TASK-TRF-005:
 - AC-001: Sequential target processing (one at a time per ADR-ARCH-006)
 - AC-002: Player-Coach cycle with up to max_turns revisions
 - AC-003: max_turns=1 gives exactly one attempt
@@ -12,8 +12,10 @@ Covers all acceptance criteria for TASK-EP-007:
 - AC-009: Structured JSON progress logging at key milestones
 - AC-010: GenerationResult returned with statistics
 - AC-011: All modified files pass lint/format checks
-
-TDD RED phase: tests written before implementation.
+- TRF-005-001: Player response → Coach accepts → orchestrator writes
+- TRF-005-002: Player response → Coach rejects → no write occurs
+- TRF-005-003: Coach accepts but write_output validation fails → treated as rejection
+- TRF-005-004: JSON extraction from Player response (code fences, raw JSON)
 """
 
 from __future__ import annotations
@@ -97,7 +99,7 @@ def _make_mock_player(responses: list[str] | None = None) -> MagicMock:
     """
     player = AsyncMock()
     if responses is None:
-        responses = ['{"example": "generated content"}']
+        responses = ['{"messages": [], "metadata": {"layer": "behaviour"}}']
 
     side_effects = []
     for resp in responses:
@@ -117,6 +119,27 @@ def _make_mock_coach(verdicts: list[CoachVerdict] | None = None) -> MagicMock:
         side_effects.append({"messages": [MagicMock(content=v.model_dump_json())]})
     coach.ainvoke.side_effect = side_effects
     return coach
+
+
+def _make_mock_write_tool(return_value: str = "Written to output/train.jsonl (example #1)") -> MagicMock:
+    """Create a mock write_output tool for the orchestrator."""
+    write_tool = MagicMock()
+    write_tool.invoke.return_value = return_value
+    return write_tool
+
+
+# Valid JSON example that the Player would return
+_VALID_EXAMPLE_JSON = json.dumps({
+    "messages": [
+        {"role": "system", "content": "You are a tutor."},
+        {"role": "user", "content": "What is a metaphor?"},
+        {"role": "assistant", "content": "A metaphor is a figure of speech."},
+    ],
+    "metadata": {
+        "layer": "behaviour",
+        "type": "direct",
+    },
+})
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +167,7 @@ class TestSequentialTargetProcessing:
             idx = call_count
             call_count += 1
             invocation_order.append(idx)
-            return {"messages": [MagicMock(content='{"example": "data"}')]}
+            return {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
 
         player = AsyncMock()
         player.ainvoke.side_effect = track_invocation
@@ -153,6 +176,7 @@ class TestSequentialTargetProcessing:
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         await run_generation_loop(
             player=player,
@@ -161,6 +185,7 @@ class TestSequentialTargetProcessing:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -175,11 +200,12 @@ class TestSequentialTargetProcessing:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()] * 5)
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -188,6 +214,7 @@ class TestSequentialTargetProcessing:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -211,11 +238,12 @@ class TestPlayerCoachCycle:
         config = _make_generation_config(max_turns=3, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -224,6 +252,7 @@ class TestPlayerCoachCycle:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -240,13 +269,14 @@ class TestPlayerCoachCycle:
 
         # Player called twice: first attempt + revision
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
 
         # Coach rejects first, accepts second
         coach = _make_mock_coach([_make_reject_verdict(), _make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -255,6 +285,7 @@ class TestPlayerCoachCycle:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -280,11 +311,12 @@ class TestMaxTurnsOne:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -293,6 +325,7 @@ class TestMaxTurnsOne:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -308,11 +341,12 @@ class TestMaxTurnsOne:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_reject_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -321,6 +355,7 @@ class TestMaxTurnsOne:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -348,13 +383,14 @@ class TestRejectedTargetLogging:
         config = _make_generation_config(max_turns=2, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_reject_verdict("Bad"), _make_reject_verdict("Still bad")])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         rejected_lines: list[str] = []
         output_mgr.rejected_fh = MagicMock()
         output_mgr.rejected_fh.write = MagicMock(side_effect=lambda s: rejected_lines.append(s))
+        write_tool = _make_mock_write_tool()
 
         await run_generation_loop(
             player=player,
@@ -363,6 +399,7 @@ class TestRejectedTargetLogging:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -381,7 +418,7 @@ class TestRejectedTargetLogging:
         config = _make_generation_config(max_turns=3, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         verdicts = [_make_reject_verdict(f"Issue turn {i}") for i in range(3)]
         coach = _make_mock_coach(verdicts)
         checkpoint = MagicMock()
@@ -389,6 +426,7 @@ class TestRejectedTargetLogging:
         rejected_lines: list[str] = []
         output_mgr.rejected_fh = MagicMock()
         output_mgr.rejected_fh.write = MagicMock(side_effect=lambda s: rejected_lines.append(s))
+        write_tool = _make_mock_write_tool()
 
         await run_generation_loop(
             player=player,
@@ -397,6 +435,7 @@ class TestRejectedTargetLogging:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -428,7 +467,7 @@ class TestPerTargetTimeout:
             if call_count <= 1:
                 # First target takes too long
                 await asyncio.sleep(5)
-            return {"messages": [MagicMock(content='{"ex": "d"}')]}
+            return {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
 
         player = AsyncMock()
         player.ainvoke.side_effect = slow_then_fast
@@ -438,6 +477,7 @@ class TestPerTargetTimeout:
         rejected_lines: list[str] = []
         output_mgr.rejected_fh = MagicMock()
         output_mgr.rejected_fh.write = MagicMock(side_effect=lambda s: rejected_lines.append(s))
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -446,6 +486,7 @@ class TestPerTargetTimeout:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -482,7 +523,7 @@ class TestTransientLLMRetry:
             call_count += 1
             if call_count == 1:
                 raise RuntimeError("Transient LLM error")
-            return {"messages": [MagicMock(content='{"ex": "d"}')]}
+            return {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
 
         player = AsyncMock()
         player.ainvoke.side_effect = fail_then_succeed
@@ -490,6 +531,7 @@ class TestTransientLLMRetry:
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -498,6 +540,7 @@ class TestTransientLLMRetry:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -532,7 +575,7 @@ class TestRetriesExhausted:
             # First 3 calls fail (1 original + 2 retries for first target)
             if call_count <= 3:
                 raise RuntimeError("Persistent LLM error")
-            return {"messages": [MagicMock(content='{"ex": "d"}')]}
+            return {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
 
         player = AsyncMock()
         player.ainvoke.side_effect = always_fail_then_succeed
@@ -542,6 +585,7 @@ class TestRetriesExhausted:
         rejected_lines: list[str] = []
         output_mgr.rejected_fh = MagicMock()
         output_mgr.rejected_fh.write = MagicMock(side_effect=lambda s: rejected_lines.append(s))
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -550,6 +594,7 @@ class TestRetriesExhausted:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -577,11 +622,12 @@ class TestCheckpointWrittenAfterTarget:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()] * 3)
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         await run_generation_loop(
             player=player,
@@ -590,6 +636,7 @@ class TestCheckpointWrittenAfterTarget:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -617,11 +664,12 @@ class TestProgressLogging:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         with caplog.at_level(logging.INFO):
             await run_generation_loop(
@@ -631,6 +679,7 @@ class TestProgressLogging:
                 config=config,
                 checkpoint=checkpoint,
                 output_manager=output_mgr,
+                write_tool=write_tool,
                 start_index=0,
             )
 
@@ -645,11 +694,12 @@ class TestProgressLogging:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         with caplog.at_level(logging.INFO):
             await run_generation_loop(
@@ -659,6 +709,7 @@ class TestProgressLogging:
                 config=config,
                 checkpoint=checkpoint,
                 output_manager=output_mgr,
+                write_tool=write_tool,
                 start_index=0,
             )
 
@@ -673,11 +724,12 @@ class TestProgressLogging:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         with caplog.at_level(logging.INFO):
             await run_generation_loop(
@@ -687,6 +739,7 @@ class TestProgressLogging:
                 config=config,
                 checkpoint=checkpoint,
                 output_manager=output_mgr,
+                write_tool=write_tool,
                 start_index=0,
             )
 
@@ -701,11 +754,12 @@ class TestProgressLogging:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_reject_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         with caplog.at_level(logging.INFO):
             await run_generation_loop(
@@ -715,6 +769,7 @@ class TestProgressLogging:
                 config=config,
                 checkpoint=checkpoint,
                 output_manager=output_mgr,
+                write_tool=write_tool,
                 start_index=0,
             )
 
@@ -729,11 +784,12 @@ class TestProgressLogging:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         with caplog.at_level(logging.INFO):
             await run_generation_loop(
@@ -743,6 +799,7 @@ class TestProgressLogging:
                 config=config,
                 checkpoint=checkpoint,
                 output_manager=output_mgr,
+                write_tool=write_tool,
                 start_index=0,
             )
 
@@ -784,7 +841,7 @@ class TestGenerationResult:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         # First two accepted, third rejected
         coach = _make_mock_coach([
             _make_accept_verdict(),
@@ -794,6 +851,7 @@ class TestGenerationResult:
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -802,6 +860,7 @@ class TestGenerationResult:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -820,11 +879,12 @@ class TestGenerationResult:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()])
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -833,6 +893,7 @@ class TestGenerationResult:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=0,
         )
 
@@ -856,11 +917,12 @@ class TestStartIndex:
         config = _make_generation_config(max_turns=1, target_timeout=60)
 
         player = AsyncMock()
-        player.ainvoke.return_value = {"messages": [MagicMock(content='{"ex": "d"}')]}
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
         coach = _make_mock_coach([_make_accept_verdict()] * 5)
         checkpoint = MagicMock()
         output_mgr = MagicMock()
         output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
 
         result = await run_generation_loop(
             player=player,
@@ -869,9 +931,385 @@ class TestStartIndex:
             config=config,
             checkpoint=checkpoint,
             output_manager=output_mgr,
+            write_tool=write_tool,
             start_index=2,
         )
 
         # Only 3 targets processed (indices 2, 3, 4)
         assert result.total_targets == 3
         assert player.ainvoke.call_count == 3
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-005: Orchestrator-gated writes
+# ---------------------------------------------------------------------------
+
+
+class TestOrchestratorGatedWrites:
+    """TASK-TRF-005: Orchestrator calls write_tool only after Coach acceptance."""
+
+    @pytest.mark.asyncio
+    async def test_coach_accepts_orchestrator_writes(self) -> None:
+        """TRF-005-001: Player response → Coach accepts → orchestrator writes."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.accepted == 1
+        # write_tool.invoke was called by the orchestrator
+        write_tool.invoke.assert_called_once()
+        # The call should contain the extracted example JSON
+        call_args = write_tool.invoke.call_args
+        assert "example_json" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_coach_rejects_no_write(self) -> None:
+        """TRF-005-002: Player response → Coach rejects → no write occurs."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        coach = _make_mock_coach([_make_reject_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.rejected == 1
+        # write_tool.invoke should NOT have been called
+        write_tool.invoke.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_write_validation_fails_treated_as_rejection(self) -> None:
+        """TRF-005-003: Coach accepts but write_output validation fails → treated as rejection."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        # max_turns=1 so it rejects after the write failure
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+
+        # write_tool returns an error
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Error: Invalid metadata.layer value 'invalid'"
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        # Treated as rejection despite Coach acceptance
+        assert result.accepted == 0
+        assert result.rejected == 1
+        # write_tool.invoke was called (but returned error)
+        write_tool.invoke.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_write_failure_allows_retry_on_next_turn(self) -> None:
+        """Write failure on turn 1 allows Player to revise on turn 2."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=2, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        # Coach accepts both times
+        coach = _make_mock_coach([_make_accept_verdict(), _make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+
+        # First write fails, second succeeds
+        write_tool = MagicMock()
+        write_tool.invoke.side_effect = [
+            "Error: Missing required field 'messages'",
+            "Written to output/train.jsonl (example #1)",
+        ]
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.accepted == 1
+        assert write_tool.invoke.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-005: JSON extraction from Player response
+# ---------------------------------------------------------------------------
+
+
+class TestExtractExampleJson:
+    """TASK-TRF-005: Extract JSON example from Player response content."""
+
+    def test_extract_raw_json(self) -> None:
+        """Extract valid JSON that is the entire response."""
+        from entrypoint.generation_loop import _extract_example_json
+
+        raw = '{"messages": [], "metadata": {}}'
+        result = _extract_example_json(raw)
+        assert json.loads(result) == {"messages": [], "metadata": {}}
+
+    def test_extract_from_code_fences(self) -> None:
+        """Extract JSON from markdown code fences."""
+        from entrypoint.generation_loop import _extract_example_json
+
+        raw = 'Here is the example:\n```json\n{"messages": [], "metadata": {}}\n```\nDone.'
+        result = _extract_example_json(raw)
+        assert json.loads(result) == {"messages": [], "metadata": {}}
+
+    def test_extract_from_surrounding_text(self) -> None:
+        """Extract JSON embedded in surrounding text."""
+        from entrypoint.generation_loop import _extract_example_json
+
+        raw = 'Generated example: {"messages": [{"role": "system", "content": "hi"}], "metadata": {"layer": "behaviour"}} — that is the result.'
+        result = _extract_example_json(raw)
+        parsed = json.loads(result)
+        assert "messages" in parsed
+        assert "metadata" in parsed
+
+    def test_invalid_content_raises_value_error(self) -> None:
+        """Raise ValueError if no valid JSON can be extracted."""
+        from entrypoint.generation_loop import _extract_example_json
+
+        with pytest.raises(ValueError, match="Failed to extract JSON"):
+            _extract_example_json("No JSON here at all, just plain text.")
+
+    def test_extract_from_code_fences_without_json_tag(self) -> None:
+        """Extract JSON from code fences without 'json' language tag."""
+        from entrypoint.generation_loop import _extract_example_json
+
+        raw = '```\n{"messages": [], "metadata": {}}\n```'
+        result = _extract_example_json(raw)
+        assert json.loads(result) == {"messages": [], "metadata": {}}
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-006: Write retry cap (3 per target)
+# ---------------------------------------------------------------------------
+
+
+class TestWriteRetryCap:
+    """TASK-TRF-006: Write retry cap prevents infinite write loops."""
+
+    @pytest.mark.asyncio
+    async def test_three_write_failures_rejects_target(self) -> None:
+        """3 consecutive write failures → target rejected."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        # Allow enough turns for 3 write attempts
+        config = _make_generation_config(max_turns=5, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        # Coach accepts every time
+        coach = _make_mock_coach([_make_accept_verdict()] * 5)
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+
+        # write_tool always fails
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Error: Invalid metadata"
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.accepted == 0
+        assert result.rejected == 1
+        # Should stop after 3 write attempts, not exhaust all 5 turns
+        assert write_tool.invoke.call_count == 3
+
+    @pytest.mark.asyncio
+    async def test_write_succeeds_on_second_attempt(self) -> None:
+        """Write succeeds on 2nd attempt → target accepted."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=5, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        # Coach accepts every time
+        coach = _make_mock_coach([_make_accept_verdict()] * 5)
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+
+        # First write fails, second succeeds
+        write_tool = MagicMock()
+        write_tool.invoke.side_effect = [
+            "Error: Missing required field",
+            "Written to output/train.jsonl (example #1)",
+        ]
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.accepted == 1
+        assert result.rejected == 0
+        assert write_tool.invoke.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_rejection_record_includes_write_failures(self) -> None:
+        """Rejection record includes write failure history."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=5, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        coach = _make_mock_coach([_make_accept_verdict()] * 5)
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        rejected_lines: list[str] = []
+        output_mgr.rejected_fh = MagicMock()
+        output_mgr.rejected_fh.write = MagicMock(
+            side_effect=lambda s: rejected_lines.append(s)
+        )
+
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Error: Invalid metadata"
+
+        await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert len(rejected_lines) == 1
+        record = json.loads(rejected_lines[0].strip())
+        # Rejection history should contain write_error entries
+        write_errors = [
+            r for r in record["rejection_history"] if "write_error" in r
+        ]
+        assert len(write_errors) == 3
+
+    @pytest.mark.asyncio
+    async def test_max_write_attempts_configurable(self) -> None:
+        """max_write_attempts is configurable via GenerationConfig."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        # Set max_write_attempts to 2 (custom)
+        config = _make_generation_config(
+            max_turns=5, target_timeout=60, max_write_attempts=2
+        )
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]
+        }
+        coach = _make_mock_coach([_make_accept_verdict()] * 5)
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "Error: Invalid metadata"
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.rejected == 1
+        # Should stop after 2 attempts (custom config), not 3
+        assert write_tool.invoke.call_count == 2

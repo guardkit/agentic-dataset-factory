@@ -953,3 +953,147 @@ class TestEdgeCases:
         result = write_tool.invoke(json.dumps(example))
         # Either writes successfully (no assistant to check) or returns descriptive error
         assert isinstance(result, str)
+
+
+# ===========================================================================
+# Array field validation (TASK-FRF-002)
+# ===========================================================================
+
+
+class TestArrayFieldValidation:
+    """Verify Step 9 validates array metadata fields element-by-element."""
+
+    @pytest.fixture
+    def array_schema(self) -> list[MetadataField]:
+        """Schema with an array[string] field like ao in GCSE domain."""
+        return [
+            MetadataField(field="layer", type="string", required=True, valid_values=["behaviour", "knowledge"]),
+            MetadataField(field="type", type="string", required=True, valid_values=["reasoning", "direct"]),
+            MetadataField(field="ao", type="array[string]", required=True, valid_values=["AO1", "AO2", "AO3", "AO4", "AO5", "AO6"]),
+        ]
+
+    @pytest.fixture
+    def array_tool(self, output_dir: Path, array_schema: list[MetadataField]):
+        from tools.write_output import create_write_output_tool
+        return create_write_output_tool(output_dir, array_schema)
+
+    def _make_example(self, ao_value):
+        return {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "q"},
+                {"role": "assistant", "content": "Answer."},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "ao": ao_value,
+            },
+        }
+
+    def test_valid_array_accepted(self, array_tool, output_dir):
+        """AC: ao=["AO2","AO3"] passes when AO2 and AO3 are in valid_values."""
+        result = array_tool.invoke(json.dumps(self._make_example(["AO2", "AO3"])))
+        assert "Written to" in result
+
+    def test_single_element_array_accepted(self, array_tool, output_dir):
+        """AC: ao=["AO1"] passes validation."""
+        result = array_tool.invoke(json.dumps(self._make_example(["AO1"])))
+        assert "Written to" in result
+
+    def test_empty_array_accepted(self, array_tool, output_dir):
+        """AC: ao=[] passes validation (empty array is valid)."""
+        result = array_tool.invoke(json.dumps(self._make_example([])))
+        assert "Written to" in result
+
+    def test_invalid_array_element_rejected(self, array_tool):
+        """AC: ao=["AO2","INVALID"] returns error naming the invalid element."""
+        result = array_tool.invoke(json.dumps(self._make_example(["AO2", "INVALID"])))
+        assert "Error" in result
+        assert "ao" in result
+        assert "INVALID" in result
+
+    def test_all_invalid_array_elements_reported(self, array_tool):
+        """All invalid elements listed in error message."""
+        result = array_tool.invoke(json.dumps(self._make_example(["BAD1", "BAD2"])))
+        assert "Error" in result
+        assert "BAD1" in result
+        assert "BAD2" in result
+
+    def test_scalar_field_still_validated(self, array_tool):
+        """No regression: scalar fields still validated as before."""
+        example = self._make_example(["AO1"])
+        example["metadata"]["layer"] = "behaviour"
+        example["metadata"]["type"] = "direct"
+        result = array_tool.invoke(json.dumps(example))
+        assert "Written to" in result
+
+    def test_scalar_field_invalid_still_rejected(self, output_dir):
+        """No regression: scalar field with invalid value still rejected."""
+        from tools.write_output import create_write_output_tool
+
+        schema = [
+            MetadataField(field="layer", type="string", required=True, valid_values=["behaviour", "knowledge"]),
+            MetadataField(field="type", type="string", required=True, valid_values=["reasoning", "direct"]),
+            MetadataField(field="source", type="string", required=True, valid_values=["synthetic"]),
+        ]
+        tool = create_write_output_tool(output_dir, schema)
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "q"},
+                {"role": "assistant", "content": "Answer."},
+            ],
+            "metadata": {"layer": "behaviour", "type": "direct", "source": "INVALID"},
+        }
+        result = tool.invoke(json.dumps(example))
+        assert "Error" in result
+        assert "source" in result
+        assert "INVALID" in result
+
+
+class TestGradeTargetTypeCoercion:
+    """TASK-TRF-004: Integer metadata values must pass validation against string valid_values."""
+
+    @pytest.fixture
+    def grade_tool(self, output_dir):
+        from tools.write_output import create_write_output_tool
+
+        schema = [
+            MetadataField(field="layer", type="string", required=True, valid_values=["behaviour", "knowledge"]),
+            MetadataField(field="type", type="string", required=True, valid_values=["reasoning", "direct"]),
+            MetadataField(field="grade_target", type="string", required=False, valid_values=["4", "5", "6", "7", "8", "9"]),
+        ]
+        return create_write_output_tool(output_dir, schema)
+
+    def _make_example(self, grade_target):
+        example = {
+            "messages": [
+                {"role": "system", "content": "You are a GCSE English tutor."},
+                {"role": "user", "content": "Explain theme."},
+                {"role": "assistant", "content": "Theme is central."},
+            ],
+            "metadata": {"layer": "behaviour", "type": "direct", "grade_target": grade_target},
+        }
+        return json.dumps(example)
+
+    def test_integer_grade_target_accepted(self, grade_tool):
+        """Integer grade_target (7) should pass validation against string valid_values."""
+        result = grade_tool.invoke(self._make_example(7))
+        assert "Written to" in result
+
+    def test_string_grade_target_accepted(self, grade_tool):
+        """String grade_target ('7') should pass validation as before."""
+        result = grade_tool.invoke(self._make_example("7"))
+        assert "Written to" in result
+
+    def test_invalid_grade_target_rejected(self, grade_tool):
+        """grade_target 3 (not in valid values) should be rejected."""
+        result = grade_tool.invoke(self._make_example(3))
+        assert "Error" in result
+        assert "grade_target" in result
+
+    def test_null_grade_target_accepted(self, grade_tool):
+        """Null grade_target should be accepted (field is optional)."""
+        result = grade_tool.invoke(self._make_example(None))
+        assert "Written to" in result

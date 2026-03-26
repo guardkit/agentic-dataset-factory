@@ -1,6 +1,6 @@
 ---
 id: TASK-ING-007
-title: "Integration tests covering BDD smoke scenarios"
+title: Integration tests covering BDD smoke scenarios
 task_type: testing
 parent_review: TASK-REV-F479
 feature_id: FEAT-ING
@@ -8,16 +8,35 @@ wave: 4
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-ING-006
-status: pending
+- TASK-ING-006
+status: in_review
 priority: high
-tags: [ingestion, testing, integration, bdd]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- ingestion
+- testing
+- integration
+- bdd
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D
+  base_branch: main
+  started_at: '2026-03-20T17:10:52.577514'
+  last_updated: '2026-03-20T17:17:38.020016'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T17:10:52.577514'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Integration tests covering BDD smoke scenarios

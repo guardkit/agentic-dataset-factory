@@ -1,6 +1,6 @@
 ---
 id: TASK-ING-006
-title: "Implement ingest orchestrator and CLI entry point"
+title: Implement ingest orchestrator and CLI entry point
 task_type: feature
 parent_review: TASK-REV-F479
 feature_id: FEAT-ING
@@ -8,19 +8,37 @@ wave: 3
 implementation_mode: task-work
 complexity: 5
 dependencies:
-  - TASK-ING-002
-  - TASK-ING-003
-  - TASK-ING-004
-  - TASK-ING-005
-status: pending
+- TASK-ING-002
+- TASK-ING-003
+- TASK-ING-004
+- TASK-ING-005
+status: in_review
 priority: high
-tags: [ingestion, orchestrator, cli]
-created: 2026-03-19T00:00:00Z
-updated: 2026-03-19T00:00:00Z
+tags:
+- ingestion
+- orchestrator
+- cli
+created: 2026-03-19 00:00:00+00:00
+updated: 2026-03-19 00:00:00+00:00
 test_results:
   status: pending
   coverage: null
   last_run: null
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-F59D
+  base_branch: main
+  started_at: '2026-03-20T17:03:02.501214'
+  last_updated: '2026-03-20T17:10:52.553096'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T17:03:02.501214'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Implement ingest orchestrator and CLI entry point

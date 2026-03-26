@@ -163,6 +163,7 @@ Review: IMPLEMENTATION-GUIDE.md
 Start implementation: /feature-build FEAT-5AC9
 Or work individual tasks: /task-work TASK-AF-001
 
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-5AC9 --max-turns 35 --verbose
 
 
 
@@ -203,7 +204,7 @@ Review: IMPLEMENTATION-GUIDE.md
 Start implementation: /feature-build FEAT-6D0B
 Or work individual tasks: /task-work TASK-EP-001
 
-
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-6D0B --max-turns 35 --verbose
 
 
 
@@ -228,5 +229,5 @@ Start implementation: /task-work TASK-GG-001
 Or autonomous build: /feature-build FEAT-FBBC
 
 
-
+GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-FBBC --max-turns 35 --verbose
 

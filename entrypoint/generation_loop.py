@@ -9,6 +9,11 @@ The loop uses pre-instantiated DeepAgent instances (created by
 orchestrates target iteration, turn management, and resilience mechanisms.
 DeepAgents SDK manages the agent's internal tool calling and conversation.
 
+The orchestrator owns all writes — the Player generates content and the
+Coach evaluates it, but only the orchestrator calls ``write_output`` after
+Coach acceptance (TASK-TRF-005). This prevents the Player from bypassing
+evaluation.
+
 Architecture references:
     - ADR-ARCH-006: Sequential generation (one target at a time)
     - ADR-ARCH-007: Structured JSON progress logging
@@ -23,9 +28,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from pydantic import ValidationError
 
@@ -67,6 +73,68 @@ class GenerationResult:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+def _extract_example_json(raw_content: str) -> str:
+    """Extract a JSON example from the Player agent's response content.
+
+    The Player may return the JSON embedded in markdown code fences or
+    surrounded by explanatory text. This function extracts the JSON
+    object that contains ``"messages"`` and ``"metadata"`` keys.
+
+    Args:
+        raw_content: Raw string content from the Player agent response.
+
+    Returns:
+        The extracted JSON string.
+
+    Raises:
+        ValueError: If no valid JSON object can be extracted.
+    """
+    content = raw_content.strip()
+
+    # Try 1: Direct parse — content is already valid JSON
+    try:
+        parsed = json.loads(content)
+        if isinstance(parsed, dict):
+            return content
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Try 2: Extract from markdown code fences (```json ... ``` or ``` ... ```)
+    fence_pattern = re.compile(r"```(?:json)?\s*\n(.*?)```", re.DOTALL)
+    for match in fence_pattern.finditer(content):
+        candidate = match.group(1).strip()
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return candidate
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # Try 3: Find the first { ... } block that parses as valid JSON
+    brace_depth = 0
+    start_idx = None
+    for i, ch in enumerate(content):
+        if ch == "{":
+            if brace_depth == 0:
+                start_idx = i
+            brace_depth += 1
+        elif ch == "}":
+            brace_depth -= 1
+            if brace_depth == 0 and start_idx is not None:
+                candidate = content[start_idx : i + 1]
+                try:
+                    parsed = json.loads(candidate)
+                    if isinstance(parsed, dict):
+                        return candidate
+                except (json.JSONDecodeError, TypeError):
+                    start_idx = None
+
+    raise ValueError(
+        f"Failed to extract JSON example from Player response. "
+        f"Raw content (first 200 chars): {raw_content[:200]!r}"
+    )
 
 
 def _parse_coach_verdict(raw_content: str) -> CoachVerdict:
@@ -143,7 +211,7 @@ async def _invoke_with_retry(
     for attempt in range(total_attempts):
         try:
             return await agent.ainvoke(input_data)
-        except (RuntimeError, OSError, TimeoutError) as exc:
+        except (RuntimeError, OSError, TimeoutError, ValidationError) as exc:
             last_exc = exc
             if attempt < total_attempts - 1:
                 delay = backoff_base ** attempt
@@ -205,8 +273,14 @@ async def _process_single_target(
     total_targets: int,
     config: GenerationConfig,
     output_manager: OutputFileManager,
+    write_tool: Callable,
 ) -> tuple[bool, int, list[dict[str, Any]]]:
     """Process a single generation target through the Player-Coach cycle.
+
+    The orchestrator owns all writes. After the Coach accepts an example,
+    the orchestrator extracts the JSON from the Player's response and calls
+    ``write_tool`` to persist it. If write validation fails, the example is
+    treated as a rejection and the Player is asked to revise (TASK-TRF-005).
 
     Args:
         player: Player DeepAgent instance.
@@ -216,12 +290,15 @@ async def _process_single_target(
         total_targets: Total number of targets (for logging).
         config: Generation configuration.
         output_manager: Output file manager for writing results.
+        write_tool: The ``write_output`` LangChain tool, called by the
+            orchestrator after Coach acceptance.
 
     Returns:
         Tuple of (accepted: bool, turns_used: int, rejection_history: list).
     """
     rejection_history: list[dict[str, Any]] = []
     coach_feedback: str | None = None
+    write_attempts = 0
 
     for turn in range(config.max_turns):
         # Build player input — include Coach feedback for revisions
@@ -234,7 +311,7 @@ async def _process_single_target(
             ]
         }
 
-        # Player generates example
+        # Player generates example (no write_output — RAG only)
         player_response = await _invoke_with_retry(
             player,
             player_input,
@@ -273,6 +350,51 @@ async def _process_single_target(
         )
 
         if verdict.is_accepted:
+            # Extract JSON from Player response
+            try:
+                example_json = _extract_example_json(player_content)
+            except ValueError as exc:
+                logger.warning(
+                    "JSON extraction failed after Coach acceptance: %s",
+                    exc,
+                )
+                rejection_history.append(
+                    {"extraction_error": str(exc), **verdict.model_dump()}
+                )
+                coach_feedback = (
+                    f"Your response could not be parsed as valid JSON. "
+                    f"Return the complete training example as a single JSON "
+                    f"object with 'messages' and 'metadata' keys."
+                )
+                continue
+
+            # ORCHESTRATOR writes — not the Player (TASK-TRF-005)
+            write_result = write_tool.invoke({"example_json": example_json})
+            if isinstance(write_result, str) and write_result.startswith("Error:"):
+                # Write validation failed — track attempts (TASK-TRF-006)
+                write_attempts += 1
+                logger.warning(
+                    "Write validation failed (attempt %d/%d): %s",
+                    write_attempts,
+                    config.max_write_attempts,
+                    write_result,
+                )
+                rejection_history.append(
+                    {"write_error": write_result, **verdict.model_dump()}
+                )
+                if write_attempts >= config.max_write_attempts:
+                    logger.warning(
+                        "Write failed %d times, rejecting target %d",
+                        write_attempts,
+                        target_index,
+                    )
+                    return False, turn + 1, rejection_history
+                coach_feedback = (
+                    f"Write validation failed: {write_result}. "
+                    f"Revise the example to fix the validation error."
+                )
+                continue
+
             logger.info(
                 "target_accepted: index=%d, turns=%d, score=%d",
                 target_index,
@@ -331,6 +453,7 @@ async def run_generation_loop(
     config: GenerationConfig,
     checkpoint: CheckpointManager,
     output_manager: OutputFileManager,
+    write_tool: Callable,
     start_index: int = 0,
 ) -> GenerationResult:
     """Run the sequential Player-Coach generation loop.
@@ -338,9 +461,12 @@ async def run_generation_loop(
     Processes each target one at a time (ADR-ARCH-006). For each target:
     1. Player generates an example (DeepAgent handles RAG internally).
     2. Coach evaluates the example (returns structured JSON verdict).
-    3. If accepted: break to next target.
+    3. If accepted: orchestrator calls ``write_tool`` to persist.
     4. If rejected and turns remain: Player revises with Coach feedback.
     5. If rejected at max_turns: log to rejected.jsonl.
+
+    The orchestrator owns all writes — the Player never calls
+    ``write_output`` directly (TASK-TRF-005).
 
     After each target, a checkpoint is written for resume support.
 
@@ -351,6 +477,8 @@ async def run_generation_loop(
         config: Generation loop configuration (max_turns, timeouts, retry).
         checkpoint: CheckpointManager for saving progress.
         output_manager: OutputFileManager with open file handles.
+        write_tool: The ``write_output`` LangChain tool, called by the
+            orchestrator after Coach acceptance.
         start_index: Index to start processing from (for resume support).
 
     Returns:
@@ -387,6 +515,7 @@ async def run_generation_loop(
                     total_targets=len(targets),
                     config=config,
                     output_manager=output_manager,
+                    write_tool=write_tool,
                 ),
                 timeout=config.target_timeout,
             )
@@ -433,8 +562,11 @@ async def run_generation_loop(
                 config.target_timeout,
             )
 
-        except (RuntimeError, OSError) as exc:
-            # All LLM retries exhausted: discard target, continue pipeline
+        except (RuntimeError, OSError, ValidationError) as exc:
+            # All LLM retries exhausted or malformed LLM response: discard
+            # target, continue pipeline.  ValidationError catches cases where
+            # vLLM returns tool_calls.args as a JSON string instead of a dict
+            # (known issue with some model/parser combinations — TASK-REV-FRF2).
             rejected_count += 1
             total_turns += 1
 

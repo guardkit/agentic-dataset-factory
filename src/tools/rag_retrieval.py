@@ -84,7 +84,10 @@ def _format_chunk(index: int, document: str, metadata: dict[str, Any] | None) ->
 chromadb: Any = None
 
 
-def create_rag_retrieval_tool(collection_name: str) -> Callable:
+def create_rag_retrieval_tool(
+    collection_name: str,
+    persist_directory: str = "./chroma_data",
+) -> Callable:
     """Create a LangChain tool that retrieves chunks from a ChromaDB collection.
 
     The collection name is bound at factory time; callers of the returned tool
@@ -97,6 +100,8 @@ def create_rag_retrieval_tool(collection_name: str) -> Callable:
         collection_name: Name of the ChromaDB collection to query.
             Must contain only alphanumeric characters, hyphens, and
             underscores. Path traversal characters are rejected.
+        persist_directory: Path to the ChromaDB persistence directory.
+            Defaults to ``"./chroma_data"`` to match the ingestion pipeline.
 
     Returns:
         A LangChain ``@tool``-decorated callable with signature
@@ -119,7 +124,7 @@ def create_rag_retrieval_tool(collection_name: str) -> Callable:
                 import chromadb as _chromadb
 
                 chromadb = _chromadb
-            client_holder.append(chromadb.PersistentClient())
+            client_holder.append(chromadb.PersistentClient(path=persist_directory))
         return client_holder[0]
 
     @tool

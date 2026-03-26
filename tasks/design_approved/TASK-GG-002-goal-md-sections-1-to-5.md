@@ -1,17 +1,39 @@
 ---
+id: TASK-GG-002
+title: 'Author GOAL.md sections 1-5: Goal, Source Documents, System Prompt, Generation
+  Targets, Generation Guidelines'
+task_type: feature
+parent_review: TASK-REV-843F
+feature_id: FEAT-GG
+wave: 1
+implementation_mode: task-work
 complexity: 5
 dependencies:
 - TASK-GG-001
+status: in_review
 estimated_minutes: 90
-feature_id: FEAT-GG
-id: TASK-GG-002
-implementation_mode: task-work
-parent_review: TASK-REV-843F
-status: design_approved
-task_type: feature
-title: 'Author GOAL.md sections 1-5: Goal, Source Documents, System Prompt, Generation
-  Targets, Generation Guidelines'
-wave: 1
+autobuild_state:
+  current_turn: 2
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-FBBC
+  base_branch: main
+  started_at: '2026-03-21T07:02:36.438218'
+  last_updated: '2026-03-21T07:13:25.463405'
+  turns:
+  - turn: 1
+    decision: feedback
+    feedback: '- Coverage threshold not met'
+    timestamp: '2026-03-21T07:02:36.438218'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
+  - turn: 2
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-21T07:08:03.249993'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Author GOAL.md sections 1-5

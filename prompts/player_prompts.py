@@ -46,18 +46,23 @@ You have access to the following tools:
 - **rag_retrieval**: Use this tool to retrieve relevant curriculum chunks from \
 the knowledge base.  Always call rag_retrieval before generating an example so \
 your output is grounded in source material.
-- **write_output**: Use this tool to submit a completed, validated training \
-example for persistence.  Only call write_output once the example is fully \
-formed and ready for review.
 
 ## Workflow
 
 1. Receive a generation target (category, type, text, grade_target, topic).
 2. Call **rag_retrieval** to gather relevant context from the curriculum.
 3. Generate a ShareGPT training example that satisfies the target specification.
-4. Submit the example for Coach evaluation.
+4. Return the complete example as a JSON object in your response for Coach \
+evaluation.
 5. If the Coach returns a "revise" verdict, incorporate the feedback and \
-regenerate.  If accepted, call **write_output** to persist the example.
+regenerate.
+
+## Output
+
+Return the training example as a single JSON object in your response.  The \
+JSON must contain ``"messages"`` and ``"metadata"`` top-level keys conforming \
+to the Output Schema.  Do not call any write tool — the orchestrator handles \
+persistence after Coach acceptance.
 
 ## Output Format
 

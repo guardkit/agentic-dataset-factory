@@ -6,8 +6,7 @@ Fine-tune Nemotron 3 Nano 30B-A3B as a Socratic GCSE English tutor for Year 10 s
 
 | File Pattern | Mode | Notes |
 |---|---|---|
-| mr-bruff-*.pdf | standard | Mr Bruff GCSE English revision guides — digital PDFs |
-| aqa-mark-schemes/*.pdf | standard | AQA official mark schemes for Language and Literature — digital PDFs |
+| *.pdf | standard | Mr Bruff GCSE English revision guides and practice papers — digital PDFs |
 
 ## System Prompt
 
@@ -28,16 +27,7 @@ ask questions that guide them toward the answer.
 
 | Category | Type | Count |
 |---|---|---|
-| Literary analysis (single-turn) | reasoning | 200 |
-| Essay feedback (multi-turn) | reasoning | 250 |
-| Exam technique guidance | reasoning | 150 |
-| Poetry comparative questions | reasoning | 150 |
-| Factual recall / character / plot | direct | 100 |
-| Terminology definitions | direct | 75 |
-| Encouragement / session management | direct | 75 |
-
-Total: 1,000
-Reasoning/direct split: 75% / 25%
+| Literary analysis (single-turn) | reasoning | 1 |
 
 ## Generation Guidelines
 
@@ -97,7 +87,7 @@ Per-example metadata fields with constrained valid values drawn from the GCSE En
 |---|---|---|---|
 | layer | string | yes | behaviour, knowledge |
 | type | string | yes | reasoning, direct |
-| ao | array[string] | yes | AO1, AO2, AO3, AO4, AO5, AO6 (can be empty) |
+| ao | array[string] | yes | AO1, AO2, AO3, AO4, AO5, AO6 |
 | text | string | yes | macbeth, a_christmas_carol, an_inspector_calls, power_conflict_poetry, language_paper_1, language_paper_2, general, unseen_poetry |
 | topic | string | yes | character_analysis, language_analysis, structure_analysis, essay_feedback, exam_technique, comparative, factual_recall, character_knowledge, terminology, encouragement |
 | grade_target | integer or null | yes | 4, 5, 6, 7, 8, 9, null |

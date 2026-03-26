@@ -1,11 +1,13 @@
 """Tests for agents.player.create_player factory function.
 
-Covers all acceptance criteria for TASK-AF-003.
+Covers all acceptance criteria for TASK-AF-003 and TASK-TRF-003.
 Uses patch-at-import-site pattern and call_args keyword argument assertions.
 """
 
 from __future__ import annotations
 
+import ast
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -56,7 +58,6 @@ class TestCreatePlayerDelegation:
         fake_agent = MagicMock(name="fake_player_agent")
         with (
             patch("agents.player.create_deep_agent", return_value=fake_agent),
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -73,7 +74,6 @@ class TestCreatePlayerDelegation:
         """create_player calls create_deep_agent exactly once."""
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -96,7 +96,6 @@ class TestCreatePlayerModel:
         config = _make_model_config()
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model", return_value=sentinel_model) as mock_cm,
         ):
             from agents.player import create_player
@@ -113,18 +112,14 @@ class TestCreatePlayerModel:
 
 
 class TestCreatePlayerBackend:
-    """AC-003: FilesystemBackend is instantiated and passed as backend kwarg."""
+    """TASK-TRF-003: backend=None passed to create_deep_agent (no FilesystemBackend)."""
 
-    def test_backend_is_filesystem_backend_with_root_dot(self) -> None:
-        """create_player uses FilesystemBackend(root_dir='.') as backend."""
+    def test_backend_is_none(self) -> None:
+        """create_player passes backend=None to create_deep_agent."""
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend") as mock_backend_cls,
             patch("agents.player.create_model"),
         ):
-            fake_backend = MagicMock(name="fs_backend")
-            mock_backend_cls.return_value = fake_backend
-
             from agents.player import create_player
 
             create_player(
@@ -133,9 +128,8 @@ class TestCreatePlayerBackend:
                 system_prompt="test prompt",
                 memory=["./AGENTS.md"],
             )
-        mock_backend_cls.assert_called_once_with(root_dir=".")
         _, kwargs = mock_cda.call_args
-        assert kwargs["backend"] is fake_backend
+        assert kwargs["backend"] is None
 
 
 class TestCreatePlayerTools:
@@ -147,7 +141,6 @@ class TestCreatePlayerTools:
         tool_b = MagicMock(name="write_output")
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -172,7 +165,6 @@ class TestCreatePlayerSystemPrompt:
         prompt = "You are a player agent for training data generation."
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -195,7 +187,6 @@ class TestCreatePlayerMemory:
         memory = ["./AGENTS.md"]
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -217,7 +208,6 @@ class TestCreatePlayerValidation:
         """create_player raises ValueError when system_prompt is empty."""
         with (
             patch("agents.player.create_deep_agent"),
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -234,7 +224,6 @@ class TestCreatePlayerValidation:
         """create_player raises ValueError when system_prompt is whitespace."""
         with (
             patch("agents.player.create_deep_agent"),
-            patch("agents.player.FilesystemBackend"),
             patch("agents.player.create_model"),
         ):
             from agents.player import create_player
@@ -246,6 +235,37 @@ class TestCreatePlayerValidation:
                     system_prompt="   ",
                     memory=["./AGENTS.md"],
                 )
+
+
+class TestNoFilesystemBackendImport:
+    """TASK-TRF-003: FilesystemBackend must NOT be imported in player module."""
+
+    def test_filesystem_backend_not_in_source(self) -> None:
+        """Parse player.py AST to ensure FilesystemBackend is never imported."""
+        player_path = Path(__file__).resolve().parent.parent / "player.py"
+        source = player_path.read_text()
+        tree = ast.parse(source)
+
+        imported_names: list[str] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    imported_names.append(alias.name)
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    imported_names.append(alias.name)
+
+        assert "FilesystemBackend" not in imported_names, (
+            "FilesystemBackend must NOT be imported in agents/player.py"
+        )
+
+    def test_filesystem_backend_not_in_source_text(self) -> None:
+        """Belt-and-suspenders: grep for the string in source."""
+        player_path = Path(__file__).resolve().parent.parent / "player.py"
+        source = player_path.read_text()
+        assert "FilesystemBackend" not in source, (
+            "FilesystemBackend string found in agents/player.py source"
+        )
 
 
 class TestCreatePlayerSeam:

@@ -1,6 +1,6 @@
 ---
 id: TASK-EP-004
-title: "Domain resolution and ChromaDB readiness check"
+title: Domain resolution and ChromaDB readiness check
 task_type: feature
 parent_review: TASK-REV-9EDC
 feature_id: FEAT-2CF1
@@ -8,8 +8,23 @@ wave: 2
 implementation_mode: task-work
 complexity: 3
 dependencies:
-  - TASK-EP-002
-status: pending
+- TASK-EP-002
+status: in_review
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-6D0B
+  base_branch: main
+  started_at: '2026-03-20T23:43:53.066429'
+  last_updated: '2026-03-20T23:52:55.132379'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T23:43:53.066429'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Domain Resolution and ChromaDB Readiness Check

@@ -2,11 +2,13 @@
 
 Provides ``create_player``, the factory function that assembles a fully
 configured Player agent via ``create_deep_agent``.  The Player receives
-tools, a FilesystemBackend for file I/O, and an injected system prompt.
+tools and an injected system prompt.  No filesystem backend is used so
+the DeepAgents SDK does not inject its 8 filesystem tools.
 
 References:
     - ``docs/design/contracts/API-generation.md``
     - TASK-AF-003 acceptance criteria
+    - TASK-TRF-003 (remove filesystem backend to fix tool leakage)
 """
 
 from __future__ import annotations
@@ -14,29 +16,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 
+from agents.model_factory import create_model
 from config.models import ModelConfig
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
-
-
-def create_model(model_config: ModelConfig) -> str:
-    """Translate a ModelConfig into a model identifier for create_deep_agent.
-
-    Produces a ``"provider:model"`` string from the validated ModelConfig.
-    Provider validation is handled upstream by ModelConfig's Literal type
-    constraint, so this function assumes a valid provider.
-
-    Args:
-        model_config: Validated ModelConfig with provider, model, endpoint,
-            and temperature fields.
-
-    Returns:
-        A model identifier string accepted by ``create_deep_agent``.
-    """
-    return f"{model_config.provider}:{model_config.model}"
 
 
 def create_player(
@@ -49,7 +34,8 @@ def create_player(
 
     Translates ``model_config`` to a concrete model identifier, validates
     the system prompt, and delegates to ``create_deep_agent`` with the
-    provided tools, memory, and a ``FilesystemBackend``.
+    provided tools and memory.  No filesystem backend is used so the
+    SDK does not inject its 8 filesystem tools (~3 000 tokens saved).
 
     Args:
         model_config: Provider, model ID, endpoint, temperature from
@@ -60,7 +46,7 @@ def create_player(
         memory: Memory file paths (expected: ["./AGENTS.md"]).
 
     Returns:
-        Configured DeepAgent (CompiledStateGraph) with FilesystemBackend.
+        Configured DeepAgent (CompiledStateGraph) without filesystem backend.
 
     Raises:
         ValueError: If ``system_prompt`` is empty or whitespace-only.
@@ -70,12 +56,11 @@ def create_player(
         raise ValueError(msg)
 
     model = create_model(model_config)
-    backend = FilesystemBackend(root_dir=".")
 
     return create_deep_agent(
         model=model,
         tools=tools,
         system_prompt=system_prompt,
         memory=memory,
-        backend=backend,
+        backend=None,
     )

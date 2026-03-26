@@ -151,11 +151,21 @@ def create_write_output_tool(
             if field_name in ("layer", "type"):
                 continue
             field_value = metadata.get(field_name)
-            if field_value is not None and field_value not in valid_values:
-                return (
-                    f"Error: metadata.{field_name} value '{field_value}' "
-                    f"not in valid values"
-                )
+            if field_value is None:
+                continue
+            if isinstance(field_value, list):
+                invalid = [v for v in field_value if v not in valid_values]
+                if invalid:
+                    return (
+                        f"Error: metadata.{field_name} contains invalid "
+                        f"values: {invalid}"
+                    )
+            else:
+                if str(field_value) not in valid_values:
+                    return (
+                        f"Error: metadata.{field_name} value '{field_value}' "
+                        f"not in valid values"
+                    )
 
         # -- Step 10: Append validated JSON line to correct output file ----------
         relative_path = _LAYER_PATHS[layer]

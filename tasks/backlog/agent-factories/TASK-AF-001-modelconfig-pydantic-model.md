@@ -1,6 +1,6 @@
 ---
 id: TASK-AF-001
-title: "Create ModelConfig Pydantic model"
+title: Create ModelConfig Pydantic model
 task_type: declarative
 parent_review: TASK-REV-DAA1
 feature_id: FEAT-AF
@@ -8,8 +8,27 @@ wave: 1
 implementation_mode: task-work
 complexity: 3
 dependencies: []
-status: pending
-tags: [pydantic, config, validation, model-config]
+status: in_review
+tags:
+- pydantic
+- config
+- validation
+- model-config
+autobuild_state:
+  current_turn: 1
+  max_turns: 35
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-5AC9
+  base_branch: main
+  started_at: '2026-03-20T22:47:21.312711'
+  last_updated: '2026-03-20T22:52:19.329198'
+  turns:
+  - turn: 1
+    decision: approve
+    feedback: null
+    timestamp: '2026-03-20T22:47:21.312711'
+    player_summary: Implementation via task-work delegation
+    player_success: true
+    coach_success: true
 ---
 
 # Task: Create ModelConfig Pydantic model

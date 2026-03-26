@@ -154,7 +154,14 @@ def pipeline_env(tmp_path: Path):
             "agent.create_player_tools",
             side_effect=lambda **kw: (
                 call_order.append("create_player_tools"),
-                [mock_rag_tool, mock_write_tool],
+                [mock_rag_tool],
+            )[-1],
+        ),
+        "create_write_tool": patch(
+            "agent.create_write_tool",
+            side_effect=lambda **kw: (
+                call_order.append("create_write_tool"),
+                mock_write_tool,
             )[-1],
         ),
         "create_player": patch(
@@ -236,6 +243,7 @@ class TestStartupSequenceOrder:
             "build_player_prompt",
             "build_coach_prompt",
             "create_player_tools",
+            "create_write_tool",
             "create_player",
             "create_coach",
         ]
@@ -390,7 +398,7 @@ class TestAgentFactories:
         # tools keyword should contain our mocked tools
         tools_arg = call_kwargs.kwargs.get("tools") or call_kwargs[1].get("tools")
         assert tools_arg is not None, "create_player must receive tools= keyword"
-        assert len(tools_arg) == 2, "Player must receive exactly 2 tools"
+        assert len(tools_arg) == 1, "Player must receive exactly 1 tool (rag_retrieval only — TASK-TRF-005)"
 
     def test_create_player_receives_player_prompt(self, pipeline_env) -> None:
         """create_player must receive the player system prompt."""
@@ -458,17 +466,17 @@ class TestToolCreation:
         call_kwargs = agent.create_player_tools.call_args.kwargs
         assert call_kwargs["collection_name"] == "test-domain"
 
-    def test_tools_receive_metadata_schema(self, pipeline_env) -> None:
-        """create_player_tools must receive the metadata_schema from GOAL.md."""
+    def test_write_tool_receives_metadata_schema(self, pipeline_env) -> None:
+        """create_write_tool must receive metadata_schema from GOAL.md (TASK-TRF-005)."""
         import agent
 
         agent.run_pipeline({"resume": False})
 
-        call_kwargs = agent.create_player_tools.call_args.kwargs
+        call_kwargs = agent.create_write_tool.call_args.kwargs
         assert call_kwargs["metadata_schema"] is pipeline_env.goal.metadata_schema
 
     def test_tools_passed_to_player(self, pipeline_env) -> None:
-        """The tools returned by create_player_tools must be passed to create_player."""
+        """Player tools must contain rag_retrieval only (TASK-TRF-005)."""
         import agent
 
         agent.run_pipeline({"resume": False})
@@ -478,7 +486,7 @@ class TestToolCreation:
         assert tools is not None
         tool_names = [t.name for t in tools]
         assert "rag_retrieval" in tool_names
-        assert "write_output" in tool_names
+        assert "write_output" not in tool_names
 
 
 # ===================================================================

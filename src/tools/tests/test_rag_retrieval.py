@@ -151,6 +151,42 @@ class TestLazyInitialisation:
 
         mock_chromadb.PersistentClient.assert_called_once()
 
+    @patch("tools.rag_retrieval.chromadb")
+    def test_client_created_with_default_persist_directory(
+        self, mock_chromadb: MagicMock
+    ) -> None:
+        """FRF-001: PersistentClient receives default path='./chroma_data'."""
+        collection = _make_mock_collection(
+            documents=["text"],
+            metadatas=[{"source": "f.pdf", "page": "1"}],
+            ids=["id1"],
+        )
+        client = _make_mock_client(collection)
+        mock_chromadb.PersistentClient.return_value = client
+
+        tool_fn = create_rag_retrieval_tool("test-collection")
+        tool_fn.invoke({"query": "test"})
+
+        mock_chromadb.PersistentClient.assert_called_once_with(path="./chroma_data")
+
+    @patch("tools.rag_retrieval.chromadb")
+    def test_client_created_with_custom_persist_directory(
+        self, mock_chromadb: MagicMock
+    ) -> None:
+        """FRF-001: PersistentClient receives custom path when specified."""
+        collection = _make_mock_collection(
+            documents=["text"],
+            metadatas=[{"source": "f.pdf", "page": "1"}],
+            ids=["id1"],
+        )
+        client = _make_mock_client(collection)
+        mock_chromadb.PersistentClient.return_value = client
+
+        tool_fn = create_rag_retrieval_tool("test-collection", persist_directory="/custom/path")
+        tool_fn.invoke({"query": "test"})
+
+        mock_chromadb.PersistentClient.assert_called_once_with(path="/custom/path")
+
 
 # ===========================================================================
 # AC-004: Subsequent calls reuse the same client connection

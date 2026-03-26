@@ -1,9 +1,9 @@
 id: FEAT-945D
-name: LangChain Tools — RAG Retrieval and Write Output
+name: "LangChain Tools \u2014 RAG Retrieval and Write Output"
 description: Two LangChain @tool functions (rag_retrieval, write_output) with closure-based
   factories, layer routing, and D7 error-string contract
 created: '2026-03-19T21:37:29.291503'
-status: planned
+status: completed
 complexity: 6
 estimated_tasks: 5
 tasks:
@@ -12,30 +12,54 @@ tasks:
   file_path: tasks/backlog/langchain-tools/TASK-LCT-001-tools-package-and-models.md
   complexity: 3
   dependencies: []
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T20:38:33.362307'
+  completed_at: '2026-03-20T20:44:57.899175'
 - id: TASK-LCT-002
   name: Implement rag_retrieval factory and tool
   file_path: tasks/backlog/langchain-tools/TASK-LCT-002-rag-retrieval-tool.md
   complexity: 5
   dependencies:
   - TASK-LCT-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 2
+    final_decision: approved
+    error: null
+  turns_completed: 2
+  current_turn: 0
+  started_at: '2026-03-20T20:44:57.911322'
+  completed_at: '2026-03-20T20:55:58.113477'
 - id: TASK-LCT-003
   name: Implement write_output factory and tool with layer routing
   file_path: tasks/backlog/langchain-tools/TASK-LCT-003-write-output-tool.md
   complexity: 6
   dependencies:
   - TASK-LCT-001
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 113
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T20:44:57.913845'
+  completed_at: '2026-03-20T20:55:58.116605'
 - id: TASK-LCT-004
   name: Tool assignment and factory wiring
   file_path: tasks/backlog/langchain-tools/TASK-LCT-004-tool-assignment-factory-wiring.md
@@ -43,10 +67,18 @@ tasks:
   dependencies:
   - TASK-LCT-002
   - TASK-LCT-003
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: direct
   estimated_minutes: 33
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T20:56:00.063685'
+  completed_at: '2026-03-20T21:05:42.166783'
 - id: TASK-LCT-005
   name: Unit and integration tests for 41 BDD scenarios
   file_path: tasks/backlog/langchain-tools/TASK-LCT-005-unit-integration-tests.md
@@ -55,10 +87,18 @@ tasks:
   - TASK-LCT-002
   - TASK-LCT-003
   - TASK-LCT-004
-  status: pending
-  description: ''
+  status: completed
   implementation_mode: task-work
   estimated_minutes: 75
+  requires_infrastructure: []
+  result:
+    total_turns: 1
+    final_decision: approved
+    error: null
+  turns_completed: 1
+  current_turn: 0
+  started_at: '2026-03-20T21:05:42.185723'
+  completed_at: '2026-03-20T21:16:23.057559'
 orchestration:
   parallel_groups:
   - - TASK-LCT-001
@@ -68,3 +108,19 @@ orchestration:
   - - TASK-LCT-005
   estimated_duration_minutes: 329
   recommended_parallel: 2
+execution:
+  started_at: '2026-03-20T20:38:33.342177'
+  completed_at: '2026-03-20T21:16:23.064726'
+  worktree_path: /Users/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/.guardkit/worktrees/FEAT-945D
+  total_turns: 6
+  tasks_completed: 5
+  tasks_failed: 0
+  current_wave: 4
+  completed_waves:
+  - 1
+  - 2
+  - 3
+  - 4
+  last_updated: '2026-03-20T21:16:23.060831'
+  archived_at: null
+  archived_to: null

@@ -154,11 +154,26 @@ def process_document(
     pages: list[ExtractedPage] = []
 
     doc = result.document
-    if hasattr(doc, "pages") and doc.pages:
-        for page_num, page_obj in doc.pages.items():
-            text = getattr(page_obj, "text", "")
-            if text:
-                pages.append(ExtractedPage(page_number=page_num, text=text))
+
+    # Aggregate text by page from document content items.
+    # Each item has provenance info (prov) containing page_no.
+    if hasattr(doc, "iterate_items"):
+        page_texts: dict[int, list[str]] = {}
+        for item, _level in doc.iterate_items():
+            text = getattr(item, "text", None)
+            if not text:
+                continue
+            prov_list = getattr(item, "prov", None)
+            if prov_list:
+                page_no = prov_list[0].page_no
+            else:
+                page_no = 1
+            page_texts.setdefault(page_no, []).append(text)
+
+        for page_no in sorted(page_texts):
+            combined = "\n".join(page_texts[page_no])
+            if combined.strip():
+                pages.append(ExtractedPage(page_number=page_no, text=combined))
 
     return ExtractedDocument(
         source_file=str(path),
