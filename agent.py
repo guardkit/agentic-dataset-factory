@@ -147,6 +147,13 @@ def run_pipeline(state: PipelineState) -> PipelineState:
             collection_name=config.domain,
         )
 
+        # Step 9a: Keep a reference to the rag_retrieval tool for
+        # orchestrator-side pre-fetch (TASK-TRF-009).  The tool is still
+        # passed to the Player via ``tools`` so the model *can* call it
+        # autonomously, but the orchestrator guarantees at least one
+        # RAG call per target by invoking it before the first Player turn.
+        rag_tool = tools[0] if tools else None
+
         # Step 9b: Create write tool for orchestrator-gated writes
         # (TASK-TRF-005: only the orchestrator writes, after Coach acceptance)
         write_tool = create_write_tool(
@@ -195,6 +202,7 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                         output_manager=output_mgr,
                         write_tool=write_tool,
                         start_index=start_index,
+                        rag_tool=rag_tool,
                     )
                 )
         finally:

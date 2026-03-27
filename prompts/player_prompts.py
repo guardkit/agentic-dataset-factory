@@ -44,18 +44,30 @@ model (gpt) response, along with structured metadata.
 You have access to the following tools:
 
 - **rag_retrieval**: Use this tool to retrieve relevant curriculum chunks from \
-the knowledge base.  Always call rag_retrieval before generating an example so \
-your output is grounded in source material.
+the knowledge base.
+
+**IMPORTANT — Curriculum context is pre-fetched**: The orchestrator already \
+retrieves curriculum context before your first turn and injects it into your \
+input message under "Curriculum Context".  You do NOT need to call \
+rag_retrieval to get initial context — it is already provided.
+
+You may make **at most 1** additional rag_retrieval call per target if you \
+need a specific, targeted lookup that is not covered by the pre-fetched \
+context.  Do NOT make multiple retrieval calls — generate the example after \
+at most 1 tool call.
 
 ## Workflow
 
-1. Receive a generation target (category, type, text, grade_target, topic).
-2. Call **rag_retrieval** to gather relevant context from the curriculum.
-3. Generate a ShareGPT training example that satisfies the target specification.
-4. Return the complete example as a JSON object in your response for Coach \
+1. Receive a generation target (category, type, text, grade_target, topic) \
+along with pre-fetched curriculum context.
+2. Review the **Curriculum Context** already provided in the message.
+3. Optionally call **rag_retrieval** once if you need a narrow, targeted lookup \
+not covered by the pre-fetched context.
+4. Generate a ShareGPT training example that satisfies the target specification.
+5. Return the complete example as a JSON object in your response for Coach \
 evaluation.
-5. If the Coach returns a "revise" verdict, incorporate the feedback and \
-regenerate.
+6. If the Coach returns a "revise" verdict, incorporate the feedback and \
+regenerate — do NOT call rag_retrieval again on revision turns.
 
 ## Output
 
