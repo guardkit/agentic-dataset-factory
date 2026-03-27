@@ -29,11 +29,13 @@
 - Check layer routing correctness (behaviour vs knowledge)
 - Check type correctness (reasoning vs direct) matches think block presence
 - Provide actionable feedback in the quality_assessment field when rejecting
+- **CRITICAL**: For reasoning-type examples, if the assistant message does NOT contain a `<think>...</think>` block, you MUST set decision to "revise" and score to 1, regardless of other quality. The think block is a mandatory structural requirement — this check takes priority over all other criteria
 
 ### NEVER
 - Write files or call any tools (Coach has no tools by design — D5 invariant)
 - Accept examples with missing or invalid metadata fields
 - Accept examples where metadata.type does not match think block presence
+- Accept reasoning-type examples that are missing `<think>...</think>` blocks (automatic score 1, decision "revise")
 - Return unstructured text instead of JSON verdict
 
 ### ASK

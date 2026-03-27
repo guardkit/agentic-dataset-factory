@@ -10,6 +10,7 @@ from synthesis.validator import (
     SplitTracker,
     TrainingExample,
     ValidationResult,
+    normalise_think_closing_tags,
     route_example,
     validate_example,
     validate_think_block,
@@ -507,6 +508,84 @@ class TestValidateExample:
 
 
 # ---------------------------------------------------------------------------
+# normalise_think_closing_tags
+# ---------------------------------------------------------------------------
+
+
+class TestNormaliseThinkClosingTags:
+    def test_correct_tags_unchanged(self):
+        content = "<think>reasoning</think> Answer."
+        assert normalise_think_closing_tags(content) == content
+
+    def test_malformed_closing_tag_fixed(self):
+        content = "<think>reasoning<think> Answer."
+        assert normalise_think_closing_tags(content) == "<think>reasoning</think> Answer."
+
+    def test_no_think_tags_unchanged(self):
+        content = "Plain answer with no think tags."
+        assert normalise_think_closing_tags(content) == content
+
+    def test_multiline_malformed_tag_fixed(self):
+        content = "<think>\nStep 1\nStep 2\n<think>\n\nVisible answer."
+        expected = "<think>\nStep 1\nStep 2\n</think>\n\nVisible answer."
+        assert normalise_think_closing_tags(content) == expected
+
+    def test_case_insensitive(self):
+        content = "<Think>reasoning<Think> Answer."
+        assert normalise_think_closing_tags(content) == "<Think>reasoning</think> Answer."
+
+    def test_idempotent_on_already_normalised(self):
+        content = "<think>plan</think> Answer."
+        result = normalise_think_closing_tags(content)
+        assert normalise_think_closing_tags(result) == result
+
+    def test_eof_pattern_no_close_tag(self):
+        """<think> opened but never closed — appends </think>."""
+        content = "<think>reasoning content with no close tag"
+        result = normalise_think_closing_tags(content)
+        assert result == "<think>reasoning content with no close tag</think>"
+
+    def test_eof_pattern_multiline(self):
+        """Multi-line content with <think> opened and never closed."""
+        content = "<think>\nStep 1: analyse the question\nStep 2: form argument"
+        result = normalise_think_closing_tags(content)
+        assert result.endswith("</think>")
+        assert result.count("</think>") == 1
+
+    def test_eof_pattern_think_at_end_of_string(self):
+        """<think> at the very end of content — empty think block."""
+        content = "Some preamble <think>"
+        result = normalise_think_closing_tags(content)
+        assert result == "Some preamble <think></think>"
+
+    def test_mixed_malformed_and_eof(self):
+        """<think>block1<think> (malformed pair) then <think>block2 (EOF)."""
+        content = "<think>block1<think><think>block2 with no close"
+        result = normalise_think_closing_tags(content)
+        # First pair fixed by malformed regex, second by EOF handler
+        assert "</think>" in result
+        assert "<think>block1</think>" in result
+
+    def test_eof_pattern_with_existing_close_unchanged(self):
+        """Content with </think> already present is returned unchanged."""
+        content = "<think>reasoning</think> Answer."
+        assert normalise_think_closing_tags(content) == content
+
+    def test_qwen35_realistic_output(self):
+        """Reproduces the exact pattern seen in Run 6 (qwen35-run03)."""
+        content = (
+            "<think>\nThis is a literary analysis question about dramatic technique.\n"
+            "Key considerations:\n- This is AO2\n- For a Grade 7 response\n"
+            "<think>\n\nThat's a really important question!"
+        )
+        result = normalise_think_closing_tags(content)
+        assert "<think>" in result
+        assert "</think>" in result
+        assert result.count("<think>") == 1
+        assert result.count("</think>") == 1
+
+
+# ---------------------------------------------------------------------------
 # Import contract
 # ---------------------------------------------------------------------------
 
@@ -517,6 +596,7 @@ class TestImportContract:
             DuplicateDetector,
             SplitTracker,
             ValidationResult,
+            normalise_think_closing_tags,
             route_example,
             validate_example,
             validate_think_block,
@@ -526,6 +606,7 @@ class TestImportContract:
             obj is not None
             for obj in [
                 ValidationResult,
+                normalise_think_closing_tags,
                 validate_think_block,
                 SplitTracker,
                 DuplicateDetector,

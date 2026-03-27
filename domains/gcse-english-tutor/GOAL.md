@@ -27,7 +27,26 @@ ask questions that guide them toward the answer.
 
 | Category | Type | Count |
 |---|---|---|
-| Literary analysis (single-turn) | reasoning | 1 |
+| Literary analysis (single-turn) | reasoning | 90 |
+| Character analysis — Macbeth | reasoning | 80 |
+| Character analysis — An Inspector Calls | reasoning | 80 |
+| Character analysis — A Christmas Carol | reasoning | 60 |
+| Language analysis — poetry (Power and Conflict) | reasoning | 60 |
+| Language analysis — unseen poetry | reasoning | 50 |
+| Structure analysis — prose and drama | reasoning | 50 |
+| Essay feedback — Literature (multi-turn) | reasoning | 60 |
+| Essay feedback — Language (multi-turn) | reasoning | 50 |
+| Exam technique — Language Paper 1 | reasoning | 40 |
+| Exam technique — Language Paper 2 | reasoning | 40 |
+| Comparative analysis — poetry | reasoning | 30 |
+| AO-specific guidance (AO1-AO6) | reasoning | 30 |
+| Grade boundary guidance (grades 4-9) | reasoning | 30 |
+| Terminology and literary devices | direct | 50 |
+| Character knowledge — set texts | direct | 40 |
+| Factual recall — AQA specification | direct | 40 |
+| Exam structure and mark allocation | direct | 30 |
+| Encouragement and study skills | direct | 40 |
+| Context — historical and social (set texts) | direct | 50 |
 
 ## Generation Guidelines
 
@@ -39,6 +58,12 @@ The Player agent must follow these guidelines when generating GCSE English tutor
 
 **Think block format for reasoning examples**: All reasoning-type examples (75% of the dataset) must include a `<think>` block in the assistant turn. The think block contains internal reasoning about: which AOs apply, the student's likely knowledge level, common misconceptions to watch for, and what Socratic question will guide them forward. The visible response after the think block must NOT reveal the internal reasoning.
 
+**IMPORTANT — Format example for reasoning-type assistant content**:
+```
+"content": "<think>The student is asking about Lady Macbeth's soliloquy in Act 1 Scene 5. This relates to AO2 (language analysis) and AO3 (context). At Grade 7, they should be able to identify language techniques and link them to context. I should guide them to notice the imperative verbs and how they connect to gender expectations.</think>\n\nThat's a really interesting passage to look at! Before I share my thoughts, what do you notice about the types of words Lady Macbeth uses when she's speaking to the spirits? Are they soft and gentle, or something else entirely?"
+```
+The `<think>` block MUST appear at the very start of the assistant content, followed by the visible response. Do NOT omit the `<think>` block for reasoning-type examples.
+
 **Multi-turn format for essay feedback**: Essay feedback examples must use a multi-turn conversation format with at least 2 exchange rounds. The first assistant turn provides structured feedback with a Socratic follow-up question. Subsequent turns show the student attempting to improve, with the tutor affirming progress and pushing further.
 
 **Age-appropriate language for Year 10**: All tutor responses must use language suitable for a 14-15 year old student. Avoid overly academic jargon without explanation. Use encouraging and supportive tone throughout. When introducing literary terminology, provide clear definitions and relatable examples.
@@ -46,6 +71,9 @@ The Player agent must follow these guidelines when generating GCSE English tutor
 ## Evaluation Criteria
 
 The rubric the Coach uses to evaluate each generated training example. Criterion names are valid Python identifiers used as keys in the Coach's `criteria_met` JSON response.
+
+### CRITICAL PRE-CHECK (before scoring criteria)
+For reasoning-type examples: if the assistant message does NOT contain a `<think>...</think>` block, immediately set decision to "revise" and score to 1. Do not evaluate other criteria — the think block is a mandatory structural requirement. Provide feedback: "Reasoning-type example is missing required <think> block."
 
 | Criterion | Description | Weight |
 |---|---|---|

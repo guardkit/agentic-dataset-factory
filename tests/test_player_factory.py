@@ -1,16 +1,21 @@
-"""Unit tests for Player factory — TASK-AF-008.
+"""Unit tests for Player factory — TASK-TRF-016.
 
 Tests the ``create_player`` factory function using the exemplar testing
-methodology: patch ``create_deep_agent`` at the import site, inspect
+methodology: patch ``create_agent`` at the import site, inspect
 ``call_args`` kwargs to verify correct wiring.
 
+Mirrors the Coach factory test pattern (TASK-TRF-012) with the key
+difference that the Player receives tools (e.g. [rag_retrieval]).
+
 Acceptance Criteria:
-    AC-001: Tests mock ``create_deep_agent`` at the import site
-    AC-002: Tests verify ``call_args`` keyword arguments for tools, backend,
-            system_prompt, memory
-    AC-003: Tests verify ``FilesystemBackend`` is in the ``backend`` kwarg
-    AC-004: Tests verify tools list contains exactly 2 tools
-    AC-005: Module-level import assertion for ``FilesystemBackend``
+    AC-001: Tests mock ``create_agent`` at the import site
+    AC-002: Tests verify ``call_args`` keyword arguments for tools,
+            system_prompt, middleware
+    AC-003: Tests verify middleware stack includes MemoryMiddleware
+            but excludes FilesystemMiddleware
+    AC-004: Tests verify tools list is forwarded as-is
+    AC-005: Module-level import assertion for ``create_agent``
+            (not ``create_deep_agent``)
     AC-006: Tests are in ``tests/test_player_factory.py``
 """
 
@@ -42,7 +47,7 @@ def _make_model_config(**overrides: object) -> ModelConfig:
 
 
 def _call_create_player(
-    mock_cda: MagicMock,
+    mock_ca: MagicMock,
     *,
     model_config: ModelConfig | None = None,
     tools: list | None = None,
@@ -55,42 +60,43 @@ def _call_create_player(
     if model_config is None:
         model_config = _make_model_config()
     if tools is None:
-        tools = [MagicMock(name="rag_retrieval"), MagicMock(name="write_output")]
+        tools = [MagicMock(name="rag_retrieval")]
     if memory is None:
         memory = ["./AGENTS.md"]
-    return create_player(
-        model_config=model_config,
-        tools=tools,
-        system_prompt=system_prompt,
-        memory=memory,
-    )
+    with patch("agents.player.create_model", return_value=MagicMock()):
+        return create_player(
+            model_config=model_config,
+            tools=tools,
+            system_prompt=system_prompt,
+            memory=memory,
+        )
 
 
 # ---------------------------------------------------------------------------
-# AC-001: Tests mock create_deep_agent at the import site
+# AC-001: Tests mock create_agent at the import site
 # ---------------------------------------------------------------------------
 
 
 class TestPatchAtImportSite:
-    """AC-001: Tests mock create_deep_agent at agents.player.create_deep_agent."""
+    """AC-001: Tests mock create_agent at agents.player.create_agent."""
 
-    def test_create_deep_agent_patched_at_import_site(self) -> None:
+    def test_create_agent_patched_at_import_site(self) -> None:
         """Patching at import site intercepts the factory's delegation call."""
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda)
-        mock_cda.assert_called_once()
+            _call_create_player(mock_ca)
+        mock_ca.assert_called_once()
 
-    def test_returns_result_of_create_deep_agent(self) -> None:
-        """create_player returns whatever create_deep_agent returns."""
+    def test_returns_result_of_create_agent(self) -> None:
+        """create_player returns whatever create_agent returns."""
         fake_agent = MagicMock(name="fake_player_agent")
         with (
-            patch("agents.player.create_deep_agent", return_value=fake_agent) as mock_cda,
+            patch("agents.player.create_agent", return_value=fake_agent) as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            result = _call_create_player(mock_cda)
+            result = _call_create_player(mock_ca)
         assert result is fake_agent
 
 
@@ -100,162 +106,240 @@ class TestPatchAtImportSite:
 
 
 class TestCallArgsKeywordArguments:
-    """AC-002: Verify call_args kwargs for tools, backend, system_prompt, memory."""
+    """AC-002: Verify call_args kwargs for tools, system_prompt, middleware."""
 
     def test_system_prompt_forwarded(self) -> None:
-        """create_player passes system_prompt through to create_deep_agent."""
+        """create_player passes system_prompt through to create_agent."""
         prompt = "You are a Player agent for GCSE English tutor dataset generation."
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda, system_prompt=prompt)
-        _, kwargs = mock_cda.call_args
+            _call_create_player(mock_ca, system_prompt=prompt)
+        _, kwargs = mock_ca.call_args
         assert kwargs["system_prompt"] == prompt
 
-    def test_memory_forwarded(self) -> None:
-        """create_player passes memory list through to create_deep_agent."""
-        memory = ["./AGENTS.md"]
-        with (
-            patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend"),
-        ):
-            _call_create_player(mock_cda, memory=memory)
-        _, kwargs = mock_cda.call_args
-        assert kwargs["memory"] == memory
-
     def test_tools_forwarded(self) -> None:
-        """create_player passes tools list through to create_deep_agent."""
+        """create_player passes tools list through to create_agent."""
         tool_a = MagicMock(name="rag_retrieval")
-        tool_b = MagicMock(name="write_output")
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda, tools=[tool_a, tool_b])
-        _, kwargs = mock_cda.call_args
+            _call_create_player(mock_ca, tools=[tool_a])
+        _, kwargs = mock_ca.call_args
         assert tool_a in kwargs["tools"]
-        assert tool_b in kwargs["tools"]
 
-    def test_backend_forwarded(self) -> None:
-        """create_player passes FilesystemBackend instance as backend kwarg."""
+    def test_middleware_forwarded(self) -> None:
+        """create_player passes middleware list to create_agent."""
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend") as mock_backend_cls,
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
         ):
-            fake_backend = MagicMock(name="fs_backend")
-            mock_backend_cls.return_value = fake_backend
-            _call_create_player(mock_cda)
-        _, kwargs = mock_cda.call_args
-        assert "backend" in kwargs
-        assert kwargs["backend"] is fake_backend
+            _call_create_player(mock_ca)
+        _, kwargs = mock_ca.call_args
+        assert "middleware" in kwargs
+        assert isinstance(kwargs["middleware"], list)
+        assert len(kwargs["middleware"]) == 3
 
     def test_model_config_translated_and_forwarded(self) -> None:
-        """create_player translates ModelConfig and passes model to create_deep_agent."""
-        from langchain_core.language_models import BaseChatModel
-
+        """create_player passes create_model result to create_agent as 'model'."""
         config = _make_model_config(provider="local", model="test-model")
+        fake_model = MagicMock(name="fake_model")
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+            patch("agents.player.create_model", return_value=fake_model),
+        ):
+            from agents.player import create_player
+
+            create_player(
+                model_config=config,
+                tools=[MagicMock(name="rag_retrieval")],
+                system_prompt="You are a Player agent.",
+                memory=["./AGENTS.md"],
+            )
+        _, kwargs = mock_ca.call_args
+        assert "model" in kwargs
+        assert kwargs["model"] is fake_model
+
+    def test_max_tokens_passed_through_to_model(self) -> None:
+        """max_tokens from ModelConfig is passed through to create_model."""
+        config = _make_model_config(max_tokens=8192)
+        with (
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+            patch("agents.player.create_model") as mock_cm,
+        ):
+            mock_cm.return_value = MagicMock()
+            from agents.player import create_player
+
+            create_player(
+                model_config=config,
+                tools=[MagicMock(name="rag_retrieval")],
+                system_prompt="You are a Player agent.",
+                memory=["./AGENTS.md"],
+            )
+        mock_cm.assert_called_once_with(config)
+        assert config.max_tokens == 8192
+
+    def test_max_tokens_default_is_4096(self) -> None:
+        """ModelConfig defaults max_tokens to 4096."""
+        config = _make_model_config()
+        assert config.max_tokens == 4096
+
+
+# ---------------------------------------------------------------------------
+# AC-003: Tests verify middleware excludes FilesystemMiddleware
+# ---------------------------------------------------------------------------
+
+
+class TestMiddlewareStack:
+    """AC-003: Middleware includes MemoryMiddleware, excludes FilesystemMiddleware."""
+
+    def test_memory_middleware_in_stack(self) -> None:
+        """MemoryMiddleware is present in the middleware stack."""
+        from deepagents.middleware import MemoryMiddleware
+
+        with (
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda, model_config=config)
-        _, kwargs = mock_cda.call_args
-        assert "model" in kwargs
-        assert isinstance(kwargs["model"], BaseChatModel)
+            _call_create_player(mock_ca)
+        _, kwargs = mock_ca.call_args
+        middleware_types = [type(m).__name__ for m in kwargs["middleware"]]
+        assert "MemoryMiddleware" in middleware_types
 
-
-# ---------------------------------------------------------------------------
-# AC-003: Tests verify FilesystemBackend is in the backend kwarg
-# ---------------------------------------------------------------------------
-
-
-class TestFilesystemBackendWiring:
-    """AC-003: FilesystemBackend is instantiated and passed as backend kwarg."""
-
-    def test_filesystem_backend_constructor_called_with_root_dot(self) -> None:
-        """FilesystemBackend is constructed with root_dir='.'."""
+    def test_no_filesystem_middleware_in_stack(self) -> None:
+        """FilesystemMiddleware is NOT in the middleware stack."""
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+        ):
+            _call_create_player(mock_ca)
+        _, kwargs = mock_ca.call_args
+        middleware_types = [type(m).__name__ for m in kwargs["middleware"]]
+        assert "FilesystemMiddleware" not in middleware_types
+
+    def test_patch_tool_calls_middleware_in_stack(self) -> None:
+        """PatchToolCallsMiddleware is present in the middleware stack."""
+        from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
+
+        with (
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+        ):
+            _call_create_player(mock_ca)
+        _, kwargs = mock_ca.call_args
+        middleware_types = [type(m).__name__ for m in kwargs["middleware"]]
+        assert "PatchToolCallsMiddleware" in middleware_types
+
+    def test_memory_middleware_receives_memory_sources(self) -> None:
+        """MemoryMiddleware is configured with the provided memory sources."""
+        from deepagents.middleware import MemoryMiddleware
+
+        memory = ["./AGENTS.md"]
+        with (
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+        ):
+            _call_create_player(mock_ca, memory=memory)
+        _, kwargs = mock_ca.call_args
+        mem_mw = [m for m in kwargs["middleware"] if isinstance(m, MemoryMiddleware)]
+        assert len(mem_mw) == 1
+        assert mem_mw[0].sources == memory
+
+    def test_filesystem_backend_used_for_memory_only(self) -> None:
+        """FilesystemBackend is constructed with root_dir='.' for MemoryMiddleware."""
+        with (
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend") as mock_backend_cls,
         ):
-            _call_create_player(mock_cda)
+            _call_create_player(mock_ca)
         mock_backend_cls.assert_called_once_with(root_dir=".")
 
-    def test_filesystem_backend_instance_forwarded_to_create_deep_agent(self) -> None:
-        """The FilesystemBackend instance is the backend kwarg to create_deep_agent."""
-        with (
-            patch("agents.player.create_deep_agent") as mock_cda,
-            patch("agents.player.FilesystemBackend") as mock_backend_cls,
-        ):
-            fake_backend = MagicMock(name="fs_backend")
-            mock_backend_cls.return_value = fake_backend
-            _call_create_player(mock_cda)
-        _, kwargs = mock_cda.call_args
-        assert kwargs["backend"] is fake_backend
-
 
 # ---------------------------------------------------------------------------
-# AC-004: Tests verify tools list contains exactly 2 tools
+# AC-004: Tests verify tools list is forwarded as-is
 # ---------------------------------------------------------------------------
 
 
-class TestToolsListSize:
-    """AC-004: tools list passed through contains exactly 2 tools."""
+class TestToolsListForwarding:
+    """AC-004: tools list passed through contains only intended tools."""
 
-    def test_tools_list_has_exactly_two_elements(self) -> None:
-        """create_player forwards a tools list with exactly 2 tools."""
+    def test_single_tool_forwarded(self) -> None:
+        """create_player forwards a single-tool list as-is."""
         tool_a = MagicMock(name="rag_retrieval")
-        tool_b = MagicMock(name="write_output")
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda, tools=[tool_a, tool_b])
-        _, kwargs = mock_cda.call_args
-        assert len(kwargs["tools"]) == 2
+            _call_create_player(mock_ca, tools=[tool_a])
+        _, kwargs = mock_ca.call_args
+        assert len(kwargs["tools"]) == 1
+        assert kwargs["tools"][0] is tool_a
 
-    def test_each_tool_present_in_forwarded_list(self) -> None:
-        """Both tools are present in the forwarded tools list."""
+    def test_no_extra_tools_injected(self) -> None:
+        """No filesystem tools are added beyond what was passed."""
         tool_a = MagicMock(name="rag_retrieval")
-        tool_b = MagicMock(name="write_output")
         with (
-            patch("agents.player.create_deep_agent") as mock_cda,
+            patch("agents.player.create_agent") as mock_ca,
             patch("agents.player.FilesystemBackend"),
         ):
-            _call_create_player(mock_cda, tools=[tool_a, tool_b])
-        _, kwargs = mock_cda.call_args
-        assert tool_a in kwargs["tools"]
-        assert tool_b in kwargs["tools"]
+            _call_create_player(mock_ca, tools=[tool_a])
+        _, kwargs = mock_ca.call_args
+        tool_names = [getattr(t, "name", "") for t in kwargs["tools"]]
+        filesystem_tools = {"write_todos", "ls", "read_file", "write_file",
+                           "edit_file", "glob", "grep", "task"}
+        assert not filesystem_tools.intersection(set(tool_names))
+
+    def test_no_backend_kwarg_passed_to_create_agent(self) -> None:
+        """create_agent is NOT called with a backend kwarg (no FilesystemMiddleware)."""
+        with (
+            patch("agents.player.create_agent") as mock_ca,
+            patch("agents.player.FilesystemBackend"),
+        ):
+            _call_create_player(mock_ca)
+        _, kwargs = mock_ca.call_args
+        assert "backend" not in kwargs
 
 
 # ---------------------------------------------------------------------------
-# AC-005: Module-level import assertion for FilesystemBackend
+# AC-005: Module-level import assertions
 # ---------------------------------------------------------------------------
 
 
 class TestModuleLevelImports:
     """AC-005: Module-level import assertions for agents.player."""
 
-    def test_player_module_imports_filesystem_backend(self) -> None:
-        """agents.player imports FilesystemBackend (contrast with Coach)."""
-        # Clear cached module to force fresh import inspection
+    def test_player_module_imports_create_agent(self) -> None:
+        """agents.player imports create_agent (not create_deep_agent)."""
         sys.modules.pop("agents.player", None)
         import agents.player as player_module
 
-        assert hasattr(player_module, "FilesystemBackend"), (
-            "agents.player must import FilesystemBackend — "
-            "the Player agent requires filesystem access"
+        assert hasattr(player_module, "create_agent"), (
+            "agents.player must import create_agent — "
+            "the factory delegates to this function"
         )
 
-    def test_player_module_imports_create_deep_agent(self) -> None:
-        """agents.player imports create_deep_agent."""
+    def test_player_module_does_not_import_create_deep_agent(self) -> None:
+        """agents.player does NOT import create_deep_agent."""
         sys.modules.pop("agents.player", None)
         import agents.player as player_module
 
-        assert hasattr(player_module, "create_deep_agent"), (
-            "agents.player must import create_deep_agent — "
-            "the factory delegates to this function"
+        assert not hasattr(player_module, "create_deep_agent"), (
+            "agents.player must NOT import create_deep_agent — "
+            "it leaks FilesystemMiddleware tools"
+        )
+
+    def test_player_module_imports_memory_middleware(self) -> None:
+        """agents.player imports MemoryMiddleware for memory injection."""
+        sys.modules.pop("agents.player", None)
+        import agents.player as player_module
+
+        assert hasattr(player_module, "MemoryMiddleware"), (
+            "agents.player must import MemoryMiddleware — "
+            "needed for AGENTS.md memory injection"
         )
 
 
@@ -270,7 +354,7 @@ class TestValidationErrors:
     def test_empty_system_prompt_raises_value_error(self) -> None:
         """create_player raises ValueError when system_prompt is empty string."""
         with (
-            patch("agents.player.create_deep_agent"),
+            patch("agents.player.create_agent"),
             patch("agents.player.FilesystemBackend"),
         ):
             from agents.player import create_player
@@ -278,7 +362,7 @@ class TestValidationErrors:
             with pytest.raises(ValueError, match="system_prompt"):
                 create_player(
                     model_config=_make_model_config(),
-                    tools=[MagicMock(), MagicMock()],
+                    tools=[MagicMock()],
                     system_prompt="",
                     memory=["./AGENTS.md"],
                 )
@@ -286,7 +370,7 @@ class TestValidationErrors:
     def test_whitespace_only_system_prompt_raises_value_error(self) -> None:
         """create_player raises ValueError when system_prompt is whitespace-only."""
         with (
-            patch("agents.player.create_deep_agent"),
+            patch("agents.player.create_agent"),
             patch("agents.player.FilesystemBackend"),
         ):
             from agents.player import create_player
@@ -294,7 +378,7 @@ class TestValidationErrors:
             with pytest.raises(ValueError, match="system_prompt"):
                 create_player(
                     model_config=_make_model_config(),
-                    tools=[MagicMock(), MagicMock()],
+                    tools=[MagicMock()],
                     system_prompt="   \t\n  ",
                     memory=["./AGENTS.md"],
                 )

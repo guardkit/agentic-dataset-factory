@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from pydantic import ValidationError
 
 from config.coach_verdict import CoachVerdict
+from synthesis.validator import normalise_think_closing_tags
 
 if TYPE_CHECKING:
     from config.models import GenerationConfig
@@ -98,6 +99,49 @@ class GenerationResult:
 # ---------------------------------------------------------------------------
 
 
+def _repair_json_strings(json_str: str) -> str:
+    """Fix common JSON issues from LLM output.
+
+    Replaces literal newlines and tabs inside JSON string values with
+    their escaped equivalents (``\\n``, ``\\t``).  Uses a state machine
+    to track whether the scanner is inside a quoted string so that
+    structural whitespace between JSON tokens is left untouched.
+
+    Args:
+        json_str: Raw JSON string that may contain unescaped control
+            characters inside string values.
+
+    Returns:
+        Repaired JSON string safe for ``json.loads``.
+    """
+    result: list[str] = []
+    in_string = False
+    escape_next = False
+
+    for ch in json_str:
+        if escape_next:
+            result.append(ch)
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            result.append(ch)
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            result.append(ch)
+            continue
+        if in_string and ch == "\n":
+            result.append("\\n")
+            continue
+        if in_string and ch == "\t":
+            result.append("\\t")
+            continue
+        result.append(ch)
+
+    return "".join(result)
+
+
 def _extract_json_object(raw_content: str) -> str:
     """Extract a JSON object from text that may contain surrounding prose.
 
@@ -123,9 +167,10 @@ def _extract_json_object(raw_content: str) -> str:
 
     # Try 1: Direct parse — content is already valid JSON
     try:
-        parsed = json.loads(content)
+        repaired = _repair_json_strings(content)
+        parsed = json.loads(repaired)
         if isinstance(parsed, dict):
-            return content
+            return repaired
     except (json.JSONDecodeError, TypeError):
         pass
 
@@ -134,16 +179,33 @@ def _extract_json_object(raw_content: str) -> str:
     for match in fence_pattern.finditer(content):
         candidate = match.group(1).strip()
         try:
-            parsed = json.loads(candidate)
+            repaired = _repair_json_strings(candidate)
+            parsed = json.loads(repaired)
             if isinstance(parsed, dict):
-                return candidate
+                return repaired
         except (json.JSONDecodeError, TypeError):
             continue
 
     # Try 3: Find the first { ... } block that parses as valid JSON
+    # Use a JSON-string-aware scanner to ignore braces inside strings
+    in_string = False
+    escape_next = False
     brace_depth = 0
     start_idx = None
+
     for i, ch in enumerate(content):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        # Only count braces outside strings
         if ch == "{":
             if brace_depth == 0:
                 start_idx = i
@@ -153,9 +215,10 @@ def _extract_json_object(raw_content: str) -> str:
             if brace_depth == 0 and start_idx is not None:
                 candidate = content[start_idx : i + 1]
                 try:
-                    parsed = json.loads(candidate)
+                    repaired = _repair_json_strings(candidate)
+                    parsed = json.loads(repaired)
                     if isinstance(parsed, dict):
-                        return candidate
+                        return repaired
                 except (json.JSONDecodeError, TypeError):
                     start_idx = None
 
@@ -209,6 +272,37 @@ def _extract_player_content(player_response: dict[str, Any]) -> str:
                 len(combined),
             )
             return combined
+
+        # Path 3: Content blocks list — look for reasoning blocks
+        reasoning_parts = [
+            block.get("text", "") or block.get("content", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "reasoning"
+        ]
+        combined_reasoning = "".join(reasoning_parts).strip()
+        if combined_reasoning:
+            logger.info("player_content_source: content list (reasoning blocks)")
+            return combined_reasoning
+
+    # Path 4: additional_kwargs.reasoning_content (vLLM think-mode)
+    additional_kwargs = getattr(last_msg, "additional_kwargs", None) or {}
+    reasoning_content = additional_kwargs.get("reasoning_content", "")
+    if isinstance(reasoning_content, str) and reasoning_content.strip():
+        # If content is also present, concatenate: think + content
+        base_content = content if isinstance(content, str) and content.strip() else ""
+        if base_content:
+            merged = f"<think>{reasoning_content}</think>\n\n{base_content}"
+            logger.info(
+                "player_content_source: content + reasoning_content merged, len=%d",
+                len(merged),
+            )
+            return merged
+        logger.info(
+            "player_content_source: additional_kwargs.reasoning_content "
+            "(vLLM think-mode fallback), len=%d",
+            len(reasoning_content),
+        )
+        return reasoning_content
 
     raise ValueError(
         f"Player response has no extractable content: content type={type(content)}, "
@@ -640,6 +734,8 @@ async def _process_single_target(
         )
 
         if verdict.is_accepted:
+            # Normalise malformed <think> closing tags before extraction
+            player_content = normalise_think_closing_tags(player_content)
             # Extract JSON from Player response
             try:
                 example_json = _extract_example_json(player_content)
@@ -653,8 +749,11 @@ async def _process_single_target(
                 )
             except ValueError as exc:
                 logger.warning(
-                    "JSON extraction failed after Coach acceptance: %s",
+                    "JSON extraction failed after Coach acceptance: %s\n"
+                    "Content length: %d chars | Last 200 chars: %s",
                     exc,
+                    len(player_content),
+                    player_content[-200:],
                 )
                 rejection_history.append(
                     {"extraction_error": str(exc), **verdict.model_dump()}

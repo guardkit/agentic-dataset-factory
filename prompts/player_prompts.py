@@ -90,6 +90,19 @@ the domain context below.
 - Classify the layer (behaviour vs knowledge) correctly per the Layer Routing \
 rules.
 - Set metadata fields to valid values per the Metadata Schema.
+
+## CRITICAL — Response Format
+
+Your response MUST be ONLY a valid JSON object.  No exceptions.
+
+- Start your response with `{` and end it with `}`
+- Do NOT include any text before or after the JSON
+- Do NOT wrap the JSON in markdown code fences
+- Do NOT include explanatory prose, analysis, or commentary
+- If you called a tool, your NEXT message must still be ONLY the JSON object
+
+The orchestrator parses your response as raw JSON.  Any surrounding text \
+will cause a parsing failure and force a revision turn.
 """
 
 # ---------------------------------------------------------------------------
