@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING, Callable
 
 from langchain_core.tools import tool
 
+from synthesis.validator import normalise_think_closing_tags
+
 if TYPE_CHECKING:
     from domain_config.models import MetadataField
 
@@ -127,6 +129,15 @@ def create_write_output_tool(
                 f"Error: Invalid metadata.type value '{example_type}' "
                 f"(expected: reasoning, direct)"
             )
+
+        # -- Step 6b: Normalise malformed <think> closing tags -----------------
+        for msg in messages:
+            if (
+                isinstance(msg, dict)
+                and msg.get("role") == "assistant"
+                and isinstance(msg.get("content"), str)
+            ):
+                msg["content"] = normalise_think_closing_tags(msg["content"])
 
         # -- Steps 7 & 8: Think-block checks on last assistant message ----------
         last_assistant_content = _find_last_assistant_content(messages)

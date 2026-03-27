@@ -884,6 +884,37 @@ class TestMultiTurnExamples:
         assert "Error" in result
         assert "<think>" in result
 
+    def test_malformed_think_closing_tag_normalised_and_accepted(
+        self, write_tool, output_dir
+    ):
+        """Malformed <think>...<think> (missing slash) is normalised to
+        <think>...</think> and the example is accepted (TASK-TRF-019)."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "q"},
+                {
+                    "role": "assistant",
+                    "content": "<think>\nreasoning here\n<think>\n\nVisible answer",
+                },
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "reasoning",
+                "source": "synthetic",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "Written to" in result
+
+        # Verify normalised content was written
+        written = (output_dir / "train.jsonl").read_text().strip()
+        data = json.loads(written)
+        assistant_content = data["messages"][2]["content"]
+        assert "</think>" in assistant_content
+        assert assistant_content.count("<think>") == 1
+
 
 # ===========================================================================
 # Edge cases

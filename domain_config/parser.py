@@ -83,13 +83,22 @@ def _coerce_required(raw: str) -> str:
     return raw
 
 
+_RANGE_NOTATION_RE = re.compile(r"^\d+\+")
+"""Matches range notations like ``1+`` or ``0+`` at the start of a cell."""
+
+
 def _coerce_valid_values(raw: str) -> list[str]:
     """Parse a comma-separated cell into a list of stripped strings.
 
     An empty or whitespace-only cell returns an empty list.
+    Range notations like ``1+`` or ``0+`` return an empty list because
+    they express constraints, not enumerations — the Pydantic model
+    handles range validation.
     """
     stripped = raw.strip()
     if not stripped:
+        return []
+    if _RANGE_NOTATION_RE.match(stripped):
         return []
     return [v.strip() for v in stripped.split(",") if v.strip()]
 

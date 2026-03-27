@@ -1147,6 +1147,63 @@ class TestExtractExampleJson:
 
 
 # ---------------------------------------------------------------------------
+# TASK-TRF-025: JSON-string-aware brace matching
+# ---------------------------------------------------------------------------
+
+
+class TestStringAwareBraceMatching:
+    """TASK-TRF-025: Brace matcher ignores braces inside JSON string values."""
+
+    def test_unbalanced_open_brace_in_string(self) -> None:
+        """Unmatched { inside a string value does not break extraction."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = 'Some text {"key": "value with { unclosed"}'
+        result = _extract_json_object(raw)
+        assert json.loads(result) == {"key": "value with { unclosed"}
+
+    def test_unbalanced_close_brace_in_string(self) -> None:
+        """Unmatched } inside a string value does not break extraction."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = '{"key": "value with } close"}'
+        result = _extract_json_object(raw)
+        assert json.loads(result) == {"key": "value with } close"}
+
+    def test_escaped_quote_in_string(self) -> None:
+        """Escaped quotes inside strings do not toggle string state."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = r'{"key": "value with \" escaped quote"}'
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert parsed["key"] == 'value with " escaped quote'
+
+    def test_training_example_with_braces_in_content(self) -> None:
+        """Simulates the actual failure from Run 8."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = (
+            '{"messages": [{"role": "assistant", "content": "What about {this?"}],'
+            ' "metadata": {"type": "reasoning"}}'
+        )
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert parsed["messages"][0]["content"] == "What about {this?"
+
+    def test_escaped_backslash_before_brace(self) -> None:
+        r"""Escaped backslash \\{ means the brace is NOT escaped."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        # In JSON: "value\\" is a string ending with a literal backslash.
+        # The { after the closing quote is structural.
+        raw = r'{"a": "val\\"}'
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert parsed["a"] == "val\\"
+
+
+# ---------------------------------------------------------------------------
 # TASK-TRF-015: Player content extraction (content blocks support)
 # ---------------------------------------------------------------------------
 
@@ -1204,14 +1261,106 @@ class TestExtractPlayerContent:
             _extract_player_content(response)
 
     def test_empty_blocks_list_raises_value_error(self) -> None:
-        """Raise ValueError when content blocks list has no text."""
+        """Raise ValueError when content blocks list has no text or reasoning."""
         from entrypoint.generation_loop import _extract_player_content
 
         msg = MagicMock()
-        msg.content = [{"type": "reasoning", "text": "thinking only"}]
+        msg.content = [{"type": "image", "url": "http://example.com/img.png"}]
+        msg.additional_kwargs = {}
         response = {"messages": [msg]}
         with pytest.raises(ValueError, match="no extractable content"):
             _extract_player_content(response)
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-026: reasoning_content fallback in _extract_player_content
+# ---------------------------------------------------------------------------
+
+
+class TestExtractPlayerContentReasoningFallback:
+    """TASK-TRF-026: Player extractor handles reasoning_content like Coach."""
+
+    def test_reasoning_content_only_returns_it(self) -> None:
+        """Empty content + reasoning_content returns reasoning_content."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = ""
+        msg.additional_kwargs = {"reasoning_content": "Thought about the problem."}
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert result == "Thought about the problem."
+
+    def test_content_plus_reasoning_content_merged(self) -> None:
+        """Both content and reasoning_content present returns merged result."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = '{"messages": [], "metadata": {}}'
+        msg.additional_kwargs = {"reasoning_content": "Let me think..."}
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        # String content is non-empty so Path 1 returns it directly
+        # (reasoning_content merge only happens when content is empty/whitespace)
+        assert result == '{"messages": [], "metadata": {}}'
+
+    def test_whitespace_content_plus_reasoning_returns_reasoning(self) -> None:
+        """Whitespace-only content + reasoning_content returns reasoning_content."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = "   "
+        msg.additional_kwargs = {"reasoning_content": "Deep reasoning here."}
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert result == "Deep reasoning here."
+
+    def test_content_blocks_reasoning_type(self) -> None:
+        """Content blocks with type=reasoning are extracted as fallback."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = [
+            {"type": "reasoning", "text": "Step 1: analyse the problem."},
+            {"type": "reasoning", "text": " Step 2: solve it."},
+        ]
+        msg.additional_kwargs = {}
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert "Step 1" in result
+        assert "Step 2" in result
+
+    def test_no_content_no_reasoning_raises(self) -> None:
+        """No content and no reasoning_content still raises ValueError."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = ""
+        msg.additional_kwargs = {}
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_player_content(response)
+
+    def test_no_additional_kwargs_attr(self) -> None:
+        """Message without additional_kwargs attribute doesn't crash."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock(spec=[])  # No attributes at all
+        msg.content = ""
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_player_content(response)
+
+    def test_content_only_no_reasoning_returns_content(self) -> None:
+        """Standard content with no reasoning_content returns content unchanged."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = '{"messages": [], "metadata": {}}'
+        msg.additional_kwargs = {}
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert result == '{"messages": [], "metadata": {}}'
 
 
 # ---------------------------------------------------------------------------
@@ -1910,3 +2059,176 @@ class TestBuildPlayerMessageWithRag:
         rag_pos = msg.index("Curriculum Context")
         feedback_pos = msg.index("Coach Feedback")
         assert rag_pos < feedback_pos
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-020: normalise_think_closing_tags before JSON extraction
+# ---------------------------------------------------------------------------
+
+
+class TestNormaliseThinkBeforeExtraction:
+    """TASK-TRF-020: Malformed think tags are normalised before JSON extraction."""
+
+    @pytest.mark.asyncio
+    async def test_malformed_think_tags_normalised_before_extraction(self) -> None:
+        """Player content with <think>...<think> is normalised so JSON extraction succeeds."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        # JSON with malformed think tags inside an assistant message value
+        malformed_json = json.dumps({
+            "messages": [
+                {"role": "system", "content": "You are a tutor."},
+                {"role": "user", "content": "What is a metaphor?"},
+                {
+                    "role": "assistant",
+                    "content": "<think>Let me reason about this<think> A metaphor is a figure of speech.",
+                },
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "reasoning",
+            },
+        })
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [MagicMock(content=malformed_json)]
+        }
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.accepted == 1
+        # write_tool should have been called with normalised content
+        write_tool.invoke.assert_called_once()
+        call_json = write_tool.invoke.call_args[0][0]["example_json"]
+        assert "</think>" in call_json
+        # The malformed double-open pattern should be fixed
+        assert "<think>Let me reason about this<think>" not in call_json
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-030: JSON string repair pre-processing
+# ---------------------------------------------------------------------------
+
+
+class TestRepairJsonStrings:
+    """TASK-TRF-030: Repair literal newlines/tabs inside JSON string values."""
+
+    def test_repair_literal_newline_in_string(self) -> None:
+        """Literal newline inside a JSON string is escaped to \\n."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        bad = '{"content": "Hello\nWorld"}'
+        repaired = _repair_json_strings(bad)
+        assert json.loads(repaired) == {"content": "Hello\nWorld"}
+
+    def test_repair_preserves_structural_newlines(self) -> None:
+        """Newlines between JSON tokens (structural) are preserved."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        good = '{\n  "key": "value"\n}'
+        repaired = _repair_json_strings(good)
+        assert json.loads(repaired) == {"key": "value"}
+
+    def test_repair_handles_escaped_quotes(self) -> None:
+        """Escaped quotes inside strings do not confuse the state machine."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        s = '{"content": "She said \\"hello\\"\\nand left"}'
+        repaired = _repair_json_strings(s)
+        parsed = json.loads(repaired)
+        assert "hello" in parsed["content"]
+
+    def test_repair_tab_in_string(self) -> None:
+        """Literal tab inside a JSON string is escaped to \\t."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        bad = '{"content": "col1\tcol2"}'
+        repaired = _repair_json_strings(bad)
+        assert json.loads(repaired) == {"content": "col1\tcol2"}
+
+    def test_repair_multiple_newlines_in_string(self) -> None:
+        """Multiple literal newlines in a single string value are all escaped."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        bad = '{"content": "line1\nline2\nline3"}'
+        repaired = _repair_json_strings(bad)
+        parsed = json.loads(repaired)
+        assert parsed["content"] == "line1\nline2\nline3"
+
+    def test_repair_mixed_structural_and_string_newlines(self) -> None:
+        """Structural newlines preserved while in-string newlines escaped."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        bad = '{\n  "content": "Hello\nWorld",\n  "key": "val"\n}'
+        repaired = _repair_json_strings(bad)
+        parsed = json.loads(repaired)
+        assert parsed["content"] == "Hello\nWorld"
+        assert parsed["key"] == "val"
+
+    def test_repair_empty_string(self) -> None:
+        """Empty input returns empty output."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        assert _repair_json_strings("") == ""
+
+    def test_no_strings_passthrough(self) -> None:
+        """JSON with no string values passes through unchanged."""
+        from entrypoint.generation_loop import _repair_json_strings
+
+        good = '{"count": 42, "flag": true}'
+        repaired = _repair_json_strings(good)
+        assert json.loads(repaired) == {"count": 42, "flag": True}
+
+
+class TestRepairIntegrationWithExtraction:
+    """TASK-TRF-030: Repair is applied during JSON extraction."""
+
+    def test_extract_json_with_literal_newline_in_string(self) -> None:
+        """_extract_json_object succeeds when string value has literal newline."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = '{"messages": [], "metadata": {"note": "line1\nline2"}}'
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert parsed["metadata"]["note"] == "line1\nline2"
+
+    def test_extract_from_fence_with_literal_newline(self) -> None:
+        """Code-fence extraction succeeds with literal newline in string."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = (
+            "Here is the example:\n"
+            "```json\n"
+            '{"content": "Great question!\nLet\'s explore this together..."}\n'
+            "```\n"
+        )
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert "Great question!" in parsed["content"]
+
+    def test_extract_brace_match_with_literal_newline(self) -> None:
+        """Brace-matching extraction succeeds with literal newline in string."""
+        from entrypoint.generation_loop import _extract_json_object
+
+        raw = 'Some text {"key": "hello\nworld"} more text'
+        result = _extract_json_object(raw)
+        parsed = json.loads(result)
+        assert parsed["key"] == "hello\nworld"

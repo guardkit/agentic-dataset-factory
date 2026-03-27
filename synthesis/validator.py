@@ -187,6 +187,37 @@ class ValidationResult:
 _THINK_OPEN_RE = re.compile(r"<think>", re.IGNORECASE)
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
+# Matches a second <think> that should be </think>:
+# <think>...content...<think> (malformed closing tag)
+_MALFORMED_CLOSE_RE = re.compile(
+    r"(<think>.*?)<think>", re.DOTALL | re.IGNORECASE
+)
+
+
+def normalise_think_closing_tags(content: str) -> str:
+    """Fix malformed ``<think>`` closing tags in assistant content.
+
+    Some models (e.g. Qwen3.5-35B) emit ``<think>`` as both opening and
+    closing tag.  This function replaces the second ``<think>`` in such
+    pairs with ``</think>``.
+
+    Also handles the EOF pattern where ``<think>`` is opened but never
+    closed — appends ``</think>`` at the end of content.
+
+    The fix is idempotent — content with correct ``</think>`` tags is
+    returned unchanged.
+    """
+    if "</think>" in content.lower():
+        # Already has a proper closing tag — nothing to fix.
+        return content
+    # Fix <think>...<think> malformed closing pairs.
+    result = _MALFORMED_CLOSE_RE.sub(r"\1</think>", content)
+    # If still no </think> (EOF pattern: <think> opened, never closed),
+    # append a closing tag.
+    if "<think>" in result.lower() and "</think>" not in result.lower():
+        result = result + "</think>"
+    return result
+
 
 def validate_think_block(example: TrainingExample) -> ValidationResult:
     """Validate think-block presence/absence based on example type.
@@ -335,6 +366,7 @@ __all__ = [
     "GenerationPlan",
     "RejectionRecord",
     "ValidationResult",
+    "normalise_think_closing_tags",
     "validate_think_block",
     "SplitTracker",
     "DuplicateDetector",

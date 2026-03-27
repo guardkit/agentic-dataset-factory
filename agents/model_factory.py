@@ -59,6 +59,7 @@ def create_model(config: ModelConfig) -> BaseChatModel:
     kwargs: dict[str, object] = {
         "model_provider": model_provider,
         "temperature": config.temperature,
+        "max_tokens": config.max_tokens,
     }
 
     # Local providers require a custom base_url for the OpenAI-compatible endpoint.

@@ -808,6 +808,80 @@ class TestParseGoalMdEdgeCases:
 
 
 # ---------------------------------------------------------------------------
+# Range Notation in _coerce_valid_values (TASK-TRF-028)
+# ---------------------------------------------------------------------------
+
+
+class TestCoerceValidValuesRangeNotation:
+    """Unit tests for range notation detection in _coerce_valid_values."""
+
+    def test_range_1_plus_returns_empty(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("1+") == []
+
+    def test_range_0_plus_returns_empty(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("0+") == []
+
+    def test_range_with_description_returns_empty(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("1+ (number of conversation turns)") == []
+
+    def test_enum_still_works(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("behaviour, knowledge") == [
+            "behaviour",
+            "knowledge",
+        ]
+
+    def test_numeric_enum_still_works(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("4, 5, 6, 7, 8, 9, null") == [
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "null",
+        ]
+
+    def test_empty_returns_empty(self) -> None:
+        from domain_config.parser import _coerce_valid_values
+
+        assert _coerce_valid_values("") == []
+        assert _coerce_valid_values("   ") == []
+
+    def test_range_in_full_goal_parse(
+        self, builder: GoalMdBuilder, tmp_goal: Path
+    ) -> None:
+        """Full GOAL.md parse produces turns.valid_values == [] for range notation."""
+        table = (
+            "| Field | Type | Required | Valid Values |\n"
+            "|---|---|---|---|\n"
+            "| layer | string | yes | behaviour, knowledge |\n"
+            "| type | string | yes | reasoning, direct |\n"
+            "| ao | array[string] | yes | AO1, AO2, AO3 |\n"
+            "| text | string | yes | macbeth, a_christmas_carol |\n"
+            "| topic | string | yes | character_analysis, essay_feedback |\n"
+            "| grade_target | integer or null | yes | 4, 5, 6, 7, 8, 9 |\n"
+            "| source | string | yes | synthetic, aqa_derived |\n"
+            "| turns | integer | yes | 1+ (number of conversation turns) |\n"
+        )
+        path = builder.with_metadata_schema(table).write_to(tmp_goal)
+        config = parse_goal_md(path)
+        turns_field = next(
+            f for f in config.metadata_schema if f.field == "turns"
+        )
+        assert turns_field.valid_values == []
+
+
+# ---------------------------------------------------------------------------
 # AC-005: Public API Exports
 # ---------------------------------------------------------------------------
 

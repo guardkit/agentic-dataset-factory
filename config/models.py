@@ -61,6 +61,11 @@ class ModelConfig(BaseModel):
         le=2.0,
         description="Sampling temperature (0.0-2.0 inclusive).",
     )
+    max_tokens: int = Field(
+        default=4096,
+        ge=1,
+        description="Maximum tokens for model completions.  Defaults to 4096.",
+    )
 
     @model_validator(mode="after")
     def validate_local_endpoint(self) -> ModelConfig:
