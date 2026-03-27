@@ -1008,11 +1008,13 @@ async def run_generation_loop(
                 config.target_timeout,
             )
 
-        except (RuntimeError, OSError, ValidationError) as exc:
+        except (RuntimeError, OSError, ValidationError, ValueError) as exc:
             # All LLM retries exhausted or malformed LLM response: discard
             # target, continue pipeline.  ValidationError catches cases where
             # vLLM returns tool_calls.args as a JSON string instead of a dict
             # (known issue with some model/parser combinations — TASK-REV-FRF2).
+            # ValueError catches Coach returning non-JSON content, e.g.
+            # Player-like reasoning text instead of a verdict (TASK-NRF-12C1).
             rejected_count += 1
             total_turns += 1
 
