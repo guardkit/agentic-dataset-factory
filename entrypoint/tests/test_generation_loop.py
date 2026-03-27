@@ -1147,6 +1147,74 @@ class TestExtractExampleJson:
 
 
 # ---------------------------------------------------------------------------
+# TASK-TRF-015: Player content extraction (content blocks support)
+# ---------------------------------------------------------------------------
+
+
+class TestExtractPlayerContent:
+    """TASK-TRF-015: Extract Player content handling string and block formats."""
+
+    def test_extract_string_content(self) -> None:
+        """Standard string content is returned as-is."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = '{"messages": [], "metadata": {}}'
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert result == '{"messages": [], "metadata": {}}'
+
+    def test_extract_content_blocks(self) -> None:
+        """Content blocks list is concatenated into a single string."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = [
+            {"type": "text", "text": '{"messages": [{"role": "system", '},
+            {"type": "text", "text": '"content": "hello"}], "metadata": {}}'},
+        ]
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        parsed = json.loads(result)
+        assert "messages" in parsed
+        assert parsed["messages"][0]["role"] == "system"
+
+    def test_extract_ignores_non_text_blocks(self) -> None:
+        """Non-text content blocks (e.g. reasoning) are skipped."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = [
+            {"type": "reasoning", "text": "thinking..."},
+            {"type": "text", "text": '{"messages": [], "metadata": {}}'},
+        ]
+        response = {"messages": [msg]}
+        result = _extract_player_content(response)
+        assert "thinking" not in result
+        assert json.loads(result) == {"messages": [], "metadata": {}}
+
+    def test_empty_content_raises_value_error(self) -> None:
+        """Raise ValueError when content is empty or None."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = ""
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_player_content(response)
+
+    def test_empty_blocks_list_raises_value_error(self) -> None:
+        """Raise ValueError when content blocks list has no text."""
+        from entrypoint.generation_loop import _extract_player_content
+
+        msg = MagicMock()
+        msg.content = [{"type": "reasoning", "text": "thinking only"}]
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_player_content(response)
+
+
+# ---------------------------------------------------------------------------
 # TASK-TRF-006: Write retry cap (3 per target)
 # ---------------------------------------------------------------------------
 
@@ -1313,3 +1381,532 @@ class TestWriteRetryCap:
         assert result.rejected == 1
         # Should stop after 2 attempts (custom config), not 3
         assert write_tool.invoke.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-010: Token usage logging
+# ---------------------------------------------------------------------------
+
+
+def _make_msg_with_usage(
+    content: str,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+) -> MagicMock:
+    """Create a mock message with response_metadata containing token usage."""
+    msg = MagicMock(content=content)
+    if prompt_tokens or completion_tokens:
+        msg.response_metadata = {
+            "token_usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+            }
+        }
+    else:
+        msg.response_metadata = {}
+    return msg
+
+
+class TestTokenUsageLogging:
+    """TASK-TRF-010: Token usage logged for each LLM call and pipeline summary."""
+
+    @pytest.mark.asyncio
+    async def test_token_usage_logged_per_call(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Token usage is logged for each Player and Coach LLM call."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(_VALID_EXAMPLE_JSON, prompt_tokens=100, completion_tokens=50)
+            ]
+        }
+
+        coach = AsyncMock()
+        coach.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(
+                    _make_accept_verdict().model_dump_json(),
+                    prompt_tokens=80,
+                    completion_tokens=30,
+                )
+            ]
+        }
+
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        with caplog.at_level(logging.INFO):
+            await run_generation_loop(
+                player=player,
+                coach=coach,
+                targets=targets,
+                config=config,
+                checkpoint=checkpoint,
+                output_manager=output_mgr,
+                write_tool=write_tool,
+                start_index=0,
+            )
+
+        log_text = caplog.text
+        assert "LLM usage: agent=player" in log_text
+        assert "prompt_tokens=100" in log_text
+        assert "completion_tokens=50" in log_text
+        assert "LLM usage: agent=coach" in log_text
+        assert "prompt_tokens=80" in log_text
+        assert "completion_tokens=30" in log_text
+
+    @pytest.mark.asyncio
+    async def test_per_target_cumulative_tokens_logged(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Per-target cumulative token totals are logged at target completion."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(_VALID_EXAMPLE_JSON, prompt_tokens=200, completion_tokens=100)
+            ]
+        }
+
+        coach = AsyncMock()
+        coach.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(
+                    _make_accept_verdict().model_dump_json(),
+                    prompt_tokens=150,
+                    completion_tokens=60,
+                )
+            ]
+        }
+
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        with caplog.at_level(logging.INFO):
+            await run_generation_loop(
+                player=player,
+                coach=coach,
+                targets=targets,
+                config=config,
+                checkpoint=checkpoint,
+                output_manager=output_mgr,
+                write_tool=write_tool,
+                start_index=0,
+            )
+
+        log_text = caplog.text
+        # Per-target cumulative: player(200+100) + coach(150+60) = 350 prompt, 160 completion
+        assert "target_tokens: index=0" in log_text
+        assert "prompt_tokens=350" in log_text
+        assert "completion_tokens=160" in log_text
+
+    @pytest.mark.asyncio
+    async def test_pipeline_summary_includes_total_tokens(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Pipeline summary logs total tokens consumed across all targets."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target(category="Cat-0"), _make_target(category="Cat-1")]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        call_count = 0
+
+        async def player_side_effect(*args: Any, **kwargs: Any) -> dict:
+            nonlocal call_count
+            call_count += 1
+            return {
+                "messages": [
+                    _make_msg_with_usage(_VALID_EXAMPLE_JSON, prompt_tokens=100, completion_tokens=50)
+                ]
+            }
+
+        player = AsyncMock()
+        player.ainvoke.side_effect = player_side_effect
+
+        coach = AsyncMock()
+        verdict_json = _make_accept_verdict().model_dump_json()
+        coach.ainvoke.side_effect = [
+            {"messages": [_make_msg_with_usage(verdict_json, prompt_tokens=80, completion_tokens=30)]},
+            {"messages": [_make_msg_with_usage(verdict_json, prompt_tokens=80, completion_tokens=30)]},
+        ]
+
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        with caplog.at_level(logging.INFO):
+            result = await run_generation_loop(
+                player=player,
+                coach=coach,
+                targets=targets,
+                config=config,
+                checkpoint=checkpoint,
+                output_manager=output_mgr,
+                write_tool=write_tool,
+                start_index=0,
+            )
+
+        log_text = caplog.text
+        # 2 targets * (100+80) prompt = 360, 2 * (50+30) completion = 160
+        assert "pipeline_tokens:" in log_text
+        assert "prompt_tokens=360" in log_text
+        assert "completion_tokens=160" in log_text
+        assert "total_tokens=520" in log_text
+
+    @pytest.mark.asyncio
+    async def test_generation_result_includes_token_usage(self) -> None:
+        """GenerationResult.token_usage contains cumulative token stats."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(_VALID_EXAMPLE_JSON, prompt_tokens=500, completion_tokens=200)
+            ]
+        }
+
+        coach = AsyncMock()
+        coach.ainvoke.return_value = {
+            "messages": [
+                _make_msg_with_usage(
+                    _make_accept_verdict().model_dump_json(),
+                    prompt_tokens=300,
+                    completion_tokens=100,
+                )
+            ]
+        }
+
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        assert result.token_usage is not None
+        assert result.token_usage.prompt_tokens == 800
+        assert result.token_usage.completion_tokens == 300
+        assert result.token_usage.total_tokens == 1100
+
+    @pytest.mark.asyncio
+    async def test_no_usage_data_gracefully_handled(self) -> None:
+        """When response has no token usage metadata, logging is skipped gracefully."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        # Standard mock without response_metadata (like existing tests)
+        player = _make_mock_player([_VALID_EXAMPLE_JSON])
+        coach = _make_mock_coach([_make_accept_verdict()])
+
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+        )
+
+        # Should still work fine with zero tokens
+        assert result.accepted == 1
+        assert result.token_usage is not None
+        assert result.token_usage.total_tokens == 0
+
+
+# ---------------------------------------------------------------------------
+# TASK-TRF-009: Orchestrator RAG pre-fetch
+# ---------------------------------------------------------------------------
+
+
+def _make_mock_rag_tool(
+    return_value: str = "--- Chunk 1 (source: doc.pdf, p.1) ---\nSample curriculum content.\n",
+) -> MagicMock:
+    """Create a mock rag_retrieval tool for the orchestrator."""
+    rag_tool = MagicMock()
+    rag_tool.invoke.return_value = return_value
+    return rag_tool
+
+
+class TestRagPreFetch:
+    """TASK-TRF-009: Orchestrator pre-fetches RAG context before Player turn."""
+
+    @pytest.mark.asyncio
+    async def test_rag_tool_called_once_per_target(self) -> None:
+        """rag_tool.invoke is called once per target when rag_tool is provided."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target(category="Poetry"), _make_target(category="Drama")]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()] * 2)
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+        rag_tool = _make_mock_rag_tool()
+
+        await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            rag_tool=rag_tool,
+        )
+
+        assert rag_tool.invoke.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_rag_context_injected_into_player_message(self) -> None:
+        """RAG context appears in the Player's input message."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target(category="Poetry", type_="reasoning")]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+        rag_tool = _make_mock_rag_tool("Relevant curriculum chunk about poetry.")
+
+        await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            rag_tool=rag_tool,
+        )
+
+        # Check the message sent to the Player contains the RAG context
+        player_call = player.ainvoke.call_args
+        player_msg = player_call[0][0]["messages"][0]["content"]
+        assert "Curriculum Context" in player_msg
+        assert "Relevant curriculum chunk about poetry." in player_msg
+
+    @pytest.mark.asyncio
+    async def test_rag_query_uses_target_category_and_type(self) -> None:
+        """RAG query is built from target.category and target.type."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target(category="Shakespearean tragedy", type_="reasoning")]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+        rag_tool = _make_mock_rag_tool()
+
+        await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            rag_tool=rag_tool,
+        )
+
+        rag_call = rag_tool.invoke.call_args
+        assert rag_call[0][0]["query"] == "Shakespearean tragedy reasoning"
+
+    @pytest.mark.asyncio
+    async def test_rag_failure_does_not_block_generation(self) -> None:
+        """If rag_tool returns an error, generation proceeds without RAG context."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        # RAG tool returns an error string
+        rag_tool = _make_mock_rag_tool("Error: ChromaDB unavailable — connection refused")
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            rag_tool=rag_tool,
+        )
+
+        # Generation should still succeed
+        assert result.accepted == 1
+
+        # Player message should NOT contain the error string as context
+        player_msg = player.ainvoke.call_args[0][0]["messages"][0]["content"]
+        assert "Curriculum Context" not in player_msg
+
+    @pytest.mark.asyncio
+    async def test_rag_exception_does_not_block_generation(self) -> None:
+        """If rag_tool raises an exception, generation proceeds without RAG context."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        # RAG tool raises an exception
+        rag_tool = MagicMock()
+        rag_tool.invoke.side_effect = RuntimeError("ChromaDB crashed")
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            rag_tool=rag_tool,
+        )
+
+        # Generation should still succeed
+        assert result.accepted == 1
+
+    @pytest.mark.asyncio
+    async def test_no_rag_tool_backward_compatible(self) -> None:
+        """When rag_tool is not provided (None), loop works as before."""
+        from entrypoint.generation_loop import run_generation_loop
+
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1, target_timeout=60)
+
+        player = AsyncMock()
+        player.ainvoke.return_value = {"messages": [MagicMock(content=_VALID_EXAMPLE_JSON)]}
+        coach = _make_mock_coach([_make_accept_verdict()])
+        checkpoint = MagicMock()
+        output_mgr = MagicMock()
+        output_mgr.rejected_fh = MagicMock()
+        write_tool = _make_mock_write_tool()
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=targets,
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_mgr,
+            write_tool=write_tool,
+            start_index=0,
+            # rag_tool not passed — defaults to None
+        )
+
+        assert result.accepted == 1
+
+        # Player message should NOT contain RAG context section
+        player_msg = player.ainvoke.call_args[0][0]["messages"][0]["content"]
+        assert "Curriculum Context" not in player_msg
+
+
+class TestBuildPlayerMessageWithRag:
+    """TASK-TRF-009: _build_player_message with rag_context parameter."""
+
+    def test_rag_context_included_when_provided(self) -> None:
+        """RAG context appears in message when provided."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target(category="Poetry", type_="reasoning")
+        msg = _build_player_message(target, None, rag_context="Chunk about poetry.")
+
+        assert "Curriculum Context" in msg
+        assert "Chunk about poetry." in msg
+
+    def test_no_rag_context_when_none(self) -> None:
+        """No RAG section appears when rag_context is None."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target(category="Poetry", type_="reasoning")
+        msg = _build_player_message(target, None, rag_context=None)
+
+        assert "Curriculum Context" not in msg
+
+    def test_rag_context_before_coach_feedback(self) -> None:
+        """RAG context appears before Coach feedback in the message."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target()
+        msg = _build_player_message(
+            target,
+            coach_feedback="Fix the example.",
+            rag_context="Relevant chunk.",
+        )
+
+        rag_pos = msg.index("Curriculum Context")
+        feedback_pos = msg.index("Coach Feedback")
+        assert rag_pos < feedback_pos

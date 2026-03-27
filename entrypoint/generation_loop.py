@@ -30,7 +30,7 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
 from pydantic import ValidationError
@@ -52,6 +52,27 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class TokenUsage:
+    """Cumulative token usage statistics for the generation loop.
+
+    Attributes:
+        prompt_tokens: Total prompt tokens consumed across all LLM calls.
+        completion_tokens: Total completion tokens generated across all LLM calls.
+        total_tokens: Sum of prompt and completion tokens.
+    """
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+
+    def add(self, prompt: int, completion: int) -> None:
+        """Accumulate token counts from a single LLM call."""
+        self.prompt_tokens += prompt
+        self.completion_tokens += completion
+        self.total_tokens += prompt + completion
+
+
+@dataclass
 class GenerationResult:
     """Statistics returned after the generation loop completes.
 
@@ -61,6 +82,7 @@ class GenerationResult:
         rejected: Number of targets rejected (exhausted turns, timeout, or LLM failure).
         total_turns: Total Player-Coach cycles executed across all targets.
         elapsed_seconds: Wall-clock time for the entire loop.
+        token_usage: Cumulative token usage across all LLM calls.
     """
 
     total_targets: int
@@ -68,6 +90,7 @@ class GenerationResult:
     rejected: int
     total_turns: int
     elapsed_seconds: float
+    token_usage: TokenUsage = field(default_factory=TokenUsage)
 
 
 # ---------------------------------------------------------------------------
@@ -75,15 +98,20 @@ class GenerationResult:
 # ---------------------------------------------------------------------------
 
 
-def _extract_example_json(raw_content: str) -> str:
-    """Extract a JSON example from the Player agent's response content.
+def _extract_json_object(raw_content: str) -> str:
+    """Extract a JSON object from text that may contain surrounding prose.
 
-    The Player may return the JSON embedded in markdown code fences or
-    surrounded by explanatory text. This function extracts the JSON
-    object that contains ``"messages"`` and ``"metadata"`` keys.
+    Uses a 3-try strategy:
+    1. Direct parse — content is already valid JSON.
+    2. Regex code-fence extraction (``\\`\\`\\`json ... \\`\\`\\``` or
+       ``\\`\\`\\` ... \\`\\`\\```).
+    3. Brace-matching — find the first ``{ ... }`` block that parses.
+
+    This is the shared helper used by both ``_extract_example_json`` and
+    ``_parse_coach_verdict``.
 
     Args:
-        raw_content: Raw string content from the Player agent response.
+        raw_content: Raw string that may contain a JSON object.
 
     Returns:
         The extracted JSON string.
@@ -132,17 +160,87 @@ def _extract_example_json(raw_content: str) -> str:
                     start_idx = None
 
     raise ValueError(
-        f"Failed to extract JSON example from Player response. "
+        f"Failed to extract JSON object from content. "
         f"Raw content (first 200 chars): {raw_content[:200]!r}"
     )
+
+
+def _extract_player_content(player_response: dict[str, Any]) -> str:
+    """Extract the Player's text content from an agent response.
+
+    Mirrors ``_extract_coach_content`` — handles the case where the
+    Player model returns content as a list of typed blocks (e.g.
+    ``[{"type": "text", "text": "..."}]``) rather than a plain string.
+    Without this, the raw list object is passed downstream, causing
+    truncation or serialisation artefacts (TASK-TRF-015).
+
+    Args:
+        player_response: Dict returned by ``player.ainvoke()``.
+
+    Returns:
+        Non-empty string containing the Player's response text.
+
+    Raises:
+        ValueError: If no content can be extracted.
+    """
+    last_msg = player_response["messages"][-1]
+    content = getattr(last_msg, "content", None)
+
+    # Path 1: Standard string content
+    if isinstance(content, str) and content.strip():
+        logger.debug(
+            "player_content_source: string, len=%d",
+            len(content),
+        )
+        return content
+
+    # Path 2: Content blocks list — concatenate text blocks
+    if isinstance(content, list):
+        text_parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        combined = "".join(text_parts).strip()
+        if combined:
+            logger.debug(
+                "player_content_source: content_blocks (%d blocks), len=%d",
+                len(text_parts),
+                len(combined),
+            )
+            return combined
+
+    raise ValueError(
+        f"Player response has no extractable content: content type={type(content)}, "
+        f"repr(content)={content!r:.500}"
+    )
+
+
+def _extract_example_json(raw_content: str) -> str:
+    """Extract a JSON example from the Player agent's response content.
+
+    The Player may return the JSON embedded in markdown code fences or
+    surrounded by explanatory text. This function extracts the JSON
+    object that contains ``"messages"`` and ``"metadata"`` keys.
+
+    Args:
+        raw_content: Raw string content from the Player agent response.
+
+    Returns:
+        The extracted JSON string.
+
+    Raises:
+        ValueError: If no valid JSON object can be extracted.
+    """
+    return _extract_json_object(raw_content)
 
 
 def _parse_coach_verdict(raw_content: str) -> CoachVerdict:
     """Parse the Coach agent's response into a structured CoachVerdict.
 
-    Attempts to extract JSON from the response content. The Coach may
-    return the JSON embedded in markdown code fences, so we try to
-    extract it.
+    Uses the robust 3-try JSON extraction strategy (direct parse, code-fence
+    regex, brace-matching) to handle Coach responses that include preamble
+    text before the JSON verdict.
 
     Args:
         raw_content: Raw string content from the Coach agent response.
@@ -153,30 +251,20 @@ def _parse_coach_verdict(raw_content: str) -> CoachVerdict:
     Raises:
         ValueError: If the content cannot be parsed as a valid CoachVerdict.
     """
-    content = raw_content.strip()
-
-    # Strip markdown code fences if present
-    if content.startswith("```"):
-        lines = content.split("\n")
-        # Remove first and last lines (```json and ```)
-        json_lines = []
-        in_fence = False
-        for line in lines:
-            if line.strip().startswith("```") and not in_fence:
-                in_fence = True
-                continue
-            if line.strip() == "```" and in_fence:
-                break
-            if in_fence:
-                json_lines.append(line)
-        content = "\n".join(json_lines)
+    try:
+        json_str = _extract_json_object(raw_content)
+    except ValueError:
+        raise ValueError(
+            f"Failed to parse CoachVerdict: no JSON object found in response. "
+            f"Raw content (first 200 chars): {raw_content[:200]!r}"
+        )
 
     try:
-        return CoachVerdict.model_validate_json(content)
-    except (ValidationError, json.JSONDecodeError) as exc:
+        return CoachVerdict.model_validate_json(json_str)
+    except ValidationError as exc:
         raise ValueError(
-            f"Failed to parse Coach verdict from response: {exc}. "
-            f"Raw content (first 200 chars): {raw_content[:200]!r}"
+            f"Failed to parse CoachVerdict: JSON found but validation failed: "
+            f"{exc}. Raw content (first 200 chars): {raw_content[:200]!r}"
         ) from exc
 
 
@@ -260,6 +348,123 @@ def _build_rejection_record(
     }
 
 
+def _extract_token_usage(
+    response: dict[str, Any],
+) -> tuple[int, int]:
+    """Extract prompt and completion token counts from an agent response.
+
+    LangChain message objects expose token usage via ``response_metadata``
+    (OpenAI-compatible) or ``usage_metadata`` (LangChain native).  This
+    function tries both paths and returns ``(0, 0)`` when usage data is
+    unavailable (e.g. in tests with plain MagicMock messages).
+
+    Args:
+        response: Dict returned by ``agent.ainvoke()``.
+
+    Returns:
+        Tuple of (prompt_tokens, completion_tokens).
+    """
+    try:
+        last_msg = response["messages"][-1]
+    except (KeyError, IndexError, TypeError):
+        return 0, 0
+
+    # Path 1: response_metadata.token_usage (OpenAI-compatible / vLLM)
+    meta = getattr(last_msg, "response_metadata", None)
+    if meta and isinstance(meta, dict):
+        token_usage = meta.get("token_usage") or meta.get("usage")
+        if token_usage and isinstance(token_usage, dict):
+            return (
+                token_usage.get("prompt_tokens", 0),
+                token_usage.get("completion_tokens", 0),
+            )
+
+    # Path 2: usage_metadata (LangChain native)
+    usage_meta = getattr(last_msg, "usage_metadata", None)
+    if usage_meta and isinstance(usage_meta, dict):
+        return (
+            usage_meta.get("input_tokens", 0),
+            usage_meta.get("output_tokens", 0),
+        )
+
+    return 0, 0
+
+
+def _extract_coach_content(coach_response: dict[str, Any]) -> str:
+    """Extract the Coach's text content from an agent response.
+
+    vLLM with ``--reasoning-parser qwen3`` splits model output: the
+    ``<think>`` block lands in ``reasoning_content`` while ``content``
+    gets only the remainder.  When the entire Coach response is inside
+    ``<think>`` tags, ``content`` is empty and the verdict is lost
+    because LangChain's ``ChatOpenAI`` discards ``reasoning_content``.
+
+    This function implements a 4-source fallback:
+
+    1. ``message.content`` (string) — standard path.
+    2. ``message.additional_kwargs["reasoning_content"]`` — vLLM reasoning.
+    3. Content blocks with ``type: "reasoning"`` in ``message.content``
+       (when content is a list of typed blocks).
+    4. Raise ``ValueError`` if all sources are empty.
+
+    Args:
+        coach_response: Dict returned by ``coach.ainvoke()``.
+
+    Returns:
+        Non-empty string containing the Coach's verdict text.
+
+    Raises:
+        ValueError: If no content can be extracted from any source.
+    """
+    last_msg = coach_response["messages"][-1]
+
+    # Path 1: Standard .content (string)
+    content = getattr(last_msg, "content", None)
+    if isinstance(content, str) and content.strip():
+        logger.debug("coach_content_source: content (standard path)")
+        return content
+
+    # Path 2: Content blocks list — look for text blocks first
+    if isinstance(content, list):
+        # Try text blocks
+        text_parts = [
+            block.get("text", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        combined_text = "".join(text_parts).strip()
+        if combined_text:
+            logger.debug("coach_content_source: content list (text blocks)")
+            return combined_text
+
+        # Path 3: Try reasoning blocks
+        reasoning_parts = [
+            block.get("text", "") or block.get("content", "")
+            for block in content
+            if isinstance(block, dict) and block.get("type") == "reasoning"
+        ]
+        combined_reasoning = "".join(reasoning_parts).strip()
+        if combined_reasoning:
+            logger.info("coach_content_source: content list (reasoning blocks)")
+            return combined_reasoning
+
+    # Path 4: additional_kwargs.reasoning_content (vLLM think-mode)
+    additional_kwargs = getattr(last_msg, "additional_kwargs", None) or {}
+    reasoning_content = additional_kwargs.get("reasoning_content", "")
+    if isinstance(reasoning_content, str) and reasoning_content.strip():
+        logger.info(
+            "coach_content_source: additional_kwargs.reasoning_content "
+            "(vLLM think-mode fallback)"
+        )
+        return reasoning_content
+
+    raise ValueError(
+        "Coach response has no extractable content: "
+        f"content={content!r}, "
+        f"additional_kwargs keys={list(additional_kwargs.keys())}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Core loop
 # ---------------------------------------------------------------------------
@@ -274,6 +479,8 @@ async def _process_single_target(
     config: GenerationConfig,
     output_manager: OutputFileManager,
     write_tool: Callable,
+    token_usage: TokenUsage | None = None,
+    rag_tool: Callable | None = None,
 ) -> tuple[bool, int, list[dict[str, Any]]]:
     """Process a single generation target through the Player-Coach cycle.
 
@@ -281,6 +488,12 @@ async def _process_single_target(
     the orchestrator extracts the JSON from the Player's response and calls
     ``write_tool`` to persist it. If write validation fails, the example is
     treated as a rejection and the Player is asked to revise (TASK-TRF-005).
+
+    The orchestrator also owns RAG retrieval (TASK-TRF-009).  When
+    ``rag_tool`` is provided the orchestrator pre-fetches curriculum context
+    before the first Player turn, injecting it into the player message.
+    This guarantees RAG grounding even when the model does not invoke the
+    ``rag_retrieval`` tool autonomously.
 
     Args:
         player: Player DeepAgent instance.
@@ -292,6 +505,10 @@ async def _process_single_target(
         output_manager: Output file manager for writing results.
         write_tool: The ``write_output`` LangChain tool, called by the
             orchestrator after Coach acceptance.
+        token_usage: Optional cumulative token usage accumulator.
+        rag_tool: Optional ``rag_retrieval`` LangChain tool.  When provided,
+            the orchestrator calls it once per target before the first Player
+            turn (TASK-TRF-009).
 
     Returns:
         Tuple of (accepted: bool, turns_used: int, rejection_history: list).
@@ -299,14 +516,46 @@ async def _process_single_target(
     rejection_history: list[dict[str, Any]] = []
     coach_feedback: str | None = None
     write_attempts = 0
+    target_prompt_tokens = 0
+    target_completion_tokens = 0
+
+    # --- TASK-TRF-009: Orchestrator pre-fetches RAG context ---
+    rag_context: str | None = None
+    if rag_tool is not None:
+        rag_query = f"{target.category} {target.type}"
+        try:
+            rag_context = rag_tool.invoke({"query": rag_query, "n_results": 5})
+            if isinstance(rag_context, str) and rag_context.startswith("Error:"):
+                logger.warning(
+                    "RAG pre-fetch failed for index=%d: %s",
+                    target_index,
+                    rag_context,
+                )
+                rag_context = None
+            else:
+                logger.info(
+                    "rag_prefetch: index=%d, query=%r, result_len=%d",
+                    target_index,
+                    rag_query,
+                    len(rag_context) if rag_context else 0,
+                )
+        except Exception as exc:
+            logger.warning(
+                "RAG pre-fetch exception for index=%d: %s",
+                target_index,
+                exc,
+            )
+            rag_context = None
 
     for turn in range(config.max_turns):
-        # Build player input — include Coach feedback for revisions
+        # Build player input — include RAG context and Coach feedback
         player_input: dict[str, Any] = {
             "messages": [
                 {
                     "role": "user",
-                    "content": _build_player_message(target, coach_feedback),
+                    "content": _build_player_message(
+                        target, coach_feedback, rag_context
+                    ),
                 }
             ]
         }
@@ -318,7 +567,31 @@ async def _process_single_target(
             max_retries=config.llm_retry_attempts,
             backoff_base=config.llm_retry_backoff,
         )
-        player_content = player_response["messages"][-1].content
+        player_content = _extract_player_content(player_response)
+
+        logger.debug(
+            "player_response: index=%d, turn=%d, content_len=%d",
+            target_index,
+            turn + 1,
+            len(player_content),
+        )
+
+        # Extract and log Player token usage
+        p_prompt, p_completion = _extract_token_usage(player_response)
+        if p_prompt or p_completion:
+            target_prompt_tokens += p_prompt
+            target_completion_tokens += p_completion
+            if token_usage is not None:
+                token_usage.add(p_prompt, p_completion)
+            logger.info(
+                "LLM usage: agent=player, index=%d, turn=%d, "
+                "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d",
+                target_index,
+                turn + 1,
+                p_prompt,
+                p_completion,
+                p_prompt + p_completion,
+            )
 
         # Coach evaluates example
         coach_input: dict[str, Any] = {
@@ -336,7 +609,24 @@ async def _process_single_target(
             max_retries=config.llm_retry_attempts,
             backoff_base=config.llm_retry_backoff,
         )
-        coach_content = coach_response["messages"][-1].content
+        coach_content = _extract_coach_content(coach_response)
+
+        # Extract and log Coach token usage
+        c_prompt, c_completion = _extract_token_usage(coach_response)
+        if c_prompt or c_completion:
+            target_prompt_tokens += c_prompt
+            target_completion_tokens += c_completion
+            if token_usage is not None:
+                token_usage.add(c_prompt, c_completion)
+            logger.info(
+                "LLM usage: agent=coach, index=%d, turn=%d, "
+                "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d",
+                target_index,
+                turn + 1,
+                c_prompt,
+                c_completion,
+                c_prompt + c_completion,
+            )
 
         # Parse Coach verdict
         verdict = _parse_coach_verdict(coach_content)
@@ -353,6 +643,14 @@ async def _process_single_target(
             # Extract JSON from Player response
             try:
                 example_json = _extract_example_json(player_content)
+                logger.debug(
+                    "example_extracted: index=%d, turn=%d, "
+                    "input_len=%d, output_len=%d",
+                    target_index,
+                    turn + 1,
+                    len(player_content),
+                    len(example_json),
+                )
             except ValueError as exc:
                 logger.warning(
                     "JSON extraction failed after Coach acceptance: %s",
@@ -388,6 +686,15 @@ async def _process_single_target(
                         write_attempts,
                         target_index,
                     )
+                    if target_prompt_tokens or target_completion_tokens:
+                        logger.info(
+                            "target_tokens: index=%d, prompt_tokens=%d, "
+                            "completion_tokens=%d, total_tokens=%d",
+                            target_index,
+                            target_prompt_tokens,
+                            target_completion_tokens,
+                            target_prompt_tokens + target_completion_tokens,
+                        )
                     return False, turn + 1, rejection_history
                 coach_feedback = (
                     f"Write validation failed: {write_result}. "
@@ -401,6 +708,15 @@ async def _process_single_target(
                 turn + 1,
                 verdict.score,
             )
+            if target_prompt_tokens or target_completion_tokens:
+                logger.info(
+                    "target_tokens: index=%d, prompt_tokens=%d, "
+                    "completion_tokens=%d, total_tokens=%d",
+                    target_index,
+                    target_prompt_tokens,
+                    target_completion_tokens,
+                    target_prompt_tokens + target_completion_tokens,
+                )
             return True, turn + 1, rejection_history
 
         # Not accepted — record rejection and prepare feedback for revision
@@ -415,18 +731,31 @@ async def _process_single_target(
             coach_feedback += "\n\nIssues:\n" + "\n".join(issue_texts)
 
     # Exhausted all turns — target rejected
+    if target_prompt_tokens or target_completion_tokens:
+        logger.info(
+            "target_tokens: index=%d, prompt_tokens=%d, "
+            "completion_tokens=%d, total_tokens=%d",
+            target_index,
+            target_prompt_tokens,
+            target_completion_tokens,
+            target_prompt_tokens + target_completion_tokens,
+        )
     return False, config.max_turns, rejection_history
 
 
 def _build_player_message(
     target: GenerationTarget,
     coach_feedback: str | None,
+    rag_context: str | None = None,
 ) -> str:
     """Build the user message for the Player agent.
 
     Args:
         target: The generation target to process.
         coach_feedback: Optional Coach feedback from previous turn for revision.
+        rag_context: Optional pre-fetched RAG context from the orchestrator.
+            Injected to guarantee curriculum grounding even when the model
+            does not invoke the ``rag_retrieval`` tool (TASK-TRF-009).
 
     Returns:
         Formatted message string for the Player.
@@ -437,6 +766,12 @@ def _build_player_message(
         f"  Type: {target.type}\n"
         f"  Count: {target.count}\n"
     )
+    if rag_context:
+        msg += (
+            f"\n--- Curriculum Context (use this to ground your example) ---\n"
+            f"{rag_context}\n"
+            f"--- End Curriculum Context ---\n"
+        )
     if coach_feedback:
         msg += (
             f"\n--- Coach Feedback (revise based on this) ---\n"
@@ -455,18 +790,24 @@ async def run_generation_loop(
     output_manager: OutputFileManager,
     write_tool: Callable,
     start_index: int = 0,
+    rag_tool: Callable | None = None,
 ) -> GenerationResult:
     """Run the sequential Player-Coach generation loop.
 
     Processes each target one at a time (ADR-ARCH-006). For each target:
-    1. Player generates an example (DeepAgent handles RAG internally).
-    2. Coach evaluates the example (returns structured JSON verdict).
-    3. If accepted: orchestrator calls ``write_tool`` to persist.
-    4. If rejected and turns remain: Player revises with Coach feedback.
-    5. If rejected at max_turns: log to rejected.jsonl.
+    1. Orchestrator pre-fetches RAG context (TASK-TRF-009).
+    2. Player generates an example with injected RAG context.
+    3. Coach evaluates the example (returns structured JSON verdict).
+    4. If accepted: orchestrator calls ``write_tool`` to persist.
+    5. If rejected and turns remain: Player revises with Coach feedback.
+    6. If rejected at max_turns: log to rejected.jsonl.
 
     The orchestrator owns all writes — the Player never calls
     ``write_output`` directly (TASK-TRF-005).
+
+    The orchestrator also owns RAG retrieval — the orchestrator pre-fetches
+    curriculum context before each target, injecting it into the Player
+    message (TASK-TRF-009).
 
     After each target, a checkpoint is written for resume support.
 
@@ -480,6 +821,9 @@ async def run_generation_loop(
         write_tool: The ``write_output`` LangChain tool, called by the
             orchestrator after Coach acceptance.
         start_index: Index to start processing from (for resume support).
+        rag_tool: Optional ``rag_retrieval`` LangChain tool.  When provided,
+            the orchestrator calls it once per target before the first Player
+            turn (TASK-TRF-009).
 
     Returns:
         GenerationResult with aggregate statistics.
@@ -488,6 +832,7 @@ async def run_generation_loop(
     accepted_count = 0
     rejected_count = 0
     total_turns = 0
+    cumulative_tokens = TokenUsage()
 
     # Slice targets from start_index for resume support
     targets_to_process = targets[start_index:]
@@ -516,6 +861,8 @@ async def run_generation_loop(
                     config=config,
                     output_manager=output_manager,
                     write_tool=write_tool,
+                    token_usage=cumulative_tokens,
+                    rag_tool=rag_tool,
                 ),
                 timeout=config.target_timeout,
             )
@@ -611,13 +958,29 @@ async def run_generation_loop(
         elapsed_seconds,
     )
 
+    if cumulative_tokens.total_tokens > 0:
+        logger.info(
+            "pipeline_tokens: prompt_tokens=%d, completion_tokens=%d, "
+            "total_tokens=%d",
+            cumulative_tokens.prompt_tokens,
+            cumulative_tokens.completion_tokens,
+            cumulative_tokens.total_tokens,
+        )
+
     return GenerationResult(
         total_targets=num_targets,
         accepted=accepted_count,
         rejected=rejected_count,
         total_turns=total_turns,
         elapsed_seconds=elapsed_seconds,
+        token_usage=cumulative_tokens,
     )
 
 
-__all__ = ["GenerationResult", "run_generation_loop"]
+__all__ = [
+    "GenerationResult",
+    "TokenUsage",
+    "_extract_coach_content",
+    "_extract_player_content",
+    "run_generation_loop",
+]

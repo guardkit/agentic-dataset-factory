@@ -152,6 +152,8 @@ class TestCallArgsKeywordArguments:
 
     def test_model_config_translated_and_forwarded(self) -> None:
         """create_player translates ModelConfig and passes model to create_deep_agent."""
+        from langchain_core.language_models import BaseChatModel
+
         config = _make_model_config(provider="local", model="test-model")
         with (
             patch("agents.player.create_deep_agent") as mock_cda,
@@ -160,8 +162,7 @@ class TestCallArgsKeywordArguments:
             _call_create_player(mock_cda, model_config=config)
         _, kwargs = mock_cda.call_args
         assert "model" in kwargs
-        # Model should be a translated identifier (string), not the raw config
-        assert isinstance(kwargs["model"], str)
+        assert isinstance(kwargs["model"], BaseChatModel)
 
 
 # ---------------------------------------------------------------------------
