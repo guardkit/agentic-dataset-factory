@@ -2232,3 +2232,71 @@ class TestRepairIntegrationWithExtraction:
         result = _extract_json_object(raw)
         parsed = json.loads(result)
         assert parsed["key"] == "hello\nworld"
+
+
+# ---------------------------------------------------------------------------
+# TASK-OR-002: Grade target distribution in player message
+# ---------------------------------------------------------------------------
+
+
+class TestGradeDistribution:
+    """TASK-OR-002: Grade target round-robin and player message injection."""
+
+    def test_grade_target_in_player_message(self) -> None:
+        """Player message includes explicit grade_target parameter."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target(category="Poetry", type_="reasoning")
+        msg = _build_player_message(target, None, grade_target=8)
+        assert "Grade Target: 8" in msg
+
+    def test_null_grade_displays_correctly(self) -> None:
+        """null grade_target displays as grade-agnostic."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target(category="Terminology", type_="direct")
+        msg = _build_player_message(target, None, grade_target=None)
+        assert "null (grade-agnostic)" in msg
+
+    def test_default_grade_target_is_7(self) -> None:
+        """Default grade_target parameter is 7 (backward compat)."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target()
+        msg = _build_player_message(target, None)
+        assert "Grade Target: 7" in msg
+
+    def test_count_not_in_player_message(self) -> None:
+        """Count field should NOT appear in player message (replaced by grade)."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target(count=90)
+        msg = _build_player_message(target, None)
+        assert "Count:" not in msg
+
+    def test_round_robin_distribution_even(self) -> None:
+        """Round-robin distributes 12 examples evenly across 6 grades."""
+        grades = [4, 5, 6, 7, 8, 9]
+        target = GenerationTarget(
+            category="test", type="reasoning", count=12,
+            grade_targets=grades,
+        )
+        assigned = [
+            target.grade_targets[i % len(target.grade_targets)]
+            for i in range(12)
+        ]
+        # Each grade should appear exactly twice
+        for g in grades:
+            assert assigned.count(g) == 2
+
+    def test_round_robin_direct_type_all_null(self) -> None:
+        """Direct-type targets with grade_targets=[null] produce all null."""
+        target = GenerationTarget(
+            category="test", type="direct", count=5,
+            grade_targets=[None],
+        )
+        assigned = [
+            target.grade_targets[i % len(target.grade_targets)]
+            for i in range(5)
+        ]
+        assert all(g is None for g in assigned)

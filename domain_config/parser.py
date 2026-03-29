@@ -87,6 +87,29 @@ _RANGE_NOTATION_RE = re.compile(r"^\d+\+")
 """Matches range notations like ``1+`` or ``0+`` at the start of a cell."""
 
 
+def _coerce_grade_targets(raw: str) -> list[int | None]:
+    """Parse a bracketed list like ``[5, 6, null]`` into a Python list.
+
+    Accepts JSON-style arrays containing integers and the literal ``null``.
+    An empty or whitespace-only cell returns the default ``[7]``.
+    """
+    stripped = raw.strip()
+    if not stripped:
+        return [7]
+    # Normalise: strip brackets if present, split on commas
+    inner = stripped.strip("[]")
+    items: list[int | None] = []
+    for token in inner.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        if token.lower() == "null":
+            items.append(None)
+        else:
+            items.append(int(token))
+    return items if items else [7]
+
+
 def _coerce_valid_values(raw: str) -> list[str]:
     """Parse a comma-separated cell into a list of stripped strings.
 
@@ -108,6 +131,7 @@ _FIELD_COERCIONS: dict[str, Any] = {
     "weight": _coerce_weight,
     "required": _coerce_required,
     "valid_values": _coerce_valid_values,
+    "grade_targets": _coerce_grade_targets,
 }
 
 
@@ -376,6 +400,7 @@ _GENERATION_TARGETS_COLUMN_MAP: dict[str, str] = {
     "Category": "category",
     "Type": "type",
     "Count": "count",
+    "Grade Targets": "grade_targets",
 }
 
 _EVALUATION_CRITERIA_COLUMN_MAP: dict[str, str] = {

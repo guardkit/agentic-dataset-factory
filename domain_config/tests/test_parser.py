@@ -59,11 +59,31 @@ def generation_targets_table() -> str:
 
 
 @pytest.fixture
+def generation_targets_with_grades_table() -> str:
+    return (
+        "| Category | Type | Count | Grade Targets |\n"
+        "|---|---|---|---|\n"
+        "| Literary analysis (single-turn) | reasoning | 90 | [5, 6, 7, 7, 8, 9] |\n"
+        "| Factual recall | direct | 50 | [null] |\n"
+    )
+
+
+@pytest.fixture
 def generation_targets_column_map() -> dict[str, str]:
     return {
         "Category": "category",
         "Type": "type",
         "Count": "count",
+    }
+
+
+@pytest.fixture
+def generation_targets_with_grades_column_map() -> dict[str, str]:
+    return {
+        "Category": "category",
+        "Type": "type",
+        "Count": "count",
+        "Grade Targets": "grade_targets",
     }
 
 
@@ -202,6 +222,99 @@ class TestParseTableGenerationTargets:
         )
         assert result[0].type == "reasoning"
         assert result[1].type == "direct"
+
+    def test_default_grade_targets_when_column_missing(
+        self, generation_targets_table, generation_targets_column_map
+    ):
+        """Tables without Grade Targets column use default [7]."""
+        result = parse_table(
+            generation_targets_table,
+            GenerationTarget,
+            generation_targets_column_map,
+        )
+        assert result[0].grade_targets == [7]
+        assert result[1].grade_targets == [7]
+
+
+# ---------------------------------------------------------------------------
+# parse_table — Generation Targets with Grade Targets
+# ---------------------------------------------------------------------------
+
+
+class TestParseTableGenerationTargetsWithGrades:
+    """TASK-OR-002: Parsing the Grade Targets column."""
+
+    def test_parses_grade_targets_integers(
+        self, generation_targets_with_grades_table, generation_targets_with_grades_column_map
+    ):
+        result = parse_table(
+            generation_targets_with_grades_table,
+            GenerationTarget,
+            generation_targets_with_grades_column_map,
+        )
+        assert result[0].grade_targets == [5, 6, 7, 7, 8, 9]
+
+    def test_parses_grade_targets_null(
+        self, generation_targets_with_grades_table, generation_targets_with_grades_column_map
+    ):
+        result = parse_table(
+            generation_targets_with_grades_table,
+            GenerationTarget,
+            generation_targets_with_grades_column_map,
+        )
+        assert result[1].grade_targets == [None]
+
+    def test_grade_targets_produces_correct_types(
+        self, generation_targets_with_grades_table, generation_targets_with_grades_column_map
+    ):
+        result = parse_table(
+            generation_targets_with_grades_table,
+            GenerationTarget,
+            generation_targets_with_grades_column_map,
+        )
+        # Reasoning target: all integers
+        for g in result[0].grade_targets:
+            assert isinstance(g, int)
+        # Direct target: all None
+        for g in result[1].grade_targets:
+            assert g is None
+
+
+# ---------------------------------------------------------------------------
+# _coerce_grade_targets unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestCoerceGradeTargets:
+    """TASK-OR-002: Unit tests for the _coerce_grade_targets coercion."""
+
+    def test_parses_integer_list(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("[4, 5, 6, 7, 8, 9]") == [4, 5, 6, 7, 8, 9]
+
+    def test_parses_null_list(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("[null]") == [None]
+
+    def test_parses_mixed_list(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("[5, null, 8]") == [5, None, 8]
+
+    def test_empty_string_returns_default(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("") == [7]
+
+    def test_whitespace_returns_default(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("   ") == [7]
+
+    def test_single_integer(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("[7]") == [7]
+
+    def test_duplicate_values(self):
+        from domain_config.parser import _coerce_grade_targets
+        assert _coerce_grade_targets("[7, 7, 7]") == [7, 7, 7]
 
 
 # ---------------------------------------------------------------------------

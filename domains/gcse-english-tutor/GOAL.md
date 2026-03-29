@@ -25,28 +25,28 @@ ask questions that guide them toward the answer.
 
 ## Generation Targets
 
-| Category | Type | Count |
-|---|---|---|
-| Literary analysis (single-turn) | reasoning | 90 |
-| Character analysis — Macbeth | reasoning | 80 |
-| Character analysis — An Inspector Calls | reasoning | 80 |
-| Character analysis — A Christmas Carol | reasoning | 60 |
-| Language analysis — poetry (Power and Conflict) | reasoning | 60 |
-| Language analysis — unseen poetry | reasoning | 50 |
-| Structure analysis — prose and drama | reasoning | 50 |
-| Essay feedback — Literature (multi-turn) | reasoning | 60 |
-| Essay feedback — Language (multi-turn) | reasoning | 50 |
-| Exam technique — Language Paper 1 | reasoning | 40 |
-| Exam technique — Language Paper 2 | reasoning | 40 |
-| Comparative analysis — poetry | reasoning | 30 |
-| AO-specific guidance (AO1-AO6) | reasoning | 30 |
-| Grade boundary guidance (grades 4-9) | reasoning | 30 |
-| Terminology and literary devices | direct | 50 |
-| Character knowledge — set texts | direct | 40 |
-| Factual recall — AQA specification | direct | 40 |
-| Exam structure and mark allocation | direct | 30 |
-| Encouragement and study skills | direct | 40 |
-| Context — historical and social (set texts) | direct | 50 |
+| Category | Type | Count | Grade Targets |
+|---|---|---|---|
+| Literary analysis (single-turn) | reasoning | 90 | [5, 6, 7, 7, 8, 9] |
+| Character analysis — Macbeth | reasoning | 80 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — An Inspector Calls | reasoning | 80 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — A Christmas Carol | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
+| Language analysis — poetry (Power and Conflict) | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
+| Language analysis — unseen poetry | reasoning | 50 | [5, 6, 7, 8, 9] |
+| Structure analysis — prose and drama | reasoning | 50 | [5, 6, 7, 8, 9] |
+| Essay feedback — Literature (multi-turn) | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
+| Essay feedback — Language (multi-turn) | reasoning | 50 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 1 | reasoning | 40 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 2 | reasoning | 40 | [5, 6, 7, 8, 9] |
+| Comparative analysis — poetry | reasoning | 30 | [6, 7, 8, 9] |
+| AO-specific guidance (AO1-AO6) | reasoning | 30 | [5, 6, 7, 8, 9] |
+| Grade boundary guidance (grades 4-9) | reasoning | 30 | [4, 5, 6, 7, 8, 9] |
+| Terminology and literary devices | direct | 50 | [null] |
+| Character knowledge — set texts | direct | 40 | [null] |
+| Factual recall — AQA specification | direct | 40 | [null] |
+| Exam structure and mark allocation | direct | 30 | [null] |
+| Encouragement and study skills | direct | 40 | [null] |
+| Context — historical and social (set texts) | direct | 50 | [null] |
 
 ## Generation Guidelines
 

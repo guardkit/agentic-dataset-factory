@@ -33,6 +33,7 @@ import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable
 
+import httpx
 from pydantic import ValidationError
 
 from config.coach_verdict import CoachVerdict
@@ -371,8 +372,10 @@ async def _invoke_with_retry(
 ) -> dict[str, Any]:
     """Invoke a DeepAgent with retry logic for transient failures.
 
-    Uses exponential backoff between retries. Only retries on
-    ``RuntimeError`` and ``OSError`` (typical transient LLM failures).
+    Uses exponential backoff between retries. Retries on transient LLM
+    failures (``RuntimeError``, ``OSError``, ``TimeoutError``,
+    ``ValidationError``) and transient HTTP errors (429, 5xx).
+    Client errors (4xx except 429) are raised immediately without retry.
 
     Args:
         agent: DeepAgent instance (Player or Coach).
@@ -386,6 +389,7 @@ async def _invoke_with_retry(
     Raises:
         RuntimeError: If all retries are exhausted.
         OSError: If all retries are exhausted.
+        httpx.HTTPStatusError: If a non-retryable HTTP client error occurs.
     """
     last_exc: BaseException | None = None
     total_attempts = 1 + max_retries
@@ -393,8 +397,13 @@ async def _invoke_with_retry(
     for attempt in range(total_attempts):
         try:
             return await agent.ainvoke(input_data)
-        except (RuntimeError, OSError, TimeoutError, ValidationError) as exc:
+        except (RuntimeError, OSError, TimeoutError, ValidationError, httpx.HTTPStatusError) as exc:
             last_exc = exc
+            # Don't retry client errors (except 429 rate limit)
+            if isinstance(exc, httpx.HTTPStatusError):
+                status = exc.response.status_code
+                if 400 <= status < 500 and status != 429:
+                    raise  # Client error — retrying won't help
             if attempt < total_attempts - 1:
                 delay = backoff_base ** attempt
                 logger.warning(
@@ -610,6 +619,7 @@ async def _process_single_target(
     rejection_history: list[dict[str, Any]] = []
     coach_feedback: str | None = None
     write_attempts = 0
+    coach_retried = False
     target_prompt_tokens = 0
     target_completion_tokens = 0
 
@@ -641,6 +651,9 @@ async def _process_single_target(
             )
             rag_context = None
 
+    # Select grade target via round-robin from the target's grade_targets list
+    grade_target = target.grade_targets[target_index % len(target.grade_targets)]
+
     for turn in range(config.max_turns):
         # Build player input — include RAG context and Coach feedback
         player_input: dict[str, Any] = {
@@ -648,7 +661,7 @@ async def _process_single_target(
                 {
                     "role": "user",
                     "content": _build_player_message(
-                        target, coach_feedback, rag_context
+                        target, coach_feedback, rag_context, grade_target
                     ),
                 }
             ]
@@ -722,8 +735,62 @@ async def _process_single_target(
                 c_prompt + c_completion,
             )
 
-        # Parse Coach verdict
-        verdict = _parse_coach_verdict(coach_content)
+        # Parse Coach verdict (with retry on JSON parse failure — TASK-OR-001)
+        try:
+            verdict = _parse_coach_verdict(coach_content)
+        except ValueError as parse_exc:
+            if not coach_retried:
+                coach_retried = True
+                logger.info(
+                    "Coach JSON parse failed (index=%d, turn=%d), retrying "
+                    "with JSON reinforcement: %s",
+                    target_index,
+                    turn + 1,
+                    parse_exc,
+                )
+                retry_input: dict[str, Any] = {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "IMPORTANT: Your previous response was not "
+                                "valid JSON. You MUST respond with ONLY a "
+                                "JSON object matching the CoachVerdict schema."
+                                " No prose, no reasoning text, no markdown. "
+                                "Start your response with { and end with }."
+                                "\n\n" + player_content
+                            ),
+                        },
+                    ]
+                }
+                coach_response = await _invoke_with_retry(
+                    coach,
+                    retry_input,
+                    max_retries=config.llm_retry_attempts,
+                    backoff_base=config.llm_retry_backoff,
+                )
+                r_prompt, r_completion = _extract_token_usage(coach_response)
+                if r_prompt or r_completion:
+                    target_prompt_tokens += r_prompt
+                    target_completion_tokens += r_completion
+                    if token_usage is not None:
+                        token_usage.add(r_prompt, r_completion)
+                    logger.info(
+                        "LLM usage: agent=coach_retry, index=%d, turn=%d, "
+                        "prompt_tokens=%d, completion_tokens=%d, "
+                        "total_tokens=%d",
+                        target_index,
+                        turn + 1,
+                        r_prompt,
+                        r_completion,
+                        r_prompt + r_completion,
+                    )
+                coach_content = _extract_coach_content(coach_response)
+                verdict = _parse_coach_verdict(coach_content)
+                # If this also fails, ValueError propagates to
+                # the per-target handler in run_generation_loop
+            else:
+                raise  # Already retried once, let it propagate
 
         logger.info(
             "turn_complete: index=%d, turn=%d, decision=%s, score=%d",
@@ -846,6 +913,7 @@ def _build_player_message(
     target: GenerationTarget,
     coach_feedback: str | None,
     rag_context: str | None = None,
+    grade_target: int | None = 7,
 ) -> str:
     """Build the user message for the Player agent.
 
@@ -855,15 +923,18 @@ def _build_player_message(
         rag_context: Optional pre-fetched RAG context from the orchestrator.
             Injected to guarantee curriculum grounding even when the model
             does not invoke the ``rag_retrieval`` tool (TASK-TRF-009).
+        grade_target: The specific grade target for this example, selected
+            via round-robin from the target's ``grade_targets`` list.
 
     Returns:
         Formatted message string for the Player.
     """
+    grade_display = str(grade_target) if grade_target is not None else "null (grade-agnostic)"
     msg = (
         f"Generate a training example for:\n"
         f"  Category: {target.category}\n"
         f"  Type: {target.type}\n"
-        f"  Count: {target.count}\n"
+        f"  Grade Target: {grade_display}\n"
     )
     if rag_context:
         msg += (
@@ -932,6 +1003,21 @@ async def run_generation_loop(
     rejected_count = 0
     total_turns = 0
     cumulative_tokens = TokenUsage()
+
+    # Expand each target by its count field (e.g. count=90 → 90 copies).
+    # This turns the 20-category list into the full target list (e.g. 1000).
+    # Grade round-robin uses absolute_index, so distribution is automatic.
+    targets = [
+        target
+        for target in targets
+        for _ in range(target.count)
+    ]
+
+    logger.info(
+        "targets_expanded: categories=%d, total=%d",
+        len({t.category for t in targets}),
+        len(targets),
+    )
 
     # Slice targets from start_index for resume support
     targets_to_process = targets[start_index:]
@@ -1008,7 +1094,7 @@ async def run_generation_loop(
                 config.target_timeout,
             )
 
-        except (RuntimeError, OSError, ValidationError, ValueError) as exc:
+        except (RuntimeError, OSError, ValidationError, ValueError, httpx.HTTPStatusError) as exc:
             # All LLM retries exhausted or malformed LLM response: discard
             # target, continue pipeline.  ValidationError catches cases where
             # vLLM returns tool_calls.args as a JSON string instead of a dict

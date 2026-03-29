@@ -56,11 +56,30 @@ class GenerationTarget(BaseModel):
     """A generation target from the Generation Targets table.
 
     Defines a category of training examples with type and count.
+    The ``grade_targets`` list controls which grade levels are assigned
+    to generated examples via round-robin distribution.
     """
 
     category: str = Field(min_length=1)
     type: Literal["reasoning", "direct"]
     count: int = Field(ge=1)
+    grade_targets: list[int | None] = Field(
+        default=[7],
+        description="Grade targets to distribute across. Round-robin assignment.",
+    )
+
+    @field_validator("grade_targets")
+    @classmethod
+    def validate_grade_targets(cls, v: list[int | None]) -> list[int | None]:
+        """Grade targets must be non-empty; integers must be 4-9."""
+        if not v:
+            raise ValueError("grade_targets must not be empty")
+        for item in v:
+            if item is not None and (item < 4 or item > 9):
+                raise ValueError(
+                    f"Grade target {item} out of range; must be 4-9 or null"
+                )
+        return v
 
 
 class EvaluationCriterion(BaseModel):
