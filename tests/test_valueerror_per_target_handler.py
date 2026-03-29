@@ -35,6 +35,7 @@ def _make_target(category: str = "test_cat", type_: str = "reasoning") -> MagicM
     t.category = category
     t.type = type_
     t.count = 1
+    t.grade_targets = [7]
     return t
 
 

@@ -263,6 +263,64 @@ class TestGenerationTarget:
                 category="", type="reasoning", count=10
             )
 
+    # -- grade_targets field --
+
+    def test_grade_targets_default(self):
+        target = GenerationTarget(
+            category="cat", type="reasoning", count=1
+        )
+        assert target.grade_targets == [7]
+
+    def test_grade_targets_explicit(self):
+        target = GenerationTarget(
+            category="cat", type="reasoning", count=1,
+            grade_targets=[4, 5, 6, 7, 8, 9],
+        )
+        assert target.grade_targets == [4, 5, 6, 7, 8, 9]
+
+    def test_grade_targets_null_values(self):
+        target = GenerationTarget(
+            category="cat", type="direct", count=1,
+            grade_targets=[None],
+        )
+        assert target.grade_targets == [None]
+
+    def test_grade_targets_mixed_int_and_null(self):
+        target = GenerationTarget(
+            category="cat", type="reasoning", count=1,
+            grade_targets=[5, None, 8],
+        )
+        assert target.grade_targets == [5, None, 8]
+
+    def test_grade_targets_empty_rejected(self):
+        with pytest.raises(ValidationError, match="empty"):
+            GenerationTarget(
+                category="cat", type="reasoning", count=1,
+                grade_targets=[],
+            )
+
+    @pytest.mark.parametrize("bad_grade", [3, 10, 0, -1, 100])
+    def test_grade_targets_out_of_range_rejected(self, bad_grade):
+        with pytest.raises(ValidationError, match="out of range"):
+            GenerationTarget(
+                category="cat", type="reasoning", count=1,
+                grade_targets=[bad_grade],
+            )
+
+    def test_grade_targets_boundary_4_accepted(self):
+        target = GenerationTarget(
+            category="cat", type="reasoning", count=1,
+            grade_targets=[4],
+        )
+        assert target.grade_targets == [4]
+
+    def test_grade_targets_boundary_9_accepted(self):
+        target = GenerationTarget(
+            category="cat", type="reasoning", count=1,
+            grade_targets=[9],
+        )
+        assert target.grade_targets == [9]
+
 
 # ---------------------------------------------------------------------------
 # EvaluationCriterion tests
@@ -736,7 +794,7 @@ class TestAC002_PydanticModelsMatchContract:
         }
 
     def test_generation_target_fields_match_contract(self):
-        """GenerationTarget: category(str), type(Literal), count(int)."""
+        """GenerationTarget: category(str), type(Literal), count(int), grade_targets(list)."""
         t = GenerationTarget(
             category="cat", type="reasoning", count=10
         )
@@ -744,8 +802,9 @@ class TestAC002_PydanticModelsMatchContract:
         assert isinstance(t.type, str)
         assert t.type in ("reasoning", "direct")
         assert isinstance(t.count, int)
+        assert isinstance(t.grade_targets, list)
         assert set(GenerationTarget.model_fields.keys()) == {
-            "category", "type", "count",
+            "category", "type", "count", "grade_targets",
         }
 
     def test_evaluation_criterion_fields_match_contract(self):
