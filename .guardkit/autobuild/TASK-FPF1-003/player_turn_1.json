@@ -1,0 +1,37 @@
+{
+  "task_id": "TASK-FPF1-003",
+  "turn": 1,
+  "files_modified": [
+    "config/models.py",
+    "entrypoint/generation_loop.py",
+    "tests/test_format_gate_key_validation.py",
+    "tests/test_coach_retry_json_reinforcement.py"
+  ],
+  "files_created": [
+    "tests/test_decouple_format_retries.py"
+  ],
+  "tests_written": [
+    "tests/test_decouple_format_retries.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "264 passed (254 non-GOAL.md tests pass; 10 new TASK-FPF1-003 tests pass; 5 pre-existing GOAL.md failures unrelated to this task)",
+  "implementation_notes": "Replaced the 'for turn in range(config.max_turns)' loop with a while-loop using three counters: coach_turn (real Coach evaluations), format_retries (format gate failures), and total_invocations (all Player calls). The format gate failure branch now increments format_retries and breaks when format_retries > config.max_format_retries, rather than consuming from the coach budget. coach_turn is incremented only after the format gate passes, immediately before the Coach is invoked. Added max_format_retries field (default=3, ge=0) to GenerationConfig in config/models.py. Updated all turn-related log messages: player and format-gate logs use total_invocations, coach-related logs use coach_turn. All return paths now return total_invocations as turns_used (for backward compatibility with token accounting). The target_accepted log now includes both coach_turns and total_invocations. Updated _MinimalConfig stubs in two existing test files to include max_format_retries=3. Updated one existing test (test_format_gate_sends_format_error_feedback) to use max_format_retries=0 to preserve its single-log assertion, which was correct under the old for-loop semantics.",
+  "concerns": [],
+  "requirements_addressed": [
+    "Add max_format_retries field to GenerationConfig",
+    "Replace for-loop with while-loop separating coach_turn from format_retries",
+    "Format gate failures do NOT increment coach_turn counter",
+    "Format retries bounded by configurable max_format_retries (break when exceeded)",
+    "Coach turns still bounded by config.max_turns",
+    "Write validation failures still count as a coach_turn",
+    "Post-gen validation failures still count as a coach_turn",
+    "Turn reporting updated: target_accepted logs both coach_turns and total_invocations",
+    "All return paths return total_invocations as turns_used",
+    "All existing generation loop tests pass",
+    "New test: target with 2 format failures + 1 Coach accept = accepted",
+    "New test: max_format_retries exceeded = rejected",
+    "New test: turn count reporting correct for mixed format/coach turns"
+  ],
+  "requirements_remaining": []
+}

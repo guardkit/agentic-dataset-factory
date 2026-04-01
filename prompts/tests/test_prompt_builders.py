@@ -503,3 +503,104 @@ class TestDomainContextDelimitation:
 
         result = build_coach_prompt(valid_goal_config)
         assert not result.startswith(valid_goal_config.goal)
+
+
+# ---------------------------------------------------------------------------
+# TASK-LR1-003: Critical evaluation standards in Coach prompt
+# ---------------------------------------------------------------------------
+
+
+class TestCoachCriticalEvaluationStandards:
+    """Coach prompt must include critical evaluation instructions to prevent shallow accepts."""
+
+    def test_critical_evaluation_section_present(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "Critical Evaluation Standards" in COACH_BASE_PROMPT
+
+    def test_must_critically_evaluate_instruction(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "MUST critically evaluate every criterion" in COACH_BASE_PROMPT
+
+    def test_high_score_justification_required(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "score of 4 or 5 requires explicit justification" in COACH_BASE_PROMPT
+
+    def test_unverifiable_criteria_rule(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "cannot verify a criterion" in COACH_BASE_PROMPT
+        assert "MUST score 1-2" in COACH_BASE_PROMPT
+
+    def test_bad_example_section_present(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "Bad Example: Shallow Acceptance" in COACH_BASE_PROMPT
+
+    def test_bad_example_explains_why_wrong(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "Why this is wrong" in COACH_BASE_PROMPT
+
+    def test_evaluation_protocol_requires_evidence(self) -> None:
+        from prompts.coach_prompts import COACH_BASE_PROMPT
+
+        assert "specific evidence" in COACH_BASE_PROMPT
+
+
+# ---------------------------------------------------------------------------
+# TASK-LR1-004: Strengthen Player prompt for mandatory metadata
+# ---------------------------------------------------------------------------
+
+
+class TestPlayerMandatoryMetadataEmphasis:
+    """Player prompt must emphasise that metadata is mandatory."""
+
+    def test_critical_metadata_section_in_base_prompt(self) -> None:
+        from prompts.player_prompts import PLAYER_BASE_PROMPT
+
+        assert "Mandatory Metadata" in PLAYER_BASE_PROMPT
+
+    def test_metadata_omission_causes_rejection(self) -> None:
+        from prompts.player_prompts import PLAYER_BASE_PROMPT
+
+        assert "automatic rejection" in PLAYER_BASE_PROMPT
+
+    def test_metadata_must_keyword_present(self) -> None:
+        from prompts.player_prompts import PLAYER_BASE_PROMPT
+
+        assert "MUST include" in PLAYER_BASE_PROMPT
+        assert "metadata" in PLAYER_BASE_PROMPT
+
+    def test_metadata_schema_before_generation_guidelines(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Metadata Schema section appears before Generation Guidelines."""
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config)
+        metadata_idx = result.index("## Metadata Schema")
+        guidelines_idx = result.index("## Generation Guidelines")
+        assert metadata_idx < guidelines_idx, (
+            "Metadata Schema must appear before Generation Guidelines"
+        )
+
+    def test_metadata_checklist_present(self, valid_goal_config: GoalConfig) -> None:
+        """Built prompt contains a metadata checklist reminder."""
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config)
+        assert "Metadata Checklist" in result
+
+    def test_metadata_checklist_after_layer_routing(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Metadata checklist appears after Layer Routing (end of prompt)."""
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config)
+        routing_idx = result.index("## Layer Routing")
+        checklist_idx = result.index("## Metadata Checklist")
+        assert checklist_idx > routing_idx

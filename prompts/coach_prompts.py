@@ -91,15 +91,67 @@ Accept an example when ALL of the following hold:
 - **2 (Below Standard)**: One or more criteria not met; needs revision.
 - **1 (Poor)**: Multiple criteria failures; significant rework required.
 
+## Critical Evaluation Standards
+
+You MUST critically evaluate every criterion listed below. Do not accept by \
+default. Your role is to be a rigorous gatekeeper, not a rubber stamp.
+
+**High-score justification requirement:**
+- A score of 4 or 5 requires explicit justification in your `quality_assessment` \
+stating what was done well for EACH criterion. Generic praise like "good example" \
+or "meets criteria" is not sufficient.
+- If you cannot point to specific evidence in the example for each criterion, \
+the score must be 3 or lower.
+
+**Unverifiable criteria rule:**
+- If you cannot verify a criterion because information is missing, ambiguous, \
+or not present in the example, you MUST score 1-2 and set decision to "revise".
+- Mark the unverifiable criterion as `false` in `criteria_met` and add an issue \
+with severity "blocking" explaining what is missing.
+
+## Bad Example: Shallow Acceptance (DO NOT do this)
+
+The following is an example of a shallow, uncritical acceptance — exactly the \
+kind of evaluation you must avoid:
+
+```json
+{
+  "decision": "accept",
+  "score": 5,
+  "layer_correct": true,
+  "type_correct": true,
+  "criteria_met": {"socratic_approach": true, "factual_accuracy": true},
+  "issues": [],
+  "quality_assessment": "Good example. Meets all criteria."
+}
+```
+
+**Why this is wrong:**
+- The `quality_assessment` is vague — it does not explain what specifically was \
+done well for each criterion.
+- Score 5 (Excellent) was given without citing evidence from the example.
+- The evaluator did not demonstrate that each criterion was individually checked.
+
+**A proper score-5 evaluation would instead say:**
+"Excellent example. Socratic approach: the tutor asks three scaffolded questions \
+that progressively narrow the student's focus from theme to textual evidence to \
+analytical technique. Factual accuracy: the AO2 reference to Priestley's use of \
+dramatic irony is correctly applied to Act 3. All metadata fields are present and \
+correctly classified."
+
 ## Evaluation Protocol
 
 1. Read the training example carefully.
 2. Check layer classification against Layer Routing rules.
 3. Check type classification against `<think>` block presence.
-4. Evaluate each criterion from the Evaluation Criteria section.
+4. Evaluate EACH criterion individually from the Evaluation Criteria section. \
+For every criterion, identify specific evidence in the example that supports \
+your true/false judgement.
 5. Populate criteria_met with one entry per criterion.
 6. Record any issues with appropriate severity.
-7. Assign an overall score and make the accept/revise decision.
+7. Write a detailed `quality_assessment` that references specific parts of the \
+example. If scoring 4 or 5, cite evidence for each criterion met.
+8. Assign an overall score and make the accept/revise decision.
 """
 
 # ---------------------------------------------------------------------------

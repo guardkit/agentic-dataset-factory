@@ -49,6 +49,7 @@ class _MinimalConfig:
 
     max_turns: int = 3
     max_write_attempts: int = 3
+    max_format_retries: int = 3
     target_timeout: int = 60
     llm_retry_attempts: int = 1
     llm_retry_backoff: float = 0.0
@@ -163,8 +164,13 @@ class TestCoachRetryOnParseFailure:
         checkpoint = _make_checkpoint()
         output_manager = _make_output_manager()
 
+        # Player must return valid JSON to pass the pre-Coach format gate
+        player_example = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
         player = AsyncMock()
-        player.ainvoke.return_value = _make_agent_response("player output")
+        player.ainvoke.return_value = _make_agent_response(player_example)
 
         # Coach always returns prose (both calls fail parse)
         coach = AsyncMock()
@@ -237,8 +243,13 @@ class TestCoachRetryOnParseFailure:
         checkpoint = _make_checkpoint()
         output_manager = _make_output_manager()
 
+        # Player must return valid JSON to pass the pre-Coach format gate
+        player_example = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
         player = AsyncMock()
-        player.ainvoke.return_value = _make_agent_response("player output")
+        player.ainvoke.return_value = _make_agent_response(player_example)
 
         # Coach: turn 1 first call=prose, retry=revise verdict,
         # turn 2 first call=prose (no retry since already used)
@@ -292,7 +303,11 @@ class TestCoachRetryOnParseFailure:
         write_tool = MagicMock()
         write_tool.invoke.return_value = "ok"
 
-        player_content = "Generated training example content"
+        # Player must return valid JSON to pass the pre-Coach format gate
+        player_content = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
         player = AsyncMock()
         player.ainvoke.return_value = _make_agent_response(player_content)
 
@@ -344,8 +359,13 @@ class TestCoachRetryOnParseFailure:
         write_tool = MagicMock()
         write_tool.invoke.return_value = "ok"
 
+        # Player must return valid JSON to pass the pre-Coach format gate
+        player_example = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
         player = AsyncMock()
-        player.ainvoke.return_value = _make_agent_response("player output")
+        player.ainvoke.return_value = _make_agent_response(player_example)
 
         coach_call_count = 0
 
@@ -428,3 +448,143 @@ class TestCoachRetryOnParseFailure:
         assert len(retry_logs) == 1
         assert "index=0" in retry_logs[0].message
         assert "turn=1" in retry_logs[0].message
+
+
+class TestPreCoachFormatGate:
+    """Tests for the pre-Coach JSON format gate (TASK-REV-TPF1 fix)."""
+
+    @pytest.mark.asyncio
+    async def test_format_gate_skips_coach_on_non_json_player_output(
+        self,
+    ) -> None:
+        """Player returns prose → format gate skips Coach → next turn."""
+        target = _make_target()
+        config = _MinimalConfig(max_turns=2)
+        checkpoint = _make_checkpoint()
+        output_manager = _make_output_manager()
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "ok"
+
+        # Turn 1: Player outputs prose (not JSON) → format gate catches
+        # Turn 2: Player outputs valid JSON → Coach accepts
+        player_call_count = 0
+        player_example = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
+
+        async def player_side_effect(input_data):
+            nonlocal player_call_count
+            player_call_count += 1
+            if player_call_count == 1:
+                return _make_agent_response(
+                    "The user wants me to generate an example..."
+                )
+            return _make_agent_response(player_example)
+
+        player = AsyncMock()
+        player.ainvoke.side_effect = player_side_effect
+
+        coach = AsyncMock()
+        coach.ainvoke.return_value = _make_agent_response(VALID_VERDICT_JSON)
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=[target],
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_manager,
+            write_tool=write_tool,
+        )
+
+        # Target accepted on turn 2
+        assert result.accepted == 1
+        # Player called twice (turn 1 + turn 2)
+        assert player.ainvoke.call_count == 2
+        # Coach called only once (turn 2) — skipped on turn 1
+        assert coach.ainvoke.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_format_gate_sends_format_error_feedback(
+        self, caplog
+    ) -> None:
+        """Format gate logs warning and sends FORMAT ERROR feedback.
+
+        With max_format_retries=0, the first format failure immediately rejects
+        the target, producing exactly one warning log.
+        """
+        target = _make_target()
+        # max_format_retries=0: first format failure breaks immediately
+        config = _MinimalConfig(max_turns=1, max_format_retries=0)
+        checkpoint = _make_checkpoint()
+        output_manager = _make_output_manager()
+
+        player = AsyncMock()
+        player.ainvoke.return_value = _make_agent_response(
+            "Not valid JSON at all"
+        )
+
+        coach = AsyncMock()
+
+        import logging
+
+        with caplog.at_level(
+            logging.WARNING, logger="entrypoint.generation_loop"
+        ):
+            result = await run_generation_loop(
+                player=player,
+                coach=coach,
+                targets=[target],
+                config=config,
+                checkpoint=checkpoint,
+                output_manager=output_manager,
+                write_tool=MagicMock(),
+            )
+
+        # Target rejected (format gate caught all turns)
+        assert result.rejected == 1
+        # Coach never called
+        assert coach.ainvoke.call_count == 0
+
+        # Format gate logged exactly once (max_format_retries=0 breaks immediately)
+        gate_logs = [
+            r
+            for r in caplog.records
+            if "Pre-Coach format gate" in r.message
+        ]
+        assert len(gate_logs) == 1
+
+    @pytest.mark.asyncio
+    async def test_format_gate_passes_valid_json_to_coach(self) -> None:
+        """Player returns valid JSON → format gate passes → Coach called."""
+        target = _make_target()
+        config = _MinimalConfig(max_turns=1)
+        checkpoint = _make_checkpoint()
+        output_manager = _make_output_manager()
+        write_tool = MagicMock()
+        write_tool.invoke.return_value = "ok"
+
+        player_example = json.dumps({
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {"category": "test_cat"},
+        })
+        player = AsyncMock()
+        player.ainvoke.return_value = _make_agent_response(player_example)
+
+        coach = AsyncMock()
+        coach.ainvoke.return_value = _make_agent_response(VALID_VERDICT_JSON)
+
+        result = await run_generation_loop(
+            player=player,
+            coach=coach,
+            targets=[target],
+            config=config,
+            checkpoint=checkpoint,
+            output_manager=output_manager,
+            write_tool=write_tool,
+        )
+
+        # Target accepted — Coach was called
+        assert result.accepted == 1
+        assert coach.ainvoke.call_count == 1

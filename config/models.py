@@ -113,6 +113,8 @@ class GenerationConfig(BaseModel):
         llm_timeout: Per-LLM-call timeout in seconds.
         target_timeout: Per-target timeout in seconds.
         max_write_attempts: Max write_output retries per target before rejection.
+        max_format_retries: Max format correction retries per target before
+            rejection (TASK-FPF1-003).
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -146,6 +148,11 @@ class GenerationConfig(BaseModel):
         default=3,
         ge=1,
         description="Max write_output retries per target before rejection (TASK-TRF-006).",
+    )
+    max_format_retries: int = Field(
+        default=3,
+        ge=0,
+        description="Max format correction retries per target before rejection (TASK-FPF1-003).",
     )
 
     @field_validator("max_turns", mode="after")

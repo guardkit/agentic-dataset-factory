@@ -3,6 +3,8 @@ duplicate detection, routing, and the validate_example orchestrator."""
 
 import pytest
 
+import json
+
 from synthesis.validator import (
     DuplicateDetector,
     Message,
@@ -13,6 +15,7 @@ from synthesis.validator import (
     normalise_think_closing_tags,
     route_example,
     validate_example,
+    validate_post_generation,
     validate_think_block,
 )
 
@@ -586,6 +589,193 @@ class TestNormaliseThinkClosingTags:
 
 
 # ---------------------------------------------------------------------------
+# validate_post_generation (TASK-LR1-002)
+# ---------------------------------------------------------------------------
+
+
+def _make_json(
+    *,
+    system: str = "You are a tutor.",
+    user: str = "Question?",
+    assistant: str = "<think>plan</think> Answer.",
+    layer: str = "behaviour",
+    type_: str = "reasoning",
+) -> str:
+    """Build a valid training-example JSON string with controllable content."""
+    return json.dumps(
+        {
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+                {"role": "assistant", "content": assistant},
+            ],
+            "metadata": {
+                "layer": layer,
+                "type": type_,
+                "text": "macbeth",
+                "topic": "character_analysis",
+            },
+        }
+    )
+
+
+class TestValidatePostGeneration:
+    # --- Valid examples (no false positives) ---
+
+    def test_valid_reasoning_example_passes(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>plan</think> Answer.")
+        )
+        assert result.is_valid is True
+
+    def test_valid_direct_example_passes(self):
+        result = validate_post_generation(
+            _make_json(assistant="Plain answer.", type_="direct")
+        )
+        assert result.is_valid is True
+
+    def test_valid_multiline_think_block_passes(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>\nStep 1\nStep 2\n</think>\n\nThe answer.")
+        )
+        assert result.is_valid is True
+
+    def test_valid_short_visible_content_passes(self):
+        """Even a single visible character after think-block is valid."""
+        result = validate_post_generation(
+            _make_json(assistant="<think>plan</think> .")
+        )
+        assert result.is_valid is True
+
+    # --- Defect 1: Empty assistant (think-block only) ---
+
+    def test_empty_assistant_think_only_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>long plan</think>")
+        )
+        assert result.is_valid is False
+        assert "empty_assistant" in result.reason
+
+    def test_empty_assistant_think_with_whitespace_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>plan</think>   \n  ")
+        )
+        assert result.is_valid is False
+        assert "empty_assistant" in result.reason
+
+    def test_empty_assistant_multiline_think_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>\nlong\nmultiline\nplan\n</think>\n")
+        )
+        assert result.is_valid is False
+        assert "empty_assistant" in result.reason
+
+    def test_empty_assistant_case_insensitive(self):
+        result = validate_post_generation(
+            _make_json(assistant="<THINK>plan</THINK>")
+        )
+        assert result.is_valid is False
+        assert "empty_assistant" in result.reason
+
+    # --- Defect 2: Degenerate placeholder ---
+
+    def test_placeholder_system_detected(self):
+        result = validate_post_generation(
+            _make_json(system="...")
+        )
+        assert result.is_valid is False
+        assert "degenerate_placeholder" in result.reason
+        assert "system" in result.reason
+
+    def test_placeholder_user_detected(self):
+        result = validate_post_generation(
+            _make_json(user="...")
+        )
+        assert result.is_valid is False
+        assert "degenerate_placeholder" in result.reason
+        assert "user" in result.reason
+
+    def test_placeholder_assistant_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="...")
+        )
+        assert result.is_valid is False
+        assert "degenerate_placeholder" in result.reason
+        assert "assistant" in result.reason
+
+    def test_placeholder_with_whitespace_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="  ...  ")
+        )
+        assert result.is_valid is False
+        assert "degenerate_placeholder" in result.reason
+
+    def test_ellipsis_in_sentence_not_flagged(self):
+        """A real ellipsis used in a sentence is NOT a false positive."""
+        result = validate_post_generation(
+            _make_json(assistant="<think>plan</think> The answer is... complex.")
+        )
+        assert result.is_valid is True
+
+    # --- Defect 3: Unclosed think blocks ---
+
+    def test_unclosed_think_block_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="<think>plan starts here but never closes")
+        )
+        assert result.is_valid is False
+        assert "unclosed_think_block" in result.reason
+        assert "opens=1" in result.reason
+        assert "closes=0" in result.reason
+
+    def test_extra_close_tag_detected(self):
+        result = validate_post_generation(
+            _make_json(assistant="</think> stray close tag")
+        )
+        assert result.is_valid is False
+        assert "unclosed_think_block" in result.reason
+        assert "opens=0" in result.reason
+        assert "closes=1" in result.reason
+
+    def test_mismatched_counts_detected(self):
+        result = validate_post_generation(
+            _make_json(
+                assistant="<think>block1</think><think>block2 unclosed"
+            )
+        )
+        assert result.is_valid is False
+        assert "unclosed_think_block" in result.reason
+
+    def test_matched_think_blocks_pass(self):
+        result = validate_post_generation(
+            _make_json(
+                assistant="<think>block1</think> Answer. <think>block2</think> More."
+            )
+        )
+        assert result.is_valid is True
+
+    # --- Edge cases ---
+
+    def test_invalid_json_rejected(self):
+        result = validate_post_generation("not valid json {{")
+        assert result.is_valid is False
+        assert "invalid_json" in result.reason
+
+    def test_empty_messages_passes(self):
+        """No messages at all — nothing to validate, passes."""
+        result = validate_post_generation(json.dumps({"messages": [], "metadata": {}}))
+        assert result.is_valid is True
+
+    def test_function_is_idempotent(self):
+        """Calling twice with same input gives same result."""
+        example = _make_json(assistant="<think>plan</think> Answer.")
+        r1 = validate_post_generation(example)
+        r2 = validate_post_generation(example)
+        assert r1.is_valid == r2.is_valid
+        assert r1.reason == r2.reason
+
+
+# ---------------------------------------------------------------------------
 # Import contract
 # ---------------------------------------------------------------------------
 
@@ -599,6 +789,7 @@ class TestImportContract:
             normalise_think_closing_tags,
             route_example,
             validate_example,
+            validate_post_generation,
             validate_think_block,
         )
 
@@ -607,6 +798,7 @@ class TestImportContract:
             for obj in [
                 ValidationResult,
                 normalise_think_closing_tags,
+                validate_post_generation,
                 validate_think_block,
                 SplitTracker,
                 DuplicateDetector,

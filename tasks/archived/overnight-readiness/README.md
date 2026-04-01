@@ -1,4 +1,9 @@
-# Overnight Readiness — Feature Implementation
+# Overnight Readiness — Feature Implementation (ARCHIVED)
+
+> **Archived 2026-03-30**: Superseded by `tasks/backlog/long-run-1-fixes/` (FEAT-LR1),
+> which is based on actual Long Run 1 production data (1000 targets).
+> OR-001/OR-002 were completed. OR-006/OR-007 were completed and cross-referenced in LR1.
+> OR-003/OR-004/OR-005 are superseded by LR1-001, LR1-002, and the completed overnight run.
 
 ## Problem
 

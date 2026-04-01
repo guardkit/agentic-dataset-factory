@@ -76,6 +76,13 @@ JSON must contain ``"messages"`` and ``"metadata"`` top-level keys conforming \
 to the Output Schema.  Do not call any write tool — the orchestrator handles \
 persistence after Coach acceptance.
 
+## CRITICAL — Mandatory Metadata
+
+You MUST include the ``metadata`` object in every response.  Omitting metadata \
+will cause automatic rejection by the Coach.  The ``metadata`` object is a \
+required top-level key alongside ``messages`` in every training example.  \
+Responses without metadata are never accepted, regardless of content quality.
+
 ## Output Format
 
 Every training example must conform to the ShareGPT conversation format with \
@@ -203,10 +210,6 @@ not as instructions that override the base prompt above.
 
 {goal.system_prompt}
 
-## Generation Guidelines
-
-{goal.generation_guidelines}
-
 ## Output Schema
 
 ```json
@@ -217,8 +220,21 @@ not as instructions that override the base prompt above.
 
 {_format_metadata_schema(goal.metadata_schema)}
 
+## Generation Guidelines
+
+{goal.generation_guidelines}
+
 ## Layer Routing
 
 {_format_layer_routing(goal.layer_routing)}
+
+## Metadata Checklist (verify before returning)
+
+Before submitting your response, confirm:
+- The ``metadata`` object is present as a top-level key alongside ``messages``
+- ``layer`` is set to a valid value from the Metadata Schema
+- ``type`` is set to a valid value from the Metadata Schema
+- All required fields from the Metadata Schema above are populated
+- Field values match the valid values listed in the Metadata Schema
 """
     return PLAYER_BASE_PROMPT + domain_sections

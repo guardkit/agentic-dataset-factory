@@ -247,6 +247,67 @@ class TestTemperaturePassthrough:
 
 
 # ---------------------------------------------------------------------------
+# TASK-D0A8-001: Timeout is wired to init_chat_model
+# ---------------------------------------------------------------------------
+
+
+class TestTimeoutPassthrough:
+    """TASK-D0A8-001: timeout from GenerationConfig reaches init_chat_model."""
+
+    @patch("agents.model_factory.init_chat_model")
+    def test_timeout_passed_to_init_chat_model(
+        self, mock_init: MagicMock
+    ) -> None:
+        """When timeout is provided, it should be forwarded to init_chat_model."""
+        from agents.model_factory import create_model
+
+        config = ModelConfig(provider="openai", model="gpt-4")
+        create_model(config, timeout=300)
+
+        call_kwargs = mock_init.call_args
+        assert call_kwargs.kwargs.get("timeout") == 300
+
+    @patch("agents.model_factory.init_chat_model")
+    def test_timeout_none_omits_kwarg(self, mock_init: MagicMock) -> None:
+        """When timeout is None (default), no timeout kwarg should be passed."""
+        from agents.model_factory import create_model
+
+        config = ModelConfig(provider="openai", model="gpt-4")
+        create_model(config)
+
+        call_kwargs = mock_init.call_args
+        assert "timeout" not in call_kwargs.kwargs
+
+    @patch("agents.model_factory.init_chat_model")
+    def test_timeout_none_explicit_omits_kwarg(
+        self, mock_init: MagicMock
+    ) -> None:
+        """Explicitly passing timeout=None should not add timeout to kwargs."""
+        from agents.model_factory import create_model
+
+        config = ModelConfig(provider="openai", model="gpt-4")
+        create_model(config, timeout=None)
+
+        call_kwargs = mock_init.call_args
+        assert "timeout" not in call_kwargs.kwargs
+
+    @patch("agents.model_factory.init_chat_model")
+    def test_custom_timeout_value(self, mock_init: MagicMock) -> None:
+        """Custom timeout values should be forwarded correctly."""
+        from agents.model_factory import create_model
+
+        config = ModelConfig(
+            provider="local",
+            model="test-model",
+            endpoint="http://localhost:8000/v1",
+        )
+        create_model(config, timeout=120)
+
+        call_kwargs = mock_init.call_args
+        assert call_kwargs.kwargs.get("timeout") == 120
+
+
+# ---------------------------------------------------------------------------
 # AC-006: Invalid provider raises clear error
 # ---------------------------------------------------------------------------
 

@@ -30,6 +30,7 @@ from langchain.agents import create_agent
 from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 
 from agents.model_factory import create_model
+from config.coach_verdict import CoachVerdict
 
 if TYPE_CHECKING:
     from langgraph.graph.state import CompiledStateGraph
@@ -43,6 +44,7 @@ def create_coach(
     model_config: ModelConfig,
     system_prompt: str,
     memory: list[str],
+    timeout: int | None = None,
 ) -> CompiledStateGraph:
     """Create a Coach agent via ``create_agent()`` with a curated middleware stack.
 
@@ -60,6 +62,8 @@ def create_coach(
         system_prompt: Base coach prompt combined with GOAL.md Evaluation
             Criteria.  Must be non-empty.
         memory: List of memory file paths (e.g. ``["./AGENTS.md"]``).
+        timeout: Optional per-call LLM timeout in seconds, forwarded
+            to ``create_model()`` (TASK-D0A8-001).
 
     Returns:
         A compiled agent graph configured for evaluation only.
@@ -73,7 +77,20 @@ def create_coach(
             "criteria and role instructions to function correctly"
         )
 
-    model = create_model(model_config)
+    # Constrain Coach output to valid CoachVerdict JSON via vLLM structured
+    # outputs (TASK-LR1-001, fix TASK-LR1-012).  Only applies to local
+    # (vLLM) provider.  Uses extra_body with "structured_outputs" key —
+    # the vLLM v0.12+ API (the old "guided_json" key was removed in v0.12).
+    # extra_body is required (not model_kwargs) because vendor-specific
+    # params must go through the OpenAI SDK's extra_body mechanism.
+    extra_body = None
+    if model_config.provider == "local":
+        extra_body = {
+            "structured_outputs": {"json": CoachVerdict.model_json_schema()},
+        }
+        logger.debug("Coach structured_outputs schema enabled for local provider")
+
+    model = create_model(model_config, extra_body=extra_body, timeout=timeout)
 
     # MemoryMiddleware needs a backend to read memory files (e.g. AGENTS.md).
     # FilesystemBackend provides real file access for memory injection without

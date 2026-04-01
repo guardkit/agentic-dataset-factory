@@ -231,3 +231,27 @@ Or autonomous build: /feature-build FEAT-FBBC
 
 GUARDKIT_LOG_LEVEL=DEBUG guardkit autobuild feature FEAT-FBBC --max-turns 35 --verbose
 
+
+
+Updated report: TASK-REV-649A-long-run-1-review-report.md — revised recommendations with revision note explaining why original #1 and #2 were incorrect.
+
+Feature structure: tasks/backlog/long-run-1-fixes/
+
+
+tasks/backlog/long-run-1-fixes/
+├── README.md
+├── IMPLEMENTATION-GUIDE.md
+├── TASK-LR1-001-guided-json-coach.md        (Critical, Wave 1)
+├── TASK-LR1-002-post-generation-validation.md (High, Wave 1)
+├── TASK-LR1-003-strengthen-coach-prompt.md    (High, Wave 1)
+├── TASK-LR1-004-strengthen-player-metadata.md (Medium, Wave 1)
+├── TASK-LR1-005-increase-essay-max-turns.md   (Medium, Wave 2)
+├── TASK-LR1-006-boost-grade4-weighting.md     (Medium, Wave 2)
+├── TASK-LR1-007-lower-coach-temperature.md    (Low, Wave 2)
+├── TASK-LR1-008-rag-missing-texts.md          (Medium, Wave 2)
+├── TASK-LR1-009-multi-turn-weighting.md       (Medium, Wave 2)
+├── TASK-LR1-010-clean-training-data.md        (High, Wave 1)
+└── TASK-LR1-011-review-rag-misclassification.md (Low, Wave 2)
+Wave 1 (5 tasks, all parallel, before next run): guided_json for Coach, validation gate, prompt strengthening, data cleaning
+
+Wave 2 (6 tasks, after Wave 1 test batch): config tuning, RAG coverage, multi-turn weighting
