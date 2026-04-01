@@ -4,7 +4,7 @@ player:
   provider: local
   model: Qwen/Qwen3.5-35B-A3B-FP8
   endpoint: http://promaxgb10-41b1:8002/v1
-  temperature: 0.6
+  temperature: 0.4
 
 coach:
   provider: local

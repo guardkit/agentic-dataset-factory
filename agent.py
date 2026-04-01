@@ -162,16 +162,20 @@ def run_pipeline(state: PipelineState) -> PipelineState:
         )
 
         # Step 10: Instantiate agents
+        # Wire per-call LLM timeout from generation config (TASK-D0A8-001).
+        llm_timeout = config.generation.llm_timeout
         player = create_player(
             model_config=config.player,
             tools=tools,
             system_prompt=player_prompt,
             memory=["./AGENTS.md"],
+            timeout=llm_timeout,
         )
         coach = create_coach(
             model_config=config.coach,
             system_prompt=coach_prompt,
             memory=["./AGENTS.md"],
+            timeout=llm_timeout,
         )
 
         # Step 11: Determine start index

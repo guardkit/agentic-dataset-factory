@@ -180,7 +180,7 @@ class TestCallArgsKeywordArguments:
                 system_prompt="You are a Player agent.",
                 memory=["./AGENTS.md"],
             )
-        mock_cm.assert_called_once_with(config)
+        mock_cm.assert_called_once_with(config, timeout=None)
         assert config.max_tokens == 8192
 
     def test_max_tokens_default_is_4096(self) -> None:

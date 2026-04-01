@@ -44,6 +44,7 @@ def create_player(
     tools: list,
     system_prompt: str,
     memory: list[str],
+    timeout: int | None = None,
 ) -> CompiledStateGraph:
     """Create a Player agent via ``create_agent()`` with a curated middleware stack.
 
@@ -63,6 +64,8 @@ def create_player(
         system_prompt: Base player prompt combined with GOAL.md Generation
             Guidelines.  Must not be empty or whitespace-only.
         memory: Memory file paths (expected: ["./AGENTS.md"]).
+        timeout: Optional per-call LLM timeout in seconds, forwarded
+            to ``create_model()`` (TASK-D0A8-001).
 
     Returns:
         Configured agent (CompiledStateGraph) with curated tools only.
@@ -74,7 +77,7 @@ def create_player(
         msg = "system_prompt must not be empty or whitespace-only"
         raise ValueError(msg)
 
-    model = create_model(model_config)
+    model = create_model(model_config, timeout=timeout)
 
     # MemoryMiddleware needs a backend to read memory files (e.g. AGENTS.md).
     # FilesystemBackend provides real file access for memory injection without

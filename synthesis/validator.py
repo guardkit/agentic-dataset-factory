@@ -181,6 +181,82 @@ class ValidationResult:
 
 
 # ---------------------------------------------------------------------------
+# Post-generation validation (TASK-LR1-002)
+# ---------------------------------------------------------------------------
+
+_THINK_TAG_RE = re.compile(r"<think>", re.IGNORECASE)
+_THINK_CLOSE_TAG_RE = re.compile(r"</think>", re.IGNORECASE)
+_THINK_STRIP_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def validate_post_generation(example_json: str) -> ValidationResult:
+    """Validate a JSON training example for defects that slip past Coach review.
+
+    Catches three defect types observed in Long Run 1:
+    1. Empty assistant responses (think-block only, no visible reply)
+    2. Degenerate placeholder entries (``"..."`` content)
+    3. Unclosed ``<think>`` blocks
+
+    Args:
+        example_json: JSON string of the training example.
+
+    Returns:
+        ValidationResult with ``is_valid=False`` and descriptive reason
+        if a defect is found, otherwise ``is_valid=True``.
+    """
+    import json as _json
+
+    try:
+        data = _json.loads(example_json)
+    except (ValueError, TypeError):
+        return ValidationResult(
+            is_valid=False,
+            reason="validation_failed: invalid_json",
+        )
+
+    messages = data.get("messages", [])
+
+    for msg in messages:
+        if not isinstance(msg, dict):
+            continue
+        role = msg.get("role", "")
+        content = msg.get("content", "")
+        if not isinstance(content, str):
+            continue
+
+        # --- Defect 1: Empty assistant response (think-block only) ---
+        if role == "assistant":
+            visible = _THINK_STRIP_RE.sub("", content).strip()
+            if len(visible) == 0:
+                return ValidationResult(
+                    is_valid=False,
+                    reason="validation_failed: empty_assistant",
+                )
+
+        # --- Defect 2: Degenerate placeholder content ---
+        if content.strip() == "...":
+            return ValidationResult(
+                is_valid=False,
+                reason=f"validation_failed: degenerate_placeholder ({role})",
+            )
+
+        # --- Defect 3: Unclosed <think> blocks ---
+        if role == "assistant":
+            opens = len(_THINK_TAG_RE.findall(content))
+            closes = len(_THINK_CLOSE_TAG_RE.findall(content))
+            if opens != closes:
+                return ValidationResult(
+                    is_valid=False,
+                    reason=(
+                        f"validation_failed: unclosed_think_block "
+                        f"(opens={opens}, closes={closes})"
+                    ),
+                )
+
+    return ValidationResult(is_valid=True)
+
+
+# ---------------------------------------------------------------------------
 # Think-block validation
 # ---------------------------------------------------------------------------
 
@@ -367,6 +443,7 @@ __all__ = [
     "RejectionRecord",
     "ValidationResult",
     "normalise_think_closing_tags",
+    "validate_post_generation",
     "validate_think_block",
     "SplitTracker",
     "DuplicateDetector",

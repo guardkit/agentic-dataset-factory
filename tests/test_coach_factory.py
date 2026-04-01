@@ -69,6 +69,7 @@ class TestCoachUsesCreateAgent:
         """create_coach delegates to langchain's create_agent."""
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -79,6 +80,7 @@ class TestCoachUsesCreateAgent:
         fake_agent = MagicMock(name="fake_coach_agent")
         with (
             patch("agents.coach.create_agent", return_value=fake_agent) as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             result = _call_create_coach(mock_ca)
@@ -97,6 +99,7 @@ class TestCoachHasNoTools:
         """create_coach passes tools=[] to create_agent."""
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -109,6 +112,7 @@ class TestCoachHasNoTools:
 
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -131,6 +135,7 @@ class TestCoachMiddlewareStack:
 
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -144,6 +149,7 @@ class TestCoachMiddlewareStack:
 
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -157,6 +163,7 @@ class TestCoachMiddlewareStack:
 
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -168,6 +175,7 @@ class TestCoachMiddlewareStack:
         """Coach has exactly 3 middleware (Memory, PatchToolCalls, AnthropicCaching)."""
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca)
@@ -188,6 +196,7 @@ class TestCoachCallArgs:
         prompt = "Evaluate the training example."
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca, system_prompt=prompt)
@@ -196,17 +205,17 @@ class TestCoachCallArgs:
 
     def test_model_forwarded(self) -> None:
         """create_coach translates ModelConfig and passes model to create_agent."""
-        from langchain_core.language_models import BaseChatModel
-
+        fake_model = MagicMock(name="fake_model")
         config = _make_model_config(provider="local", model="test-model")
         with (
             patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model", return_value=fake_model),
             patch("agents.coach.FilesystemBackend"),
         ):
             _call_create_coach(mock_ca, model_config=config)
         _, kwargs = mock_ca.call_args
         assert "model" in kwargs
-        assert isinstance(kwargs["model"], BaseChatModel)
+        assert kwargs["model"] is fake_model
 
 
 # ---------------------------------------------------------------------------
@@ -267,3 +276,120 @@ class TestCoachValidation:
                 system_prompt="   \t\n  ",
                 memory=["./AGENTS.md"],
             )
+
+
+# ---------------------------------------------------------------------------
+# Structured outputs (TASK-LR1-001, TASK-LR1-012)
+# ---------------------------------------------------------------------------
+
+
+class TestCoachStructuredOutputs:
+    """Coach passes structured_outputs schema via extra_body for local (vLLM) provider.
+
+    vLLM v0.12+ uses ``structured_outputs: {"json": schema}`` (the old
+    ``guided_json`` key was removed in v0.12.0).  The schema must go through
+    ``extra_body`` (not ``model_kwargs``) so the OpenAI SDK forwards it
+    in the HTTP request body.
+    """
+
+    def test_structured_outputs_passed_via_extra_body_for_local_provider(self) -> None:
+        """create_coach passes structured_outputs via extra_body for local provider."""
+        with (
+            patch("agents.coach.create_model") as mock_cm,
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_cm.return_value = MagicMock()
+            config = _make_model_config(provider="local")
+            _call_create_coach(mock_ca, model_config=config)
+
+        _, cm_kwargs = mock_cm.call_args
+        extra_body = cm_kwargs.get("extra_body")
+        assert extra_body is not None, "extra_body should be passed for local provider"
+        assert "structured_outputs" in extra_body
+        assert "json" in extra_body["structured_outputs"]
+
+    def test_no_deprecated_guided_json_key(self) -> None:
+        """extra_body must NOT contain the deprecated guided_json key (removed in vLLM v0.12)."""
+        with (
+            patch("agents.coach.create_model") as mock_cm,
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_cm.return_value = MagicMock()
+            config = _make_model_config(provider="local")
+            _call_create_coach(mock_ca, model_config=config)
+
+        _, cm_kwargs = mock_cm.call_args
+        extra_body = cm_kwargs.get("extra_body", {})
+        assert "guided_json" not in extra_body, (
+            "guided_json was removed in vLLM v0.12.0 — "
+            "use structured_outputs.json instead (TASK-LR1-012)"
+        )
+
+    def test_not_passed_via_model_kwargs(self) -> None:
+        """create_coach must NOT pass schema via model_kwargs (causes SDK crash)."""
+        with (
+            patch("agents.coach.create_model") as mock_cm,
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_cm.return_value = MagicMock()
+            config = _make_model_config(provider="local")
+            _call_create_coach(mock_ca, model_config=config)
+
+        _, cm_kwargs = mock_cm.call_args
+        model_kwargs = cm_kwargs.get("model_kwargs")
+        assert model_kwargs is None, (
+            "structured_outputs must use extra_body, not model_kwargs — "
+            "model_kwargs merges at top level of OpenAI SDK create() "
+            "which rejects non-standard params (TASK-LR1-012)"
+        )
+
+    def test_schema_matches_coach_verdict(self) -> None:
+        """structured_outputs JSON schema matches CoachVerdict.model_json_schema()."""
+        from config.coach_verdict import CoachVerdict
+
+        with (
+            patch("agents.coach.create_model") as mock_cm,
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_cm.return_value = MagicMock()
+            config = _make_model_config(provider="local")
+            _call_create_coach(mock_ca, model_config=config)
+
+        _, cm_kwargs = mock_cm.call_args
+        actual_schema = cm_kwargs["extra_body"]["structured_outputs"]["json"]
+        expected_schema = CoachVerdict.model_json_schema()
+        assert actual_schema == expected_schema
+
+    def test_extra_body_not_passed_for_anthropic_provider(self) -> None:
+        """create_coach does not pass extra_body for non-local providers."""
+        with (
+            patch("agents.coach.create_model") as mock_cm,
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_cm.return_value = MagicMock()
+            config = _make_model_config(
+                provider="anthropic",
+                model="claude-sonnet-4-20250514",
+                endpoint="",
+            )
+            _call_create_coach(mock_ca, model_config=config)
+
+        _, cm_kwargs = mock_cm.call_args
+        extra_body = cm_kwargs.get("extra_body")
+        assert extra_body is None, "extra_body should be None for non-local provider"
+
+    def test_guided_json_schema_has_required_fields(self) -> None:
+        """guided_json schema contains all CoachVerdict fields."""
+        from config.coach_verdict import CoachVerdict
+
+        schema = CoachVerdict.model_json_schema()
+        expected_fields = {
+            "decision", "score", "layer_correct", "type_correct",
+            "criteria_met", "issues", "quality_assessment",
+        }
+        assert expected_fields == set(schema["properties"].keys())

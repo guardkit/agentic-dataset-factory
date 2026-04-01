@@ -25,28 +25,31 @@ ask questions that guide them toward the answer.
 
 ## Generation Targets
 
+<!-- NOTE: "Language analysis — unseen poetry" and "AO-specific guidance" removed —
+     insufficient RAG source material (no Mr Bruff unseen poetry guide available).
+     Counts redistributed to well-supported categories. Restore when a dedicated
+     unseen poetry source is added to domains/gcse-english-tutor/sources/. -->
+
 | Category | Type | Count | Grade Targets |
 |---|---|---|---|
-| Literary analysis (single-turn) | reasoning | 90 | [5, 6, 7, 7, 8, 9] |
-| Character analysis — Macbeth | reasoning | 80 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — An Inspector Calls | reasoning | 80 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — A Christmas Carol | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
-| Language analysis — poetry (Power and Conflict) | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
-| Language analysis — unseen poetry | reasoning | 50 | [5, 6, 7, 8, 9] |
-| Structure analysis — prose and drama | reasoning | 50 | [5, 6, 7, 8, 9] |
-| Essay feedback — Literature (multi-turn) | reasoning | 60 | [5, 6, 7, 7, 8, 9] |
-| Essay feedback — Language (multi-turn) | reasoning | 50 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 1 | reasoning | 40 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 2 | reasoning | 40 | [5, 6, 7, 8, 9] |
-| Comparative analysis — poetry | reasoning | 30 | [6, 7, 8, 9] |
-| AO-specific guidance (AO1-AO6) | reasoning | 30 | [5, 6, 7, 8, 9] |
-| Grade boundary guidance (grades 4-9) | reasoning | 30 | [4, 5, 6, 7, 8, 9] |
-| Terminology and literary devices | direct | 50 | [null] |
-| Character knowledge — set texts | direct | 40 | [null] |
-| Factual recall — AQA specification | direct | 40 | [null] |
-| Exam structure and mark allocation | direct | 30 | [null] |
-| Encouragement and study skills | direct | 40 | [null] |
-| Context — historical and social (set texts) | direct | 50 | [null] |
+| Literary analysis (single-turn) | reasoning | 275 | [5, 6, 7, 7, 8, 9] |
+| Character analysis — Macbeth | reasoning | 250 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — An Inspector Calls | reasoning | 200 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — A Christmas Carol | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
+| Language analysis — poetry (Power and Conflict) | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
+| Structure analysis — prose and drama | reasoning | 125 | [5, 6, 7, 8, 9] |
+| Essay feedback — Literature (multi-turn) | reasoning | 200 | [5, 6, 7, 7, 8, 9] |
+| Essay feedback — Language (multi-turn) | reasoning | 125 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 1 | reasoning | 125 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 2 | reasoning | 125 | [5, 6, 7, 8, 9] |
+| Comparative analysis — poetry | reasoning | 75 | [6, 7, 8, 9] |
+| Grade boundary guidance (grades 4-9) | reasoning | 75 | [4, 5, 6, 7, 8, 9] |
+| Terminology and literary devices | direct | 125 | [null] |
+| Character knowledge — set texts | direct | 100 | [null] |
+| Factual recall — AQA specification | direct | 100 | [null] |
+| Exam structure and mark allocation | direct | 75 | [null] |
+| Encouragement and study skills | direct | 100 | [null] |
+| Context — historical and social (set texts) | direct | 125 | [null] |
 
 ## Generation Guidelines
 

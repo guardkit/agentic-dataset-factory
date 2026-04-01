@@ -37,7 +37,7 @@ import httpx
 from pydantic import ValidationError
 
 from config.coach_verdict import CoachVerdict
-from synthesis.validator import normalise_think_closing_tags
+from synthesis.validator import normalise_think_closing_tags, validate_post_generation
 
 if TYPE_CHECKING:
     from config.models import GenerationConfig
@@ -654,7 +654,12 @@ async def _process_single_target(
     # Select grade target via round-robin from the target's grade_targets list
     grade_target = target.grade_targets[target_index % len(target.grade_targets)]
 
-    for turn in range(config.max_turns):
+    coach_turn = 0
+    format_retries = 0
+    total_invocations = 0
+
+    while coach_turn < config.max_turns:
+        total_invocations += 1
         # Build player input — include RAG context and Coach feedback
         player_input: dict[str, Any] = {
             "messages": [
@@ -679,7 +684,7 @@ async def _process_single_target(
         logger.debug(
             "player_response: index=%d, turn=%d, content_len=%d",
             target_index,
-            turn + 1,
+            total_invocations,
             len(player_content),
         )
 
@@ -694,11 +699,53 @@ async def _process_single_target(
                 "LLM usage: agent=player, index=%d, turn=%d, "
                 "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d",
                 target_index,
-                turn + 1,
+                total_invocations,
                 p_prompt,
                 p_completion,
                 p_prompt + p_completion,
             )
+
+        # Pre-Coach JSON format gate — skip Coach if Player output
+        # is not parseable as JSON or lacks required keys (saves wasted
+        # Coach invocations and downstream validation failures).
+        try:
+            extracted = _extract_json_object(player_content)
+            data = json.loads(extracted)
+            if "messages" not in data or "metadata" not in data:
+                raise ValueError(
+                    f"JSON missing required top-level keys "
+                    f"(has: {sorted(data.keys())})"
+                )
+        except ValueError as exc:
+            format_retries += 1
+            logger.warning(
+                "Pre-Coach format gate: Player output is not valid JSON "
+                "(index=%d, turn=%d, content_len=%d, reason=%s). "
+                "Skipping Coach.",
+                target_index,
+                total_invocations,
+                len(player_content),
+                exc,
+            )
+            rejection_history.append(
+                {"format_gate": "player_output_not_json", "turn": total_invocations,
+                 "reason": str(exc)}
+            )
+            if format_retries > config.max_format_retries:
+                break
+            coach_feedback = (
+                "FORMAT ERROR: Your previous response could not be parsed "
+                "as a valid JSON object with both 'messages' and 'metadata' "
+                "top-level keys. You MUST respond with ONLY a raw JSON object "
+                "containing both 'messages' (array) and 'metadata' (object). "
+                "Start your response with { and end with }. "
+                "Do NOT include any text before or after the JSON. "
+                "Do NOT output messages and metadata as separate JSON objects."
+            )
+            continue
+
+        # Format gate passed — this counts as a real Coach turn
+        coach_turn += 1
 
         # Coach evaluates example
         coach_input: dict[str, Any] = {
@@ -729,7 +776,7 @@ async def _process_single_target(
                 "LLM usage: agent=coach, index=%d, turn=%d, "
                 "prompt_tokens=%d, completion_tokens=%d, total_tokens=%d",
                 target_index,
-                turn + 1,
+                coach_turn,
                 c_prompt,
                 c_completion,
                 c_prompt + c_completion,
@@ -745,7 +792,7 @@ async def _process_single_target(
                     "Coach JSON parse failed (index=%d, turn=%d), retrying "
                     "with JSON reinforcement: %s",
                     target_index,
-                    turn + 1,
+                    coach_turn,
                     parse_exc,
                 )
                 retry_input: dict[str, Any] = {
@@ -780,7 +827,7 @@ async def _process_single_target(
                         "prompt_tokens=%d, completion_tokens=%d, "
                         "total_tokens=%d",
                         target_index,
-                        turn + 1,
+                        coach_turn,
                         r_prompt,
                         r_completion,
                         r_prompt + r_completion,
@@ -795,7 +842,7 @@ async def _process_single_target(
         logger.info(
             "turn_complete: index=%d, turn=%d, decision=%s, score=%d",
             target_index,
-            turn + 1,
+            coach_turn,
             verdict.decision,
             verdict.score,
         )
@@ -810,7 +857,7 @@ async def _process_single_target(
                     "example_extracted: index=%d, turn=%d, "
                     "input_len=%d, output_len=%d",
                     target_index,
-                    turn + 1,
+                    coach_turn,
                     len(player_content),
                     len(example_json),
                 )
@@ -829,6 +876,29 @@ async def _process_single_target(
                     f"Your response could not be parsed as valid JSON. "
                     f"Return the complete training example as a single JSON "
                     f"object with 'messages' and 'metadata' keys."
+                )
+                continue
+
+            # Post-generation validation gate (TASK-LR1-002)
+            post_gen_result = validate_post_generation(example_json)
+            if not post_gen_result.is_valid:
+                logger.warning(
+                    "Post-generation validation failed: %s "
+                    "(index=%d, turn=%d)",
+                    post_gen_result.reason,
+                    target_index,
+                    coach_turn,
+                )
+                rejection_history.append(
+                    {
+                        "validation_error": post_gen_result.reason,
+                        **verdict.model_dump(),
+                    }
+                )
+                coach_feedback = (
+                    f"Post-generation validation failed: "
+                    f"{post_gen_result.reason}. "
+                    f"Revise the example to fix this defect."
                 )
                 continue
 
@@ -861,7 +931,7 @@ async def _process_single_target(
                             target_completion_tokens,
                             target_prompt_tokens + target_completion_tokens,
                         )
-                    return False, turn + 1, rejection_history
+                    return False, total_invocations, rejection_history
                 coach_feedback = (
                     f"Write validation failed: {write_result}. "
                     f"Revise the example to fix the validation error."
@@ -869,9 +939,11 @@ async def _process_single_target(
                 continue
 
             logger.info(
-                "target_accepted: index=%d, turns=%d, score=%d",
+                "target_accepted: index=%d, coach_turns=%d, "
+                "total_invocations=%d, score=%d",
                 target_index,
-                turn + 1,
+                coach_turn,
+                total_invocations,
                 verdict.score,
             )
             if target_prompt_tokens or target_completion_tokens:
@@ -883,7 +955,7 @@ async def _process_single_target(
                     target_completion_tokens,
                     target_prompt_tokens + target_completion_tokens,
                 )
-            return True, turn + 1, rejection_history
+            return True, total_invocations, rejection_history
 
         # Not accepted — record rejection and prepare feedback for revision
         rejection_history.append(verdict.model_dump())
@@ -906,7 +978,7 @@ async def _process_single_target(
             target_completion_tokens,
             target_prompt_tokens + target_completion_tokens,
         )
-    return False, config.max_turns, rejection_history
+    return False, total_invocations, rejection_history
 
 
 def _build_player_message(
@@ -943,8 +1015,10 @@ def _build_player_message(
             f"--- End Curriculum Context ---\n"
         )
     if coach_feedback:
+        is_format_error = coach_feedback.startswith("FORMAT ERROR:")
+        label = "Format Error" if is_format_error else "Coach Feedback"
         msg += (
-            f"\n--- Coach Feedback (revise based on this) ---\n"
+            f"\n--- {label} (revise based on this) ---\n"
             f"{coach_feedback}\n"
             f"--- End Feedback ---\n"
         )
