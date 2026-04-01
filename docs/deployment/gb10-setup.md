@@ -6,7 +6,7 @@ management suspensions that stalled the 2500-run.
 ## Prerequisites
 
 - SSH access to `promaxgb10-41b1` (via Tailscale or direct LAN)
-- Python 3.14 available on GB10
+- Python >=3.11 available on GB10 (3.12 is recommended)
 - vLLM Docker container `vllm-agentic-factory` running with
   `Qwen/Qwen3.5-35B-A3B-FP8` on port 8002
 - ChromaDB data synced from Mac (see below)
@@ -18,32 +18,58 @@ management suspensions that stalled the 2500-run.
 rsync -avz --exclude '.venv' --exclude '__pycache__' \
     --exclude 'chroma_data' --exclude 'output' \
     ~/Projects/appmilla_github/agentic-dataset-factory/ \
-    promaxgb10-41b1:~/agentic-dataset-factory/
+    promaxgb10-41b1:~/Projects/appmilla_github/agentic-dataset-factory/
 ```
 
 ## 2. Sync ChromaDB Data
 
 ```bash
-# From Mac — sync the ChromaDB collection
+# From Mac — sync the ChromaDB vector store
 rsync -avz ~/Projects/appmilla_github/agentic-dataset-factory/chroma_data/ \
-    promaxgb10-41b1:~/agentic-dataset-factory/chroma_data/
+    promaxgb10-41b1:~/Projects/appmilla_github/agentic-dataset-factory/chroma_data/
 ```
 
-## 3. Python Environment on GB10
+## 3. Sync Output Data (train.jsonl, RAG index, checkpoint)
+
+Step 1 excludes `output/` to avoid overwriting generated data on
+subsequent syncs. Run this separately to seed the GB10 with existing
+output, or to sync results back.
+
+```bash
+# From Mac to GB10 — sync existing output data
+rsync -avz ~/Projects/appmilla_github/agentic-dataset-factory/output/ \
+    promaxgb10-41b1:~/Projects/appmilla_github/agentic-dataset-factory/output/
+
+# From GB10 to Mac — pull results back after a run
+rsync -avz promaxgb10-41b1:~/Projects/appmilla_github/agentic-dataset-factory/output/ \
+    ~/Projects/appmilla_github/agentic-dataset-factory/output/
+```
+
+This syncs:
+- `output/train.jsonl` — accepted training examples
+- `output/rejected.jsonl` — rejected examples
+- `output/rag_index/knowledge.jsonl` — RAG knowledge data
+- `output/.checkpoint` — resume checkpoint
+- `output/logs/` — run logs
+
+## 4. Python Environment on GB10
 
 ```bash
 ssh promaxgb10-41b1
-cd ~/agentic-dataset-factory
+cd ~/Projects/appmilla_github/agentic-dataset-factory
 
 # Create virtual environment (first time only)
-python3.14 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
+
+# Create output/logs directory (needed for run script)
+mkdir -p output/logs
 ```
 
-## 4. Verify vLLM
+## 5. Verify vLLM
 
 ```bash
 # Check vLLM is responding
@@ -62,20 +88,23 @@ docker logs -f vllm-agentic-factory
 # Look for: "INFO: Application startup complete"
 ```
 
-## 5. Config Changes for GB10
+## 6. Config Changes for GB10
 
-Edit `agent-config.yaml` to use localhost (avoids Tailscale latency and
-stale TCP connections):
+Edit `agent-config.yaml` (in the project root) to use localhost (avoids
+Tailscale latency and stale TCP connections). Comment out the original
+lines so you can restore them later:
 
 ```yaml
 player:
-  endpoint: http://localhost:8002/v1    # was: http://promaxgb10-41b1:8002/v1
+  # endpoint: http://promaxgb10-41b1:8002/v1
+  endpoint: http://localhost:8002/v1
 
 coach:
-  endpoint: http://localhost:8002/v1    # was: http://promaxgb10-41b1:8002/v1
+  # endpoint: http://promaxgb10-41b1:8002/v1
+  endpoint: http://localhost:8002/v1
 ```
 
-## 6. Running with tmux
+## 7. Running with tmux
 
 ```bash
 # Create a persistent tmux session
@@ -96,7 +125,7 @@ Or use the provided script:
 ./scripts/run-on-gb10.sh
 ```
 
-## 7. Checkpoint Resume
+## 8. Checkpoint Resume
 
 The generation loop writes a `.checkpoint` file to `output/` after each
 accepted target. On restart with `--resume`:
@@ -113,7 +142,7 @@ cat output/.checkpoint
 python agent.py --resume
 ```
 
-## 8. Monitoring
+## 9. Monitoring
 
 ```bash
 # In a separate SSH session or tmux pane:
@@ -139,3 +168,6 @@ grep -c target_rejected output/logs/run-*.log
 | `TimeoutError` on LLM calls | Model overloaded or OOM | Check `docker logs`, may need to restart |
 | Checkpoint not advancing | All targets being rejected | Check Coach verdict logs for rejection reasons |
 | `FileNotFoundError: chroma_data` | ChromaDB not synced | Re-run rsync step 2 |
+| `No such file or directory: 'requirements.txt'` | Project uses `pyproject.toml` | `pip install -e .` |
+| `Initializing ChatOpenAI requires langchain-openai` | Missing dependency | `pip install langchain-openai` |
+| `tee: output/logs/...: No such file or directory` | Log directory missing | `mkdir -p output/logs` |
