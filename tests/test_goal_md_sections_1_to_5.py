@@ -282,24 +282,24 @@ class TestGenerationTargetsSection:
     def test_generation_targets_parsed(
         self, raw_sections: dict[str, str]
     ) -> None:
-        """Generation Targets must parse into exactly 7 entries."""
+        """Generation Targets must parse into exactly 18 entries."""
         targets = parse_generation_targets(raw_sections["Generation Targets"])
-        assert len(targets) == 7, f"Expected 7 category rows, found {len(targets)}"
+        assert len(targets) == 18, f"Expected 18 category rows, found {len(targets)}"
 
-    def test_generation_targets_total_is_1000(
+    def test_generation_targets_total_is_2500(
         self, raw_sections: dict[str, str]
     ) -> None:
-        """Total count across all categories must equal exactly 1,000."""
+        """Total count across all categories must equal exactly 2,500."""
         targets = parse_generation_targets(raw_sections["Generation Targets"])
-        validate_generation_targets(targets, expected_total=1000)
+        validate_generation_targets(targets, expected_total=2500)
 
-    def test_generation_targets_reasoning_split_gte_75_percent(
+    def test_generation_targets_reasoning_split_gte_70_percent(
         self, raw_sections: dict[str, str]
     ) -> None:
-        """Reasoning examples must be >= 75% of total."""
+        """Reasoning examples must be >= 70% of total."""
         targets = parse_generation_targets(raw_sections["Generation Targets"])
         validate_generation_targets(
-            targets, expected_total=1000, min_reasoning_ratio=0.75
+            targets, expected_total=2500, min_reasoning_ratio=0.70
         )
 
     def test_generation_targets_type_values_valid(

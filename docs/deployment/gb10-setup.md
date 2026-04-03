@@ -88,7 +88,20 @@ docker logs -f vllm-agentic-factory
 # Look for: "INFO: Application startup complete"
 ```
 
-## 6. Config Changes for GB10
+## 6. Set OpenAI API Key (dummy for local vLLM)
+
+The `ChatOpenAI` LangChain client requires `OPENAI_API_KEY` to be set,
+even when pointing at a local vLLM endpoint that doesn't check it.
+
+```bash
+# Set a dummy key for the current session
+export OPENAI_API_KEY=not-needed
+
+# Or persist it for future sessions
+echo 'export OPENAI_API_KEY=not-needed' >> ~/.bashrc
+```
+
+## 7. Config Changes for GB10
 
 Edit `agent-config.yaml` (in the project root) to use localhost (avoids
 Tailscale latency and stale TCP connections). Comment out the original
@@ -104,7 +117,40 @@ coach:
   endpoint: http://localhost:8002/v1
 ```
 
-## 7. Running with tmux
+## 8. Back Up Previous Run Before a Fresh Start
+
+Running without `--resume` **wipes the output directory** (checkpoint,
+train.jsonl, rejected.jsonl, knowledge.jsonl, logs). Always back up
+before starting a fresh run.
+
+```bash
+# Back up the previous run's output
+cp -r output output-run1-backup
+
+# Verify the backup
+ls -lh output-run1-backup/train.jsonl
+cat output-run1-backup/.checkpoint
+```
+
+After the new run completes, merge and clean:
+
+```bash
+# 1. Concatenate train.jsonl from both runs
+cat output-run1-backup/train.jsonl output/train.jsonl > output/train-merged.jsonl
+wc -l output-run1-backup/train.jsonl output/train.jsonl output/train-merged.jsonl
+
+# 2. Clean the merged file (removes degenerate placeholders, empty
+#    assistant responses, and repairs unclosed <think> blocks)
+python -m scripts.clean_training_data \
+    --input output/train-merged.jsonl \
+    --output output/train-final.jsonl \
+    --log-file output/logs/merge-clean.json
+
+# 3. Check knowledge examples (no merge needed — only run 2 produces these)
+wc -l output/rag_index/knowledge.jsonl
+```
+
+## 9. Running with tmux
 
 ```bash
 # Create a persistent tmux session
@@ -125,7 +171,7 @@ Or use the provided script:
 ./scripts/run-on-gb10.sh
 ```
 
-## 8. Checkpoint Resume
+## 10. Checkpoint Resume
 
 The generation loop writes a `.checkpoint` file to `output/` after each
 accepted target. On restart with `--resume`:
@@ -142,7 +188,7 @@ cat output/.checkpoint
 python agent.py --resume
 ```
 
-## 9. Monitoring
+## 11. Monitoring
 
 ```bash
 # In a separate SSH session or tmux pane:
@@ -171,3 +217,4 @@ grep -c target_rejected output/logs/run-*.log
 | `No such file or directory: 'requirements.txt'` | Project uses `pyproject.toml` | `pip install -e .` |
 | `Initializing ChatOpenAI requires langchain-openai` | Missing dependency | `pip install langchain-openai` |
 | `tee: output/logs/...: No such file or directory` | Log directory missing | `mkdir -p output/logs` |
+| `OPENAI_API_KEY must be set` | ChatOpenAI needs a key even for local vLLM | `export OPENAI_API_KEY=not-needed` |

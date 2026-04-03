@@ -794,17 +794,19 @@ class TestAC002_PydanticModelsMatchContract:
         }
 
     def test_generation_target_fields_match_contract(self):
-        """GenerationTarget: category(str), type(Literal), count(int), grade_targets(list)."""
+        """GenerationTarget: category(str), type(Literal), layer(Literal), count(int), grade_targets(list)."""
         t = GenerationTarget(
             category="cat", type="reasoning", count=10
         )
         assert isinstance(t.category, str)
         assert isinstance(t.type, str)
         assert t.type in ("reasoning", "direct")
+        assert isinstance(t.layer, str)
+        assert t.layer in ("behaviour", "knowledge")
         assert isinstance(t.count, int)
         assert isinstance(t.grade_targets, list)
         assert set(GenerationTarget.model_fields.keys()) == {
-            "category", "type", "count", "grade_targets",
+            "category", "type", "layer", "count", "grade_targets",
         }
 
     def test_evaluation_criterion_fields_match_contract(self):

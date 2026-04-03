@@ -55,13 +55,14 @@ class SourceDocument(BaseModel):
 class GenerationTarget(BaseModel):
     """A generation target from the Generation Targets table.
 
-    Defines a category of training examples with type and count.
+    Defines a category of training examples with type, layer, and count.
     The ``grade_targets`` list controls which grade levels are assigned
     to generated examples via round-robin distribution.
     """
 
     category: str = Field(min_length=1)
     type: Literal["reasoning", "direct"]
+    layer: Literal["behaviour", "knowledge"] = "behaviour"
     count: int = Field(ge=1)
     grade_targets: list[int | None] = Field(
         default=[7],

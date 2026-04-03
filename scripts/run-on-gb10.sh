@@ -6,6 +6,10 @@ SESSION_NAME="factory"
 LOG_DIR="output/logs"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 LOG_FILE="${LOG_DIR}/run-${TIMESTAMP}.log"
+RESUME_FLAG=""
+if [[ "${1:-}" == "--resume" ]]; then
+    RESUME_FLAG="--resume"
+fi
 
 # Pre-flight checks
 echo "=== Pre-flight checks ==="
@@ -59,6 +63,6 @@ echo "  Reattach: tmux attach -t ${SESSION_NAME}"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 tmux new-session -d -s "${SESSION_NAME}" \
-    "cd ${SCRIPT_DIR}; source .venv/bin/activate 2>/dev/null; python agent.py --resume 2>&1 | tee ${LOG_FILE}; echo 'Run complete. Press Enter to close.'; read"
+    "cd ${SCRIPT_DIR}; source .venv/bin/activate 2>/dev/null; python agent.py ${RESUME_FLAG} 2>&1 | tee ${LOG_FILE}; echo 'Run complete. Press Enter to close.'; read"
 
 tmux attach -t "${SESSION_NAME}"
