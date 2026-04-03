@@ -30,26 +30,26 @@ ask questions that guide them toward the answer.
      Counts redistributed to well-supported categories. Restore when a dedicated
      unseen poetry source is added to domains/gcse-english-tutor/sources/. -->
 
-| Category | Type | Count | Grade Targets |
-|---|---|---|---|
-| Literary analysis (single-turn) | reasoning | 275 | [5, 6, 7, 7, 8, 9] |
-| Character analysis — Macbeth | reasoning | 250 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — An Inspector Calls | reasoning | 200 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — A Christmas Carol | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
-| Language analysis — poetry (Power and Conflict) | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
-| Structure analysis — prose and drama | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Essay feedback — Literature (multi-turn) | reasoning | 200 | [5, 6, 7, 7, 8, 9] |
-| Essay feedback — Language (multi-turn) | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 1 | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 2 | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Comparative analysis — poetry | reasoning | 75 | [6, 7, 8, 9] |
-| Grade boundary guidance (grades 4-9) | reasoning | 75 | [4, 5, 6, 7, 8, 9] |
-| Terminology and literary devices | direct | 125 | [null] |
-| Character knowledge — set texts | direct | 100 | [null] |
-| Factual recall — AQA specification | direct | 100 | [null] |
-| Exam structure and mark allocation | direct | 75 | [null] |
-| Encouragement and study skills | direct | 100 | [null] |
-| Context — historical and social (set texts) | direct | 125 | [null] |
+| Category | Type | Layer | Count | Grade Targets |
+|---|---|---|---|---|
+| Literary analysis (single-turn) | reasoning | behaviour | 275 | [5, 6, 7, 7, 8, 9] |
+| Character analysis — Macbeth | reasoning | behaviour | 250 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — An Inspector Calls | reasoning | behaviour | 200 | [4, 5, 6, 7, 8, 9] |
+| Character analysis — A Christmas Carol | reasoning | behaviour | 150 | [5, 6, 7, 7, 8, 9] |
+| Language analysis — poetry (Power and Conflict) | reasoning | behaviour | 150 | [5, 6, 7, 7, 8, 9] |
+| Structure analysis — prose and drama | reasoning | behaviour | 125 | [5, 6, 7, 8, 9] |
+| Essay feedback — Literature (multi-turn) | reasoning | behaviour | 200 | [5, 6, 7, 7, 8, 9] |
+| Essay feedback — Language (multi-turn) | reasoning | behaviour | 125 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 1 | reasoning | behaviour | 125 | [5, 6, 7, 8, 9] |
+| Exam technique — Language Paper 2 | reasoning | behaviour | 125 | [5, 6, 7, 8, 9] |
+| Comparative analysis — poetry | reasoning | behaviour | 75 | [6, 7, 8, 9] |
+| Grade boundary guidance (grades 4-9) | reasoning | behaviour | 75 | [4, 5, 6, 7, 8, 9] |
+| Terminology and literary devices | direct | knowledge | 125 | [null] |
+| Character knowledge — set texts | direct | knowledge | 100 | [null] |
+| Factual recall — AQA specification | direct | knowledge | 100 | [null] |
+| Exam structure and mark allocation | direct | knowledge | 75 | [null] |
+| Encouragement and study skills | direct | behaviour | 100 | [null] |
+| Context — historical and social (set texts) | direct | knowledge | 125 | [null] |
 
 ## Generation Guidelines
 

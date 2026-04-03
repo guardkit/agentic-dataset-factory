@@ -397,15 +397,23 @@ class TestTypeValuesConsistency:
 class TestGenerationTargetTopicConsistency:
     """Generation Targets categories → metadata topic valid values."""
 
-    # Mapping from Generation Targets Category text to expected topic value
+    # Mapping from Generation Targets Category text (base, before parens/dashes)
+    # to expected metadata topic value.
     _CATEGORY_TO_TOPIC: dict[str, str] = {
-        "Literary analysis": "character_analysis",
+        "Literary analysis": "language_analysis",
+        "Character analysis": "character_analysis",
+        "Language analysis": "language_analysis",
+        "Structure analysis": "structure_analysis",
         "Essay feedback": "essay_feedback",
-        "Exam technique guidance": "exam_technique",
-        "Poetry comparative questions": "comparative",
-        "Factual recall / character / plot": "factual_recall",
-        "Terminology definitions": "terminology",
-        "Encouragement / session management": "encouragement",
+        "Exam technique": "exam_technique",
+        "Comparative analysis": "comparative",
+        "Grade boundary guidance": "exam_technique",
+        "Terminology and literary devices": "terminology",
+        "Character knowledge": "character_knowledge",
+        "Factual recall": "factual_recall",
+        "Exam structure and mark allocation": "exam_technique",
+        "Encouragement and study skills": "encouragement",
+        "Context": "character_analysis",
     }
 
     def test_generation_target_categories_in_topic_values(
@@ -425,8 +433,8 @@ class TestGenerationTargetTopicConsistency:
 
         # Verify each category has a corresponding topic
         for category in gen_categories:
-            # Find the base category name (before parenthetical qualifiers)
-            base = category.split("(")[0].strip()
+            # Find the base category name (before parenthetical or dash qualifiers)
+            base = category.split("(")[0].split("\u2014")[0].strip()
             expected_topic = self._CATEGORY_TO_TOPIC.get(base)
             assert expected_topic is not None, (
                 f"Generation target category '{category}' has no known "

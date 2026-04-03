@@ -1006,6 +1006,7 @@ def _build_player_message(
         f"Generate a training example for:\n"
         f"  Category: {target.category}\n"
         f"  Type: {target.type}\n"
+        f"  Layer: {target.layer}\n"
         f"  Grade Target: {grade_display}\n"
     )
     if rag_context:

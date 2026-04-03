@@ -151,20 +151,20 @@ class TestAllSectionsPresent:
 class TestGenerationTargets:
     """Validate Generation Targets table sums and reasoning split."""
 
-    def test_targets_sum_to_1000(self, goal_md_content: str) -> None:
-        """Generation target counts must sum to exactly 1,000."""
+    def test_targets_sum_to_2500(self, goal_md_content: str) -> None:
+        """Generation target counts must sum to exactly 2,500."""
         section = _extract_section(goal_md_content, "Generation Targets")
         rows = _parse_table_rows(section)
         assert len(rows) > 0, "Generation Targets table has no data rows"
 
         total = 0
         for row in rows:
-            # Count is the last column (index 2)
-            count_str = row[2].replace(",", "").strip()
+            # Count is column index 3 (Category|Type|Layer|Count|Grades)
+            count_str = row[3].replace(",", "").strip()
             total += int(count_str)
 
-        assert total == 1000, (
-            f"Generation Targets sum to {total}, expected exactly 1,000"
+        assert total == 2500, (
+            f"Generation Targets sum to {total}, expected exactly 2,500"
         )
 
     def test_reasoning_percentage_gte_70(self, goal_md_content: str) -> None:
@@ -176,7 +176,7 @@ class TestGenerationTargets:
         total_count = 0
         for row in rows:
             type_val = row[1].strip().lower()
-            count = int(row[2].replace(",", "").strip())
+            count = int(row[3].replace(",", "").strip())
             total_count += count
             if type_val == "reasoning":
                 reasoning_count += count

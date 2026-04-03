@@ -40,7 +40,8 @@ class GenerationTarget:
 
     category: str
     type: str
-    count: int
+    layer: str = "behaviour"
+    count: int = 0
 
 
 @dataclass
@@ -236,6 +237,7 @@ def parse_generation_targets(section_content: str) -> list[GenerationTarget]:
         GoalParseError: If a type value is invalid or count is not an integer.
     """
     valid_types = {"reasoning", "direct"}
+    valid_layers = {"behaviour", "knowledge"}
     rows = parse_markdown_table(section_content)
     targets: list[GenerationTarget] = []
 
@@ -243,9 +245,17 @@ def parse_generation_targets(section_content: str) -> list[GenerationTarget]:
         if len(row) < 3:
             continue
 
+        # Support both old 4-column (Category|Type|Count|Grades) and
+        # new 5-column (Category|Type|Layer|Count|Grades) table formats.
         category = row[0]
         type_val = row[1]
-        count_str = row[2]
+
+        if len(row) >= 5 and row[2] in valid_layers:
+            layer_val = row[2]
+            count_str = row[3]
+        else:
+            layer_val = "behaviour"
+            count_str = row[2]
 
         try:
             count = int(count_str)
@@ -261,6 +271,7 @@ def parse_generation_targets(section_content: str) -> list[GenerationTarget]:
         targets.append(GenerationTarget(
             category=category,
             type=type_val,
+            layer=layer_val,
             count=count,
         ))
 

@@ -399,6 +399,7 @@ _SOURCE_DOCS_COLUMN_MAP: dict[str, str] = {
 _GENERATION_TARGETS_COLUMN_MAP: dict[str, str] = {
     "Category": "category",
     "Type": "type",
+    "Layer": "layer",
     "Count": "count",
     "Grade Targets": "grade_targets",
 }
