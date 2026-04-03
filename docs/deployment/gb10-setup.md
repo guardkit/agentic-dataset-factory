@@ -82,6 +82,9 @@ source .venv/bin/activate
 # Install dependencies
 pip install -e .
 
+# Install ingestion dependencies (needed to re-ingest PDFs into ChromaDB)
+pip install -e ".[ingestion]"
+
 # Create output/logs directory (needed for run script)
 mkdir -p output/logs
 ```
