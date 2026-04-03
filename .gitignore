@@ -46,4 +46,9 @@ domains/*/sources/*.pdf
 
 # Synthesis outputs
 output/
+output-run*/
 checkpoints/
+
+# Run logs
+*.log
+!docs/**/*.log
