@@ -40,10 +40,20 @@ ssh promaxgb10-41b1 'ls -lh ~/Projects/appmilla_github/agentic-dataset-factory/c
 ```
 
 If the Mac copy is also missing, re-ingest on whichever machine has the
-source PDFs:
+source PDFs (requires `pip install -e ".[ingestion]"` for docling):
 
 ```bash
 python -m ingestion.ingest --domain gcse-english-tutor
+```
+
+**Tip**: After a successful ingest or sync, back up ChromaDB on the GB10
+so you never need to re-install docling (10-20 min) or re-ingest:
+
+```bash
+cp -r chroma_data chroma_data_backup
+
+# Restore if chroma_data gets wiped
+cp -r chroma_data_backup chroma_data
 ```
 
 ## 3. Sync Output Data (train.jsonl, RAG index, checkpoint)
