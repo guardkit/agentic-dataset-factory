@@ -48,6 +48,7 @@ domains/*/sources/*.pdf
 output/
 output-run*/
 checkpoints/
+chroma_data/
 
 # Run logs
 *.log
