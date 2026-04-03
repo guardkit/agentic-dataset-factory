@@ -23,10 +23,27 @@ rsync -avz --exclude '.venv' --exclude '__pycache__' \
 
 ## 2. Sync ChromaDB Data
 
+**IMPORTANT**: You must run this after every project sync (step 1), because
+step 1 excludes `chroma_data/`. If you forget, the pipeline will fail with:
+`ChromaDB collection 'gcse-english-tutor' does not exist`.
+
+The ChromaDB sqlite3 file should be ~16MB. If it's only ~184K, the
+collection data is missing and needs re-syncing.
+
 ```bash
 # From Mac — sync the ChromaDB vector store
 rsync -avz ~/Projects/appmilla_github/agentic-dataset-factory/chroma_data/ \
     promaxgb10-41b1:~/Projects/appmilla_github/agentic-dataset-factory/chroma_data/
+
+# Verify on GB10 (should be ~16MB, not 184K)
+ssh promaxgb10-41b1 'ls -lh ~/Projects/appmilla_github/agentic-dataset-factory/chroma_data/chroma.sqlite3'
+```
+
+If the Mac copy is also missing, re-ingest on whichever machine has the
+source PDFs:
+
+```bash
+python -m ingestion.ingest --domain gcse-english-tutor
 ```
 
 ## 3. Sync Output Data (train.jsonl, RAG index, checkpoint)
