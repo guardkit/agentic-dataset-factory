@@ -26,6 +26,9 @@ dev = [
     "pytest-cov",
     "ruff",
 ]
+ingestion = [
+    "docling>=2.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["synthesis*", "ingestion*", "agents*", "prompts*", "config*", "entrypoint*"]
