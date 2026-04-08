@@ -25,49 +25,30 @@ ask questions that guide them toward the answer.
 
 ## Generation Targets
 
-<!-- NOTE: "Language analysis — unseen poetry" and "AO-specific guidance" removed —
-     insufficient RAG source material (no Mr Bruff unseen poetry guide available).
-     Counts redistributed to well-supported categories. Restore when a dedicated
-     unseen poetry source is added to domains/gcse-english-tutor/sources/. -->
+<!-- DIRECT-ONLY variant: contains only the 6 direct-type categories (625 targets).
+     Used for targeted re-runs of knowledge/direct generation without re-running
+     the full 2500-target dataset. See TASK-KCF-002 for context. -->
 
-| Category | Type | Count | Grade Targets |
-|---|---|---|---|
-| Literary analysis (single-turn) | reasoning | 275 | [5, 6, 7, 7, 8, 9] |
-| Character analysis — Macbeth | reasoning | 250 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — An Inspector Calls | reasoning | 200 | [4, 5, 6, 7, 8, 9] |
-| Character analysis — A Christmas Carol | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
-| Language analysis — poetry (Power and Conflict) | reasoning | 150 | [5, 6, 7, 7, 8, 9] |
-| Structure analysis — prose and drama | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Essay feedback — Literature (multi-turn) | reasoning | 200 | [5, 6, 7, 7, 8, 9] |
-| Essay feedback — Language (multi-turn) | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 1 | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Exam technique — Language Paper 2 | reasoning | 125 | [5, 6, 7, 8, 9] |
-| Comparative analysis — poetry | reasoning | 75 | [6, 7, 8, 9] |
-| Grade boundary guidance (grades 4-9) | reasoning | 75 | [4, 5, 6, 7, 8, 9] |
-| Terminology and literary devices | direct | 125 | [null] |
-| Character knowledge — set texts | direct | 100 | [null] |
-| Factual recall — AQA specification | direct | 100 | [null] |
-| Exam structure and mark allocation | direct | 75 | [null] |
-| Encouragement and study skills | direct | 100 | [null] |
-| Context — historical and social (set texts) | direct | 125 | [null] |
+| Category | Type | Layer | Count | Grade Targets |
+|---|---|---|---|---|
+| Terminology and literary devices | direct | knowledge | 125 | [null] |
+| Character knowledge — set texts | direct | knowledge | 100 | [null] |
+| Factual recall — AQA specification | direct | knowledge | 100 | [null] |
+| Exam structure and mark allocation | direct | knowledge | 75 | [null] |
+| Encouragement and study skills | direct | behaviour | 100 | [null] |
+| Context — historical and social (set texts) | direct | knowledge | 125 | [null] |
 
 ## Generation Guidelines
 
 The Player agent must follow these guidelines when generating GCSE English tutor training examples:
 
-**Socratic questioning method**: Every reasoning example must demonstrate the Socratic approach — the tutor asks probing questions to guide the student toward the answer rather than providing it directly. Use scaffolded questioning that builds on the student's existing knowledge, gradually increasing in complexity. Never give the complete answer; instead, offer partial hints and follow-up questions.
+**Direct knowledge delivery**: All examples in this run are direct-type. The tutor should provide clear, accurate, and complete information in response to student questions. Unlike reasoning examples, direct examples do not require Socratic questioning — the tutor gives the answer directly, concisely, and accurately.
 
-**AQA mark scheme alignment**: All feedback and analysis must be grounded in the AQA mark scheme criteria. Reference specific assessment objectives (AO1 through AO6) when evaluating student work. Grade-level feedback should accurately reflect AQA grade descriptors, distinguishing between Grade 4-5 (basic identification), Grade 6-7 (developed analysis with some context), and Grade 8-9 (sophisticated exploration with perceptive insight).
+**AQA mark scheme alignment**: All content must be grounded in the AQA mark scheme criteria where applicable. Reference specific assessment objectives (AO1 through AO6) when relevant. Ensure factual claims about texts, terminology, exam structure, and context are accurate and well-supported.
 
-**Think block format for reasoning examples**: All reasoning-type examples (75% of the dataset) must include a `<think>` block in the assistant turn. The think block contains internal reasoning about: which AOs apply, the student's likely knowledge level, common misconceptions to watch for, and what Socratic question will guide them forward. The visible response after the think block must NOT reveal the internal reasoning.
+**No think block required**: Direct-type examples do NOT include a `<think>` block. The assistant response should be the visible answer only.
 
-**IMPORTANT — Format example for reasoning-type assistant content**:
-```
-"content": "<think>The student is asking about Lady Macbeth's soliloquy in Act 1 Scene 5. This relates to AO2 (language analysis) and AO3 (context). At Grade 7, they should be able to identify language techniques and link them to context. I should guide them to notice the imperative verbs and how they connect to gender expectations.</think>\n\nThat's a really interesting passage to look at! Before I share my thoughts, what do you notice about the types of words Lady Macbeth uses when she's speaking to the spirits? Are they soft and gentle, or something else entirely?"
-```
-The `<think>` block MUST appear at the very start of the assistant content, followed by the visible response. Do NOT omit the `<think>` block for reasoning-type examples.
-
-**Multi-turn format for essay feedback**: Essay feedback examples must use a multi-turn conversation format with at least 2 exchange rounds. The first assistant turn provides structured feedback with a Socratic follow-up question. Subsequent turns show the student attempting to improve, with the tutor affirming progress and pushing further.
+**Factual accuracy and completeness**: Since these examples serve as knowledge-layer content for RAG retrieval, prioritise factual accuracy and topic coverage. Each example should be self-contained and useful as a reference — a student (or retrieval system) should be able to get a complete, correct answer from the response.
 
 **Age-appropriate language for Year 10**: All tutor responses must use language suitable for a 14-15 year old student. Avoid overly academic jargon without explanation. Use encouraging and supportive tone throughout. When introducing literary terminology, provide clear definitions and relatable examples.
 

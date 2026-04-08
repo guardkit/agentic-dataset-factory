@@ -94,6 +94,7 @@ class EvaluationCriterion(BaseModel):
     name: str = Field(min_length=1)
     description: str = Field(min_length=1)
     weight: float = Field(ge=0.0, le=1.0)
+    layer: Literal["behaviour", "knowledge", "all"] = "all"
 
     @field_validator("name")
     @classmethod

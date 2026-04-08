@@ -140,7 +140,8 @@ def run_pipeline(state: PipelineState) -> PipelineState:
 
         # Step 8: Build prompts
         player_prompt = build_player_prompt(goal)
-        coach_prompt = build_coach_prompt(goal)
+        coach_prompt_behaviour = build_coach_prompt(goal, target_layer="behaviour")
+        coach_prompt_knowledge = build_coach_prompt(goal, target_layer="knowledge")
 
         # Step 9: Create tools
         tools = create_player_tools(
@@ -171,11 +172,20 @@ def run_pipeline(state: PipelineState) -> PipelineState:
             memory=["./AGENTS.md"],
             timeout=llm_timeout,
         )
-        coach = create_coach(
+        coach_behaviour = create_coach(
             model_config=config.coach,
-            system_prompt=coach_prompt,
+            system_prompt=coach_prompt_behaviour,
             memory=["./AGENTS.md"],
             timeout=llm_timeout,
+        )
+        coach_knowledge = create_coach(
+            model_config=config.coach,
+            system_prompt=coach_prompt_knowledge,
+            memory=["./AGENTS.md"],
+            timeout=llm_timeout,
+        )
+        logger.info(
+            "Coach agents created: behaviour + knowledge (layer-aware criteria routing)"
         )
 
         # Step 11: Determine start index
@@ -199,7 +209,10 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                 result = asyncio.run(
                     run_generation_loop(
                         player=player,
-                        coach=coach,
+                        coach={
+                            "behaviour": coach_behaviour,
+                            "knowledge": coach_knowledge,
+                        },
                         targets=goal.generation_targets,
                         config=config.generation,
                         checkpoint=checkpoint_mgr,

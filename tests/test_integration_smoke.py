@@ -531,7 +531,7 @@ class TestFullStartupSequence:
 
         # Verify Player and Coach instantiated
         mock_create_player.assert_called_once()
-        mock_create_coach.assert_called_once()
+        assert mock_create_coach.call_count == 2  # behaviour + knowledge
 
         # Verify Player tools contain only rag_retrieval (TASK-TRF-005)
         tools_arg = mock_create_player.call_args.kwargs.get("tools")

@@ -408,6 +408,7 @@ _EVALUATION_CRITERIA_COLUMN_MAP: dict[str, str] = {
     "Criterion": "name",
     "Description": "description",
     "Weight": "weight",
+    "Layer": "layer",
 }
 
 _METADATA_SCHEMA_COLUMN_MAP: dict[str, str] = {

@@ -145,7 +145,7 @@ def pipeline_env(tmp_path: Path):
         ),
         "build_coach_prompt": patch(
             "agent.build_coach_prompt",
-            side_effect=lambda g: (
+            side_effect=lambda g, **kw: (
                 call_order.append("build_coach_prompt"),
                 "coach prompt",
             )[-1],
@@ -411,15 +411,17 @@ class TestAgentFactories:
         assert prompt_arg == "player prompt"
 
     def test_create_coach_called_with_coach_prompt(self, pipeline_env) -> None:
-        """create_coach must receive the coach system prompt."""
+        """create_coach must be called twice (behaviour + knowledge)."""
         import agent
 
         agent.run_pipeline({"resume": False})
 
-        agent.create_coach.assert_called_once()
-        call_kwargs = agent.create_coach.call_args
-        prompt_arg = call_kwargs.kwargs.get("system_prompt")
-        assert prompt_arg == "coach prompt"
+        assert agent.create_coach.call_count == 2
+        prompts = [
+            call.kwargs.get("system_prompt")
+            for call in agent.create_coach.call_args_list
+        ]
+        assert all(p == "coach prompt" for p in prompts)
 
     def test_create_player_receives_model_config(self, pipeline_env) -> None:
         """create_player must receive the player model config."""
