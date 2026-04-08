@@ -259,20 +259,38 @@ class TestOutputSchema:
 class TestEvaluationCriteria:
     """Validate Evaluation Criteria weights sum to ~100 %."""
 
-    def test_weights_sum_to_100_within_tolerance(self, goal_md_content: str) -> None:
-        """Evaluation criteria weights must sum to 100 % (±1 %)."""
+    def test_behaviour_weights_sum_to_100_within_tolerance(self, goal_md_content: str) -> None:
+        """Behaviour-layer evaluation criteria weights must sum to 100 % (±1 %)."""
+        behaviour_criteria = {
+            "socratic_approach", "ao_accuracy", "mark_scheme_aligned",
+            "age_appropriate", "factual_accuracy",
+        }
         section = _extract_section(goal_md_content, "Evaluation Criteria")
         rows = _parse_table_dicts(section)
         assert len(rows) > 0, "Evaluation Criteria table has no data rows"
 
         total = 0
         for row in rows:
-            weight_str = row["Weight"].rstrip("%").strip()
-            total += int(weight_str)
+            if row["Criterion"] in behaviour_criteria:
+                weight_str = row["Weight"].rstrip("%").strip()
+                total += int(weight_str)
 
         assert abs(total - 100) <= 1, (
-            f"Evaluation criteria weights sum to {total}%, expected 100% (±1%)"
+            f"Behaviour criteria weights sum to {total}%, expected 100% (±1%)"
         )
+
+    def test_evaluation_criteria_has_layer_column(self, goal_md_content: str) -> None:
+        """TASK-CR-001: Evaluation Criteria table must have a Layer column."""
+        section = _extract_section(goal_md_content, "Evaluation Criteria")
+        rows = _parse_table_dicts(section)
+        assert len(rows) > 0, "Evaluation Criteria table has no data rows"
+        for row in rows:
+            assert "Layer" in row, (
+                f"Missing 'Layer' column for criterion '{row.get('Criterion', '?')}'"
+            )
+            assert row["Layer"] in ("behaviour", "knowledge", "all"), (
+                f"Invalid layer '{row['Layer']}' for criterion '{row['Criterion']}'"
+            )
 
 
 # ---------------------------------------------------------------------------

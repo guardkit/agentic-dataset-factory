@@ -600,7 +600,10 @@ async def _process_single_target(
 
     Args:
         player: Player DeepAgent instance.
-        coach: Coach DeepAgent instance.
+        coach: Coach DeepAgent instance, or a dict mapping layer names
+            (``"behaviour"``, ``"knowledge"``) to Coach instances
+            (TASK-CR-003).  When a dict is provided, the Coach is selected
+            based on ``target.layer``.
         target: The generation target to process.
         target_index: Zero-based index of this target.
         total_targets: Total number of targets (for logging).
@@ -616,6 +619,16 @@ async def _process_single_target(
     Returns:
         Tuple of (accepted: bool, turns_used: int, rejection_history: list).
     """
+    # TASK-CR-003: Select the correct Coach agent based on target layer.
+    if isinstance(coach, dict):
+        layer = getattr(target, "layer", "behaviour")
+        coach = coach.get(layer, coach.get("behaviour"))
+        logger.info(
+            "coach_selected: index=%d, layer=%s",
+            target_index,
+            layer,
+        )
+
     rejection_history: list[dict[str, Any]] = []
     coach_feedback: str | None = None
     write_attempts = 0
@@ -1028,7 +1041,7 @@ def _build_player_message(
 
 async def run_generation_loop(
     player: Any,
-    coach: Any,
+    coach: Any | dict[str, Any],
     targets: list[GenerationTarget],
     config: GenerationConfig,
     checkpoint: CheckpointManager,
@@ -1058,7 +1071,9 @@ async def run_generation_loop(
 
     Args:
         player: Pre-instantiated Player DeepAgent.
-        coach: Pre-instantiated Coach DeepAgent.
+        coach: Pre-instantiated Coach DeepAgent, or a dict mapping layer
+            names (``"behaviour"``, ``"knowledge"``) to Coach instances
+            for layer-aware criteria routing (TASK-CR-003).
         targets: Full list of generation targets from GOAL.md.
         config: Generation loop configuration (max_turns, timeouts, retry).
         checkpoint: CheckpointManager for saving progress.

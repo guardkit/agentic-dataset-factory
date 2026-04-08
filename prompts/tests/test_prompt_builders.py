@@ -58,19 +58,28 @@ def valid_goal_config() -> GoalConfig:
         ),
         evaluation_criteria=[
             EvaluationCriterion(
-                name="socratic_approach", description="Uses Socratic questioning", weight=0.3
+                name="socratic_approach", description="Uses Socratic questioning",
+                weight=0.3, layer="behaviour",
             ),
             EvaluationCriterion(
-                name="ao_accuracy", description="AO references are correct", weight=0.2
+                name="ao_accuracy", description="AO references are correct",
+                weight=0.2, layer="behaviour",
             ),
             EvaluationCriterion(
-                name="mark_scheme_aligned", description="Aligns with mark scheme", weight=0.2
+                name="mark_scheme_aligned", description="Aligns with mark scheme",
+                weight=0.2, layer="all",
             ),
             EvaluationCriterion(
-                name="age_appropriate", description="Age-appropriate language", weight=0.15
+                name="age_appropriate", description="Age-appropriate language",
+                weight=0.15, layer="all",
             ),
             EvaluationCriterion(
-                name="factual_accuracy", description="Factually accurate", weight=0.15
+                name="factual_accuracy", description="Factually accurate",
+                weight=0.15, layer="all",
+            ),
+            EvaluationCriterion(
+                name="completeness", description="Covers topic for RAG use",
+                weight=0.25, layer="knowledge",
             ),
         ],
         output_schema={
@@ -452,14 +461,16 @@ class TestPromptOrdering:
 class TestCoachCriteriaNames:
     """Coach prompt must include all evaluation criteria names for criteria_met validation."""
 
-    def test_all_criteria_names_present(self, valid_goal_config: GoalConfig) -> None:
+    def test_all_applicable_criteria_names_present(self, valid_goal_config: GoalConfig) -> None:
+        """All criteria applicable to the default layer appear in the prompt."""
         from prompts.coach_prompts import build_coach_prompt
 
         result = build_coach_prompt(valid_goal_config)
         for criterion in valid_goal_config.evaluation_criteria:
-            assert criterion.name in result, (
-                f"Criterion '{criterion.name}' not found in coach prompt"
-            )
+            if criterion.layer in ("behaviour", "all"):
+                assert criterion.name in result, (
+                    f"Criterion '{criterion.name}' not found in coach prompt"
+                )
 
     def test_criteria_met_instruction_present(self, valid_goal_config: GoalConfig) -> None:
         from prompts.coach_prompts import build_coach_prompt
@@ -604,3 +615,140 @@ class TestPlayerMandatoryMetadataEmphasis:
         routing_idx = result.index("## Layer Routing")
         checklist_idx = result.index("## Metadata Checklist")
         assert checklist_idx > routing_idx
+
+
+# ---------------------------------------------------------------------------
+# TASK-CR-002: Layer-aware filtering in build_coach_prompt()
+# ---------------------------------------------------------------------------
+
+
+class TestCoachLayerAwareFiltering:
+    """build_coach_prompt() filters evaluation criteria by target_layer."""
+
+    def test_behaviour_layer_includes_behaviour_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="behaviour")
+        assert "socratic_approach" in result
+        assert "ao_accuracy" in result
+
+    def test_behaviour_layer_excludes_knowledge_only_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Knowledge-only criteria must not appear in the criteria table or MUST-include line."""
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="behaviour")
+        must_line = [
+            line for line in result.splitlines()
+            if "MUST include the following keys" in line
+        ]
+        assert len(must_line) == 1
+        assert "completeness" not in must_line[0]
+
+    def test_knowledge_layer_includes_knowledge_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="knowledge")
+        assert "completeness" in result
+        assert "factual_accuracy" in result
+
+    def test_knowledge_layer_excludes_behaviour_only_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Behaviour-only criteria must not appear in the criteria table or MUST-include line."""
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="knowledge")
+        # Extract the MUST-include instruction (authoritative list of active criteria)
+        must_line = [
+            line for line in result.splitlines()
+            if "MUST include the following keys" in line
+        ]
+        assert len(must_line) == 1
+        instruction = must_line[0]
+        assert "socratic_approach" not in instruction
+        assert "ao_accuracy" not in instruction
+
+    def test_behaviour_layer_includes_all_layer_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="behaviour")
+        assert "mark_scheme_aligned" in result
+        assert "age_appropriate" in result
+        assert "factual_accuracy" in result
+
+    def test_knowledge_layer_includes_all_layer_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="knowledge")
+        assert "mark_scheme_aligned" in result
+        assert "age_appropriate" in result
+
+    def test_behaviour_must_include_lists_only_behaviour_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """The 'MUST include' instruction should only list behaviour+all criteria."""
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="behaviour")
+        must_line = [
+            line for line in result.splitlines()
+            if "MUST include the following keys" in line
+        ]
+        assert len(must_line) == 1
+        instruction = must_line[0]
+        assert "socratic_approach" in instruction
+        assert "ao_accuracy" in instruction
+        assert "mark_scheme_aligned" in instruction
+        assert "completeness" not in instruction
+
+    def test_knowledge_must_include_lists_only_knowledge_criteria(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """The 'MUST include' instruction should only list knowledge+all criteria."""
+        from prompts.coach_prompts import build_coach_prompt
+
+        result = build_coach_prompt(valid_goal_config, target_layer="knowledge")
+        must_line = [
+            line for line in result.splitlines()
+            if "MUST include the following keys" in line
+        ]
+        assert len(must_line) == 1
+        instruction = must_line[0]
+        assert "completeness" in instruction
+        assert "factual_accuracy" in instruction
+        assert "socratic_approach" not in instruction
+        assert "ao_accuracy" not in instruction
+
+    def test_default_target_layer_is_behaviour(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Calling without target_layer defaults to 'behaviour' (backwards-compat)."""
+        from prompts.coach_prompts import build_coach_prompt
+
+        default_result = build_coach_prompt(valid_goal_config)
+        explicit_result = build_coach_prompt(valid_goal_config, target_layer="behaviour")
+        assert default_result == explicit_result
+
+    def test_filter_criteria_for_layer_helper(self) -> None:
+        from prompts.coach_prompts import _filter_criteria_for_layer
+
+        criteria = [
+            EvaluationCriterion(name="a", description="d", weight=0.5, layer="behaviour"),
+            EvaluationCriterion(name="b", description="d", weight=0.3, layer="knowledge"),
+            EvaluationCriterion(name="c", description="d", weight=0.2, layer="all"),
+        ]
+        behaviour = _filter_criteria_for_layer(criteria, "behaviour")
+        assert [c.name for c in behaviour] == ["a", "c"]
+
+        knowledge = _filter_criteria_for_layer(criteria, "knowledge")
+        assert [c.name for c in knowledge] == ["b", "c"]

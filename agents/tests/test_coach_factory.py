@@ -5,8 +5,8 @@ verifying the D5 invariant (no tools, no backend) using the exemplar testing
 methodology. Also includes the seam test validating the ModelConfig integration
 contract from TASK-AF-001.
 
-TDD approach: these tests are written FIRST (RED), then create_coach()
-is implemented to make them pass (GREEN).
+Updated for TASK-TRF-012: create_coach now delegates to create_agent
+(not create_deep_agent) with an explicit middleware stack.
 """
 
 from __future__ import annotations
@@ -65,96 +65,90 @@ class TestCreateCoachSignature:
 
 
 # ---------------------------------------------------------------------------
-# AC-002: Factory delegates to create_deep_agent with tools=[]
+# AC-002: Factory delegates to create_agent with tools=[]
 # ---------------------------------------------------------------------------
 
 
-class TestDelegationToCreateDeepAgent:
-    """AC-002: create_coach delegates to create_deep_agent with tools=[]."""
+class TestDelegationToCreateAgent:
+    """AC-002: create_coach delegates to create_agent with tools=[]."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_delegates_to_create_deep_agent(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_delegates_to_create_agent(self) -> None:
         from agents.coach import create_coach
 
-        mock_model = MagicMock()
-        mock_create_model.return_value = mock_model
-        config = ModelConfig(provider="anthropic", model="claude-3-opus")
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_ca.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            create_coach(
+                model_config=config,
+                system_prompt="You are a coach.",
+                memory=["./AGENTS.md"],
+            )
+        mock_ca.assert_called_once()
 
-        create_coach(
-            model_config=config,
-            system_prompt="You are a coach.",
-            memory=["./AGENTS.md"],
-        )
-
-        mock_create_deep.assert_called_once()
-
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_passes_empty_tools_list(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_passes_empty_tools_list(self) -> None:
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(provider="anthropic", model="claude-3-opus")
-
-        create_coach(
-            model_config=config,
-            system_prompt="You are a coach.",
-            memory=["./AGENTS.md"],
-        )
-
-        call_kwargs = mock_create_deep.call_args
-        assert call_kwargs.kwargs.get("tools") == [], (
-            "Coach factory must always pass tools=[] to create_deep_agent"
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_ca.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            create_coach(
+                model_config=config,
+                system_prompt="You are a coach.",
+                memory=["./AGENTS.md"],
+            )
+        _, kwargs = mock_ca.call_args
+        assert kwargs["tools"] == [], (
+            "Coach factory must always pass tools=[] to create_agent"
         )
 
 
 # ---------------------------------------------------------------------------
-# AC-003: NO backend kwarg passed (or explicitly backend=None)
+# AC-003: NO backend kwarg passed to create_agent
 # ---------------------------------------------------------------------------
 
 
 class TestNoBackend:
-    """AC-003: Coach agent has no FilesystemBackend."""
+    """AC-003: Coach agent has no backend kwarg passed to create_agent."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_no_backend_kwarg_or_none(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_no_backend_kwarg(self) -> None:
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(provider="openai", model="gpt-4")
-
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        call_kwargs = mock_create_deep.call_args
-        # backend must either not be passed or be explicitly None
-        backend_value = call_kwargs.kwargs.get("backend")
-        assert backend_value is None, (
-            f"Coach must not pass a backend to create_deep_agent, got {backend_value}"
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_ca.return_value = MagicMock()
+            config = ModelConfig(provider="openai", model="gpt-4")
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        _, kwargs = mock_ca.call_args
+        assert "backend" not in kwargs, (
+            "Coach must not pass a backend kwarg to create_agent"
         )
 
 
 # ---------------------------------------------------------------------------
-# AC-004: FilesystemBackend is NOT imported in agents/coach.py
+# AC-004: FilesystemBackend IS now imported (for MemoryMiddleware backing)
 # ---------------------------------------------------------------------------
 
 
-class TestNoFilesystemBackendImport:
-    """AC-004: FilesystemBackend not imported in coach module."""
+class TestFilesystemBackendUsage:
+    """AC-004: FilesystemBackend imported for MemoryMiddleware, not for tool leakage."""
 
-    def test_filesystem_backend_not_in_source(self) -> None:
-        """Parse coach.py AST to ensure FilesystemBackend is never imported."""
+    def test_create_deep_agent_not_imported(self) -> None:
+        """coach.py must NOT import create_deep_agent."""
         coach_path = Path(__file__).resolve().parent.parent / "coach.py"
         source = coach_path.read_text()
         tree = ast.parse(source)
@@ -168,17 +162,27 @@ class TestNoFilesystemBackendImport:
                 for alias in node.names:
                     imported_names.append(alias.name)
 
-        assert "FilesystemBackend" not in imported_names, (
-            "FilesystemBackend must NOT be imported in agents/coach.py"
+        assert "create_deep_agent" not in imported_names, (
+            "create_deep_agent must NOT be imported in agents/coach.py"
         )
 
-    def test_filesystem_backend_not_in_source_text(self) -> None:
-        """Belt-and-suspenders: grep for the string in source."""
-        coach_path = Path(__file__).resolve().parent.parent / "coach.py"
-        source = coach_path.read_text()
-        assert "FilesystemBackend" not in source, (
-            "The string 'FilesystemBackend' must not appear in agents/coach.py"
-        )
+    def test_filesystem_backend_used_for_memory(self) -> None:
+        """FilesystemBackend is constructed for MemoryMiddleware backing."""
+        with (
+            patch("agents.coach.create_agent"),
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend") as mock_backend,
+        ):
+            from agents.coach import create_coach
+
+            mock_backend.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        mock_backend.assert_called_once_with(root_dir=".")
 
 
 # ---------------------------------------------------------------------------
@@ -187,56 +191,58 @@ class TestNoFilesystemBackendImport:
 
 
 class TestSystemPromptPassthrough:
-    """AC-005: system_prompt forwarded to create_deep_agent."""
+    """AC-005: system_prompt forwarded to create_agent."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_system_prompt_passed_through(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_system_prompt_passed_through(self) -> None:
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(provider="anthropic", model="claude-3-opus")
-        prompt = "You are a strict quality evaluator."
-
-        create_coach(
-            model_config=config,
-            system_prompt=prompt,
-            memory=["./AGENTS.md"],
-        )
-
-        call_kwargs = mock_create_deep.call_args
-        assert call_kwargs.kwargs.get("system_prompt") == prompt
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_ca.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            prompt = "You are a strict quality evaluator."
+            create_coach(
+                model_config=config,
+                system_prompt=prompt,
+                memory=["./AGENTS.md"],
+            )
+        _, kwargs = mock_ca.call_args
+        assert kwargs["system_prompt"] == prompt
 
 
 # ---------------------------------------------------------------------------
-# AC-006: memory list is passed as memory kwarg
+# AC-006: memory wired via MemoryMiddleware
 # ---------------------------------------------------------------------------
 
 
 class TestMemoryPassthrough:
-    """AC-006: memory list forwarded to create_deep_agent."""
+    """AC-006: memory wired through MemoryMiddleware in the middleware stack."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_memory_passed_through(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
-        from agents.coach import create_coach
+    def test_memory_wired_through_middleware(self) -> None:
+        from deepagents.middleware import MemoryMiddleware
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(provider="openai", model="gpt-4")
-        memory = ["./AGENTS.md", "./GOAL.md"]
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            from agents.coach import create_coach
 
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate.",
-            memory=memory,
-        )
-
-        call_kwargs = mock_create_deep.call_args
-        assert call_kwargs.kwargs.get("memory") == memory
+            mock_ca.return_value = MagicMock()
+            config = ModelConfig(provider="openai", model="gpt-4")
+            memory = ["./AGENTS.md", "./GOAL.md"]
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate.",
+                memory=memory,
+            )
+        _, kwargs = mock_ca.call_args
+        mem_mw = [m for m in kwargs["middleware"] if isinstance(m, MemoryMiddleware)]
+        assert len(mem_mw) == 1
+        assert mem_mw[0].sources == memory
 
 
 # ---------------------------------------------------------------------------
@@ -273,11 +279,6 @@ class TestEmptySystemPromptRejected:
 
 
 # ---------------------------------------------------------------------------
-# AC-008: lint/format (verified separately via ruff)
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
 # Seam test: ModelConfig contract from TASK-AF-001
 # ---------------------------------------------------------------------------
 
@@ -291,7 +292,7 @@ class TestModelConfigSeam:
         """Verify ModelConfig matches the expected format.
 
         Contract: ModelConfig must be translated to a concrete model object
-        via create_model() before passing to create_deep_agent.
+        via create_model() before passing to create_agent.
         Producer: TASK-AF-001
         """
         config = ModelConfig(provider="anthropic", model="claude-sonnet-4-20250514")
@@ -309,50 +310,49 @@ class TestModelConfigSeam:
 class TestCoachToolsInvariant:
     """BDD extra: Coach always gets tools=[], regardless of input."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_model_created_from_config(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_model_created_from_config(self) -> None:
         """Verify create_model is called with the ModelConfig."""
         from agents.coach import create_coach
 
-        mock_model = MagicMock()
-        mock_create_model.return_value = mock_model
-        config = ModelConfig(
-            provider="local",
-            model="nemotron",
-            endpoint="http://localhost:8000/v1",
-        )
+        with (
+            patch("agents.coach.create_agent"),
+            patch("agents.coach.create_model") as mock_create_model,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_create_model.return_value = MagicMock()
+            config = ModelConfig(
+                provider="local",
+                model="nemotron",
+                endpoint="http://localhost:8000/v1",
+            )
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        # For local provider, extra_body is passed with structured_outputs
+        mock_create_model.assert_called_once()
+        _, kwargs = mock_create_model.call_args
+        assert kwargs.get("extra_body") is not None
 
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        mock_create_model.assert_called_once_with(config)
-
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_model_passed_to_create_deep_agent(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
-        """The translated model object is passed to create_deep_agent."""
+    def test_model_passed_to_create_agent(self) -> None:
+        """The translated model object is passed to create_agent."""
         from agents.coach import create_coach
 
         mock_model = MagicMock()
-        mock_create_model.return_value = mock_model
-        config = ModelConfig(provider="anthropic", model="claude-3-opus")
-
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        call_kwargs = mock_create_deep.call_args
-        assert call_kwargs.kwargs.get("model") == mock_model
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model", return_value=mock_model),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        _, kwargs = mock_ca.call_args
+        assert kwargs["model"] is mock_model
 
 
 # ---------------------------------------------------------------------------
@@ -363,93 +363,83 @@ class TestCoachToolsInvariant:
 class TestCoachEdgeCases:
     """Edge cases: Coach works with different providers and temperatures."""
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_coach_with_different_provider_than_player(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_coach_with_different_provider_than_player(self) -> None:
         """Coach can use a different provider (e.g. openai) independently."""
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        # Coach uses openai while Player might use anthropic — both work
-        config = ModelConfig(provider="openai", model="gpt-4o")
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model") as mock_create_model,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_create_model.return_value = MagicMock()
+            config = ModelConfig(provider="openai", model="gpt-4o")
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        mock_ca.assert_called_once()
 
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        mock_create_deep.assert_called_once()
-        mock_create_model.assert_called_once_with(config)
-
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_coach_with_custom_temperature(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_coach_with_custom_temperature(self) -> None:
         """Coach correctly passes through a custom temperature via ModelConfig."""
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        # Coach with low temperature (0.3) for deterministic evaluation
-        config = ModelConfig(provider="anthropic", model="claude-3-opus", temperature=0.3)
-
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        # Temperature is handled by ModelConfig → create_model, verify config forwarded
-        mock_create_model.assert_called_once_with(config)
+        with (
+            patch("agents.coach.create_agent"),
+            patch("agents.coach.create_model") as mock_create_model,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_create_model.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus", temperature=0.3)
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        mock_create_model.assert_called_once()
         assert config.temperature == 0.3
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_coach_default_temperature_from_model_config(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_coach_default_temperature_from_model_config(self) -> None:
         """When temperature is not specified, ModelConfig default (0.7) applies."""
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(provider="anthropic", model="claude-3-opus")
-
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        mock_create_model.assert_called_once_with(config)
+        with (
+            patch("agents.coach.create_agent"),
+            patch("agents.coach.create_model") as mock_create_model,
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            mock_create_model.return_value = MagicMock()
+            config = ModelConfig(provider="anthropic", model="claude-3-opus")
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        mock_create_model.assert_called_once()
         assert config.temperature == 0.7
 
-    @patch("agents.coach.create_deep_agent")
-    @patch("agents.coach.create_model")
-    def test_coach_with_local_provider(
-        self, mock_create_model: MagicMock, mock_create_deep: MagicMock
-    ) -> None:
+    def test_coach_with_local_provider(self) -> None:
         """Coach works with local provider requiring an endpoint."""
         from agents.coach import create_coach
 
-        mock_create_model.return_value = MagicMock()
-        config = ModelConfig(
-            provider="local",
-            model="nemotron-3-super-120b",
-            endpoint="http://localhost:8000/v1",
-            temperature=0.3,
-        )
-
-        create_coach(
-            model_config=config,
-            system_prompt="Evaluate quality.",
-            memory=["./AGENTS.md"],
-        )
-
-        mock_create_deep.assert_called_once()
-        call_kwargs = mock_create_deep.call_args
-        # Even with local provider, Coach still gets no tools and no backend
-        assert call_kwargs.kwargs.get("tools") == []
-        assert call_kwargs.kwargs.get("backend") is None
+        with (
+            patch("agents.coach.create_agent") as mock_ca,
+            patch("agents.coach.create_model"),
+            patch("agents.coach.FilesystemBackend"),
+        ):
+            config = ModelConfig(
+                provider="local",
+                model="nemotron-3-super-120b",
+                endpoint="http://localhost:8000/v1",
+                temperature=0.3,
+            )
+            create_coach(
+                model_config=config,
+                system_prompt="Evaluate quality.",
+                memory=["./AGENTS.md"],
+            )
+        mock_ca.assert_called_once()
+        _, kwargs = mock_ca.call_args
+        assert kwargs["tools"] == []
+        assert "backend" not in kwargs

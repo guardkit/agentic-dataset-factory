@@ -78,13 +78,23 @@ The rubric the Coach uses to evaluate each generated training example. Criterion
 ### CRITICAL PRE-CHECK (before scoring criteria)
 For reasoning-type examples: if the assistant message does NOT contain a `<think>...</think>` block, immediately set decision to "revise" and score to 1. Do not evaluate other criteria — the think block is a mandatory structural requirement. Provide feedback: "Reasoning-type example is missing required <think> block."
 
-| Criterion | Description | Weight |
-|---|---|---|
-| socratic_approach | Guides via questions rather than giving answers | 25% |
-| ao_accuracy | Correct application of assessment objectives | 25% |
-| mark_scheme_aligned | Analysis aligns with AQA marking criteria | 20% |
-| age_appropriate | Language suitable for Year 10 student | 15% |
-| factual_accuracy | No incorrect claims about texts or context | 15% |
+### Layer-Specific Criteria Routing
+
+Apply different criteria depending on the example's `metadata.layer` value:
+
+- **Behaviour layer** (type: reasoning): Evaluate `socratic_approach`, `ao_accuracy`, `mark_scheme_aligned`, `age_appropriate`, and `factual_accuracy`. Use the weights from the table below.
+- **Knowledge layer** (type: direct): Evaluate ONLY `factual_accuracy` (weight 35%), `completeness` (weight 25%), `age_appropriate` (weight 20%), and `mark_scheme_aligned` (weight 20%). Do NOT evaluate `socratic_approach` or `ao_accuracy` — these are not applicable to direct-type knowledge examples.
+
+Only include the criteria applicable to the example's layer in your `criteria_met` response.
+
+| Criterion | Description | Weight | Layer |
+|---|---|---|---|
+| socratic_approach | Guides via questions rather than giving answers | 25% | behaviour |
+| ao_accuracy | Correct application of assessment objectives | 25% | behaviour |
+| mark_scheme_aligned | Analysis aligns with AQA marking criteria | 20% | all |
+| age_appropriate | Language suitable for Year 10 student | 15% | all |
+| factual_accuracy | No incorrect claims about texts, context, or terminology | 15% | all |
+| completeness | Covers the topic adequately for RAG retrieval use | 25% | knowledge |
 
 ## Output Schema
 

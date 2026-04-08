@@ -86,13 +86,14 @@ class TestEvaluationCriteria:
         "mark_scheme_aligned": 20,
         "age_appropriate": 15,
         "factual_accuracy": 15,
+        "completeness": 25,
     }
 
-    def test_section_6_has_exactly_5_criteria(self, goal_md_content: str) -> None:
-        """AC-001: Section 6 has 5 evaluation criteria."""
+    def test_section_6_has_at_least_5_criteria(self, goal_md_content: str) -> None:
+        """AC-001: Section 6 has at least 5 evaluation criteria (6 with layer-aware routing)."""
         section = _extract_section(goal_md_content, "Evaluation Criteria")
         rows = _parse_markdown_table(section)
-        assert len(rows) == 5, f"Expected 5 criteria, got {len(rows)}"
+        assert len(rows) >= 5, f"Expected at least 5 criteria, got {len(rows)}"
 
     def test_all_criterion_names_are_valid_python_identifiers(
         self, goal_md_content: str
@@ -109,15 +110,20 @@ class TestEvaluationCriteria:
                 f"Criterion name '{name}' contains hyphens"
             )
 
-    def test_weights_sum_to_100_percent(self, goal_md_content: str) -> None:
-        """AC-001: Weights sum to 100%."""
+    def test_behaviour_layer_weights_sum_to_100_percent(self, goal_md_content: str) -> None:
+        """AC-001: Behaviour-layer criteria weights sum to 100%."""
+        behaviour_criteria = {
+            "socratic_approach", "ao_accuracy", "mark_scheme_aligned",
+            "age_appropriate", "factual_accuracy",
+        }
         section = _extract_section(goal_md_content, "Evaluation Criteria")
         rows = _parse_markdown_table(section)
         total = 0
         for row in rows:
-            weight_str = row["Weight"].rstrip("%").strip()
-            total += int(weight_str)
-        assert total == 100, f"Weights sum to {total}%, expected 100%"
+            if row["Criterion"] in behaviour_criteria:
+                weight_str = row["Weight"].rstrip("%").strip()
+                total += int(weight_str)
+        assert total == 100, f"Behaviour weights sum to {total}%, expected 100%"
 
     def test_each_criterion_has_description_and_weight(
         self, goal_md_content: str
@@ -144,6 +150,37 @@ class TestEvaluationCriteria:
             assert name in found, f"Missing criterion '{name}'"
             assert found[name] == weight, (
                 f"Criterion '{name}' weight is {found[name]}%, expected {weight}%"
+            )
+
+    def test_table_has_layer_column(self, goal_md_content: str) -> None:
+        """TASK-CR-001: Evaluation Criteria table has a Layer column."""
+        section = _extract_section(goal_md_content, "Evaluation Criteria")
+        rows = _parse_markdown_table(section)
+        for row in rows:
+            assert "Layer" in row, "Missing 'Layer' column in Evaluation Criteria table"
+            assert row["Layer"] in ("behaviour", "knowledge", "all"), (
+                f"Criterion '{row['Criterion']}' has invalid Layer '{row['Layer']}', "
+                f"expected one of: behaviour, knowledge, all"
+            )
+
+    EXPECTED_LAYERS = {
+        "socratic_approach": "behaviour",
+        "ao_accuracy": "behaviour",
+        "mark_scheme_aligned": "all",
+        "age_appropriate": "all",
+        "factual_accuracy": "all",
+        "completeness": "knowledge",
+    }
+
+    def test_criteria_have_correct_layer_values(self, goal_md_content: str) -> None:
+        """TASK-CR-001: Each criterion has the correct Layer value."""
+        section = _extract_section(goal_md_content, "Evaluation Criteria")
+        rows = _parse_markdown_table(section)
+        found = {row["Criterion"]: row["Layer"] for row in rows}
+        for name, expected_layer in self.EXPECTED_LAYERS.items():
+            assert name in found, f"Missing criterion '{name}'"
+            assert found[name] == expected_layer, (
+                f"Criterion '{name}' has layer '{found[name]}', expected '{expected_layer}'"
             )
 
 
@@ -393,3 +430,52 @@ class TestCrossSectionConsistency:
             assert "TODO" not in section, (
                 f"Section '{heading}' still contains a TODO comment"
             )
+
+
+# ---------------------------------------------------------------------------
+# Parser-level: EvaluationCriterion layer field
+# ---------------------------------------------------------------------------
+
+
+class TestEvaluationCriterionLayerParsing:
+    """TASK-CR-001: Parser extracts Layer column into EvaluationCriterion.layer."""
+
+    def test_parse_table_extracts_layer_field(self) -> None:
+        """Parsing a criterion row with Layer column produces correct layer value."""
+        from domain_config.models import EvaluationCriterion
+        from domain_config.parser import _EVALUATION_CRITERIA_COLUMN_MAP, parse_table
+
+        table_text = (
+            "| Criterion | Description | Weight | Layer |\n"
+            "|---|---|---|---|\n"
+            "| socratic_approach | Guides via questions | 25% | behaviour |\n"
+            "| completeness | Covers the topic | 25% | knowledge |\n"
+            "| age_appropriate | Language suitable | 15% | all |\n"
+        )
+        results = parse_table(table_text, EvaluationCriterion, _EVALUATION_CRITERIA_COLUMN_MAP)
+        assert len(results) == 3
+
+        by_name = {r.name: r for r in results}
+        assert by_name["socratic_approach"].layer == "behaviour"
+        assert by_name["completeness"].layer == "knowledge"
+        assert by_name["age_appropriate"].layer == "all"
+
+    def test_parse_table_defaults_layer_to_all(self) -> None:
+        """When Layer column is missing, EvaluationCriterion.layer defaults to 'all'."""
+        from domain_config.models import EvaluationCriterion
+        from domain_config.parser import parse_table
+
+        # Old-style table without Layer column
+        old_column_map = {
+            "Criterion": "name",
+            "Description": "description",
+            "Weight": "weight",
+        }
+        table_text = (
+            "| Criterion | Description | Weight |\n"
+            "|---|---|---|\n"
+            "| age_appropriate | Language suitable | 15% |\n"
+        )
+        results = parse_table(table_text, EvaluationCriterion, old_column_map)
+        assert len(results) == 1
+        assert results[0].layer == "all"
