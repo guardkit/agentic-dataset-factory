@@ -1,9 +1,11 @@
 ---
 id: TASK-D0A8-003
 title: GB10 setup instructions and run script
-status: in_review
+status: completed
 created: 2026-04-01T20:00:00Z
-updated: 2026-04-01T21:25:00Z
+updated: 2026-04-02T08:00:00Z
+completed: 2026-04-02T08:00:00Z
+completed_location: tasks/completed/TASK-D0A8-003/
 priority: critical
 tags: [deployment, gb10, tmux, resilience]
 task_type: implementation
