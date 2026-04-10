@@ -74,6 +74,21 @@ class TokenUsage:
         self.total_tokens += prompt + completion
 
 
+class CoachRefusalError(Exception):
+    """Raised when the Coach model refuses to evaluate content.
+
+    Distinct from ``ValueError`` so callers can implement refusal-specific
+    retry logic (e.g., reframing the prompt as a quality assessment).
+
+    Attributes:
+        reason: The refusal reason text from the model's ``additional_kwargs``.
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
+
 @dataclass
 class GenerationResult:
     """Statistics returned after the generation loop completes.
@@ -561,6 +576,12 @@ def _extract_coach_content(coach_response: dict[str, Any]) -> str:
         )
         return reasoning_content
 
+    # Check for model refusal before raising generic ValueError
+    refusal = additional_kwargs.get("refusal")
+    if refusal:
+        logger.warning("Coach refused to evaluate content: %s", refusal)
+        raise CoachRefusalError(str(refusal))
+
     raise ValueError(
         "Coach response has no extractable content: "
         f"content={content!r}, "
@@ -584,6 +605,7 @@ async def _process_single_target(
     write_tool: Callable,
     token_usage: TokenUsage | None = None,
     rag_tool: Callable | None = None,
+    coach_fallback: Any | None = None,
 ) -> tuple[bool, int, list[dict[str, Any]]]:
     """Process a single generation target through the Player-Coach cycle.
 
@@ -615,6 +637,10 @@ async def _process_single_target(
         rag_tool: Optional ``rag_retrieval`` LangChain tool.  When provided,
             the orchestrator calls it once per target before the first Player
             turn (TASK-TRF-009).
+        coach_fallback: Optional Coach agent created without structured
+            outputs (TASK-CR-007).  Used as a third fallback when both
+            the initial call and reframed-prompt retry produce refusals.
+            May be a single agent or a dict (same shape as ``coach``).
 
     Returns:
         Tuple of (accepted: bool, turns_used: int, rejection_history: list).
@@ -629,10 +655,16 @@ async def _process_single_target(
             layer,
         )
 
+    # TASK-CR-007: Select fallback coach for same layer (if dict).
+    if isinstance(coach_fallback, dict):
+        layer = getattr(target, "layer", "behaviour")
+        coach_fallback = coach_fallback.get(layer, coach_fallback.get("behaviour"))
+
     rejection_history: list[dict[str, Any]] = []
     coach_feedback: str | None = None
     write_attempts = 0
     coach_retried = False
+    coach_refusal_retried = False
     target_prompt_tokens = 0
     target_completion_tokens = 0
 
@@ -776,7 +808,132 @@ async def _process_single_target(
             max_retries=config.llm_retry_attempts,
             backoff_base=config.llm_retry_backoff,
         )
-        coach_content = _extract_coach_content(coach_response)
+
+        # TASK-CR-006: Refusal detection with reframed-prompt retry
+        try:
+            coach_content = _extract_coach_content(coach_response)
+        except CoachRefusalError as refusal_exc:
+            if not coach_refusal_retried:
+                coach_refusal_retried = True
+                logger.warning(
+                    "Coach refused to evaluate (index=%d, turn=%d), "
+                    "retrying with reframed prompt: %s",
+                    target_index,
+                    coach_turn,
+                    refusal_exc.reason,
+                )
+                refusal_retry_input: dict[str, Any] = {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "You are a QUALITY ASSESSOR performing a "
+                                "rubric evaluation. You are NOT generating "
+                                "content — you are only SCORING an existing "
+                                "training example against quality criteria. "
+                                "This is a routine quality check, not content "
+                                "creation.\n\n"
+                                "Please evaluate the following training "
+                                "example and return your assessment as a "
+                                "JSON CoachVerdict object.\n\n"
+                                f"[Training example for category: "
+                                f"{target.category}, type: {target.type}]"
+                            ),
+                        }
+                    ]
+                }
+                coach_response = await _invoke_with_retry(
+                    coach,
+                    refusal_retry_input,
+                    max_retries=config.llm_retry_attempts,
+                    backoff_base=config.llm_retry_backoff,
+                )
+                r_prompt, r_completion = _extract_token_usage(
+                    coach_response
+                )
+                if r_prompt or r_completion:
+                    target_prompt_tokens += r_prompt
+                    target_completion_tokens += r_completion
+                    if token_usage is not None:
+                        token_usage.add(r_prompt, r_completion)
+                    logger.info(
+                        "LLM usage: agent=coach_refusal_retry, "
+                        "index=%d, turn=%d, prompt_tokens=%d, "
+                        "completion_tokens=%d, total_tokens=%d",
+                        target_index,
+                        coach_turn,
+                        r_prompt,
+                        r_completion,
+                        r_prompt + r_completion,
+                    )
+                try:
+                    coach_content = _extract_coach_content(coach_response)
+                except CoachRefusalError as fallback_exc:
+                    # TASK-CR-007: Both initial and reframed retry refused.
+                    # Try a third attempt without structured_outputs constraint.
+                    if coach_fallback is not None:
+                        logger.warning(
+                            "Coach refused after reframed retry (index=%d, "
+                            "turn=%d), attempting structured_outputs fallback: "
+                            "%s",
+                            target_index,
+                            coach_turn,
+                            fallback_exc.reason,
+                        )
+                        fallback_input: dict[str, Any] = {
+                            "messages": [
+                                {
+                                    "role": "user",
+                                    "content": player_content,
+                                }
+                            ]
+                        }
+                        fallback_response = await _invoke_with_retry(
+                            coach_fallback,
+                            fallback_input,
+                            max_retries=config.llm_retry_attempts,
+                            backoff_base=config.llm_retry_backoff,
+                        )
+                        fb_prompt, fb_completion = _extract_token_usage(
+                            fallback_response
+                        )
+                        if fb_prompt or fb_completion:
+                            target_prompt_tokens += fb_prompt
+                            target_completion_tokens += fb_completion
+                            if token_usage is not None:
+                                token_usage.add(fb_prompt, fb_completion)
+                            logger.info(
+                                "LLM usage: agent=coach_structured_outputs_"
+                                "fallback, index=%d, turn=%d, "
+                                "prompt_tokens=%d, completion_tokens=%d, "
+                                "total_tokens=%d",
+                                target_index,
+                                coach_turn,
+                                fb_prompt,
+                                fb_completion,
+                                fb_prompt + fb_completion,
+                            )
+                        coach_content = _extract_coach_content(
+                            fallback_response
+                        )
+                        logger.info(
+                            "coach_content_source: "
+                            "structured_outputs_fallback "
+                            "(index=%d, turn=%d)",
+                            target_index,
+                            coach_turn,
+                        )
+                        rejection_history.append({
+                            "structured_outputs_fallback": True,
+                            "turn": coach_turn,
+                        })
+                        # If _extract_coach_content raises again
+                        # (CoachRefusalError or ValueError), it propagates
+                        # to the per-target handler in run_generation_loop
+                    else:
+                        raise  # No fallback available, propagate
+            else:
+                raise  # Already retried once, let it propagate
 
         # Extract and log Coach token usage
         c_prompt, c_completion = _extract_token_usage(coach_response)
@@ -1049,6 +1206,7 @@ async def run_generation_loop(
     write_tool: Callable,
     start_index: int = 0,
     rag_tool: Callable | None = None,
+    coach_fallback: Any | dict[str, Any] | None = None,
 ) -> GenerationResult:
     """Run the sequential Player-Coach generation loop.
 
@@ -1084,6 +1242,10 @@ async def run_generation_loop(
         rag_tool: Optional ``rag_retrieval`` LangChain tool.  When provided,
             the orchestrator calls it once per target before the first Player
             turn (TASK-TRF-009).
+        coach_fallback: Optional Coach agent(s) created without structured
+            outputs (TASK-CR-007).  Same shape as ``coach`` (single agent
+            or dict).  Used as a third fallback when both initial and
+            reframed-prompt retries produce refusals.
 
     Returns:
         GenerationResult with aggregate statistics.
@@ -1091,6 +1253,8 @@ async def run_generation_loop(
     start_time = time.monotonic()
     accepted_count = 0
     rejected_count = 0
+    refusal_count = 0
+    fallback_recovery_count = 0
     total_turns = 0
     cumulative_tokens = TokenUsage()
 
@@ -1138,11 +1302,19 @@ async def run_generation_loop(
                     write_tool=write_tool,
                     token_usage=cumulative_tokens,
                     rag_tool=rag_tool,
+                    coach_fallback=coach_fallback,
                 ),
                 timeout=config.target_timeout,
             )
 
             total_turns += turns_used
+
+            # TASK-CR-007: Count fallback recoveries from rejection history
+            if any(
+                h.get("structured_outputs_fallback")
+                for h in rejection_history
+            ):
+                fallback_recovery_count += 1
 
             if target_accepted:
                 accepted_count += 1
@@ -1182,6 +1354,29 @@ async def run_generation_loop(
                 "target_rejected: index=%d, reason=timeout, timeout=%ds",
                 absolute_index,
                 config.target_timeout,
+            )
+
+        except CoachRefusalError as exc:
+            # TASK-CR-006: Coach refused to evaluate even after reframed
+            # retry — reject with distinct reason for tracking.
+            rejected_count += 1
+            refusal_count += 1
+            total_turns += 1
+
+            record = _build_rejection_record(
+                target=target,
+                target_index=absolute_index,
+                rejection_history=[],
+                reason=f"coach_refusal: {exc.reason}",
+            )
+            output_manager.rejected_fh.write(json.dumps(record) + "\n")
+            output_manager.rejected_fh.flush()
+
+            logger.warning(
+                "target_rejected: index=%d, reason=coach_refusal, "
+                "refusal=%s",
+                absolute_index,
+                exc.reason,
             )
 
         except (RuntimeError, OSError, ValidationError, ValueError, httpx.HTTPStatusError) as exc:
@@ -1226,11 +1421,25 @@ async def run_generation_loop(
 
     elapsed_seconds = time.monotonic() - start_time
 
+    if refusal_count:
+        logger.info(
+            "coach_refusals: count=%d (included in rejected)",
+            refusal_count,
+        )
+
+    if fallback_recovery_count:
+        logger.info(
+            "structured_outputs_fallback_recoveries: count=%d",
+            fallback_recovery_count,
+        )
+
     logger.info(
-        "complete: accepted=%d, rejected=%d, total_turns=%d, "
-        "elapsed_seconds=%.1f",
+        "complete: accepted=%d, rejected=%d, refusals=%d, "
+        "fallback_recoveries=%d, total_turns=%d, elapsed_seconds=%.1f",
         accepted_count,
         rejected_count,
+        refusal_count,
+        fallback_recovery_count,
         total_turns,
         elapsed_seconds,
     )
@@ -1255,6 +1464,7 @@ async def run_generation_loop(
 
 
 __all__ = [
+    "CoachRefusalError",
     "GenerationResult",
     "TokenUsage",
     "_extract_coach_content",

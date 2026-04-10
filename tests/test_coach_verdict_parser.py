@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from entrypoint.generation_loop import (
+    CoachRefusalError,
     _extract_coach_content,
     _extract_json_object,
     _parse_coach_verdict,
@@ -290,3 +291,85 @@ class TestExtractCoachContent:
         verdict = _parse_coach_verdict(content)
         assert verdict.decision == "accept"
         assert verdict.score == 4
+
+
+# ---------------------------------------------------------------------------
+# Tests for CoachRefusalError and refusal detection (TASK-CR-006)
+# ---------------------------------------------------------------------------
+
+
+class TestCoachRefusalDetection:
+    """TASK-CR-006: Refusal detection in _extract_coach_content."""
+
+    def test_refusal_key_raises_coach_refusal_error(self) -> None:
+        """additional_kwargs with 'refusal' key → CoachRefusalError."""
+        msg = _make_mock_message(
+            content="",
+            additional_kwargs={"refusal": "I cannot evaluate harmful content"},
+        )
+        response = {"messages": [msg]}
+        with pytest.raises(CoachRefusalError, match="cannot evaluate") as exc_info:
+            _extract_coach_content(response)
+        assert exc_info.value.reason == "I cannot evaluate harmful content"
+
+    def test_refusal_with_empty_content_raises_coach_refusal_error(self) -> None:
+        """Empty content + refusal key → CoachRefusalError (not ValueError)."""
+        msg = _make_mock_message(
+            content="",
+            additional_kwargs={"refusal": "Safety policy violation"},
+        )
+        response = {"messages": [msg]}
+        with pytest.raises(CoachRefusalError):
+            _extract_coach_content(response)
+
+    def test_empty_content_without_refusal_still_raises_valueerror(self) -> None:
+        """Empty content without refusal key → ValueError (unchanged)."""
+        msg = _make_mock_message(content="", additional_kwargs={})
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_coach_content(response)
+
+    def test_refusal_not_checked_when_content_present(self) -> None:
+        """Non-empty content is returned even if refusal key exists.
+
+        The refusal check only fires when all normal content paths
+        are exhausted, so a model that sets both content and refusal
+        still returns the content.
+        """
+        msg = _make_mock_message(
+            content=VALID_VERDICT_JSON,
+            additional_kwargs={"refusal": "some refusal text"},
+        )
+        response = {"messages": [msg]}
+        result = _extract_coach_content(response)
+        assert result == VALID_VERDICT_JSON
+
+    def test_refusal_reason_preserved_in_exception(self) -> None:
+        """CoachRefusalError stores the refusal reason text."""
+        reason = "I cannot assist with evaluating this type of content."
+        msg = _make_mock_message(
+            content="",
+            additional_kwargs={"refusal": reason},
+        )
+        response = {"messages": [msg]}
+        with pytest.raises(CoachRefusalError) as exc_info:
+            _extract_coach_content(response)
+        assert exc_info.value.reason == reason
+        assert str(exc_info.value) == reason
+
+    def test_refusal_with_reasoning_content_prefers_reasoning(self) -> None:
+        """reasoning_content takes priority over refusal detection.
+
+        If the model provides usable content via reasoning_content,
+        use it even if a refusal key is also present.
+        """
+        msg = _make_mock_message(
+            content="",
+            additional_kwargs={
+                "reasoning_content": VALID_VERDICT_JSON,
+                "refusal": "some refusal",
+            },
+        )
+        response = {"messages": [msg]}
+        result = _extract_coach_content(response)
+        assert result == VALID_VERDICT_JSON

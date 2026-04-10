@@ -1,9 +1,10 @@
 ---
 id: TASK-CR-007
 title: Add structured outputs fallback on coach refusal
-status: backlog
+status: completed
 created: 2026-04-08T00:00:00Z
 updated: 2026-04-08T00:00:00Z
+completed: 2026-04-08T00:00:00Z
 priority: high
 complexity: 5
 tags: [coach, refusal, structured-outputs, vllm]
@@ -13,9 +14,11 @@ wave: null
 implementation_mode: standard
 dependencies: [TASK-CR-006]
 test_results:
-  status: pending
+  status: passed
   coverage: null
-  last_run: null
+  last_run: 2026-04-08T00:00:00Z
+  tests_added: 11
+  tests_total: 625
 ---
 
 # Task: Add structured outputs fallback on coach refusal
