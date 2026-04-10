@@ -99,6 +99,7 @@ def load_sharegpt_jsonl(path: str) -> Dataset:
     (layer, type, topic, etc.) are preserved but ignored by the trainer.
     """
     records = []
+    first_line_keys = None
     with open(path, "r") as f:
         for i, line in enumerate(f):
             line = line.strip()
@@ -110,21 +111,45 @@ def load_sharegpt_jsonl(path: str) -> Dataset:
                 print(f"WARNING: Skipping malformed line {i+1}: {e}")
                 continue
 
-            messages = obj.get("messages", [])
+            if first_line_keys is None:
+                first_line_keys = list(obj.keys())
+                print(f"  First record keys: {first_line_keys}")
+                first_msg = (obj.get("messages") or obj.get("conversations") or obj.get("conversation") or [None])[0]
+                if first_msg:
+                    print(f"  First message keys: {list(first_msg.keys())}")
+
+            # Support multiple ShareGPT format variants:
+            #   Modern:  {"messages": [{"role": "user", "content": "..."}]}
+            #   Classic: {"conversations": [{"from": "human", "value": "..."}]}
+            #   Also:    {"messages": [{"from": "human", "value": "..."}]}
+            messages = (
+                obj.get("messages")
+                or obj.get("conversations")
+                or obj.get("conversation")
+                or []
+            )
             if not messages:
-                print(f"WARNING: Skipping line {i+1}: no 'messages' field")
+                print(f"WARNING: Skipping line {i+1}: no messages/conversations field")
                 continue
 
-            # Normalise role names for Gemma 4 compatibility
+            # Normalise role names and key names for Gemma 4 compatibility
             conversations = []
             for msg in messages:
-                role = msg["role"]
-                # ShareGPT sometimes uses "gpt" or "assistant" — normalise
-                if role in ("gpt", "bot"):
+                # Handle both "role"/"content" and "from"/"value" key styles
+                role = msg.get("role") or msg.get("from", "")
+                content = msg.get("content") or msg.get("value", "")
+
+                # Normalise role names
+                if role in ("gpt", "bot", "model"):
                     role = "assistant"
-                elif role == "human":
+                elif role in ("human",):
                     role = "user"
-                conversations.append({"role": role, "content": msg["content"]})
+
+                if not role or not content:
+                    print(f"WARNING: Skipping empty message in line {i+1}: {msg}")
+                    continue
+
+                conversations.append({"role": role, "content": content})
 
             records.append({"conversations": conversations})
 
@@ -133,6 +158,12 @@ def load_sharegpt_jsonl(path: str) -> Dataset:
         sys.exit(1)
 
     print(f"Loaded {len(records)} training examples from {path}")
+
+    # Show first record's structure for debugging
+    first = records[0]["conversations"]
+    print(f"  First example: {len(first)} turns, roles: {[m['role'] for m in first]}")
+    print(f"  First user msg (truncated): {first[0]['content'][:120]}...")
+
     return Dataset.from_list(records)
 
 
