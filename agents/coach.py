@@ -45,6 +45,7 @@ def create_coach(
     system_prompt: str,
     memory: list[str],
     timeout: int | None = None,
+    structured_outputs: bool = True,
 ) -> CompiledStateGraph:
     """Create a Coach agent via ``create_agent()`` with a curated middleware stack.
 
@@ -64,6 +65,11 @@ def create_coach(
         memory: List of memory file paths (e.g. ``["./AGENTS.md"]``).
         timeout: Optional per-call LLM timeout in seconds, forwarded
             to ``create_model()`` (TASK-D0A8-001).
+        structured_outputs: Whether to enable vLLM structured outputs
+            (JSON schema constraint).  Defaults to ``True``.  Set to
+            ``False`` to create a fallback Coach that returns free-form
+            text, used when structured outputs trigger model refusals
+            (TASK-CR-007).
 
     Returns:
         A compiled agent graph configured for evaluation only.
@@ -84,11 +90,16 @@ def create_coach(
     # extra_body is required (not model_kwargs) because vendor-specific
     # params must go through the OpenAI SDK's extra_body mechanism.
     extra_body = None
-    if model_config.provider == "local":
+    if model_config.provider == "local" and structured_outputs:
         extra_body = {
             "structured_outputs": {"json": CoachVerdict.model_json_schema()},
         }
         logger.debug("Coach structured_outputs schema enabled for local provider")
+    elif model_config.provider == "local" and not structured_outputs:
+        logger.debug(
+            "Coach structured_outputs DISABLED for local provider "
+            "(fallback mode, TASK-CR-007)"
+        )
 
     model = create_model(model_config, extra_body=extra_body, timeout=timeout)
 

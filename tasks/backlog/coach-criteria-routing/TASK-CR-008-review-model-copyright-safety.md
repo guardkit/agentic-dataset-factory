@@ -1,7 +1,7 @@
 ---
 id: TASK-CR-008
 title: Review model copyright/safety behaviour for Coach alternative
-status: backlog
+status: review_complete
 created: 2026-04-08T00:00:00Z
 updated: 2026-04-08T00:00:00Z
 priority: medium
@@ -59,7 +59,19 @@ This is a **review/investigation task** to identify alternative models for the C
 - **Latency** — acceptable for the Coach role (not latency-critical but shouldn't bottleneck)
 - **VRAM footprint** — must fit alongside the Player model or run on same GPU sequentially
 
-### 4. Testing methodology
+### 4. NVIDIA GB10 Community Research
+
+The NVIDIA DGX Spark / GB10 forums are a goldmine of real-world model performance data
+from users running similar hardware:
+
+- **Forum**: https://forums.developer.nvidia.com/c/accelerated-computing/dgx-spark-gb10/719
+- Search for threads on: model compatibility, quantisation results, vLLM serving configs,
+  structured outputs support, and which models users have successfully run
+- Pay attention to VRAM usage reports, throughput benchmarks, and any mentions of
+  model safety/refusal behaviour
+- Look for threads discussing educational or content-evaluation use cases
+
+### 5. Testing methodology
 
 - Extract the 98 refused examples from `output_backup_pre_rerun/rejected.jsonl`
 - Build a standalone test harness that sends each to the candidate model

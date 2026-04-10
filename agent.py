@@ -184,8 +184,26 @@ def run_pipeline(state: PipelineState) -> PipelineState:
             memory=["./AGENTS.md"],
             timeout=llm_timeout,
         )
+
+        # TASK-CR-007: Create fallback coaches without structured outputs
+        # constraint for use when structured outputs trigger model refusals.
+        coach_fallback_behaviour = create_coach(
+            model_config=config.coach,
+            system_prompt=coach_prompt_behaviour,
+            memory=["./AGENTS.md"],
+            timeout=llm_timeout,
+            structured_outputs=False,
+        )
+        coach_fallback_knowledge = create_coach(
+            model_config=config.coach,
+            system_prompt=coach_prompt_knowledge,
+            memory=["./AGENTS.md"],
+            timeout=llm_timeout,
+            structured_outputs=False,
+        )
         logger.info(
-            "Coach agents created: behaviour + knowledge (layer-aware criteria routing)"
+            "Coach agents created: behaviour + knowledge (layer-aware criteria routing) "
+            "+ fallback variants without structured outputs"
         )
 
         # Step 11: Determine start index
@@ -220,6 +238,10 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                         write_tool=write_tool,
                         start_index=start_index,
                         rag_tool=rag_tool,
+                        coach_fallback={
+                            "behaviour": coach_fallback_behaviour,
+                            "knowledge": coach_fallback_knowledge,
+                        },
                     )
                 )
         finally:

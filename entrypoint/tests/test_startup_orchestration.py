@@ -416,7 +416,8 @@ class TestAgentFactories:
 
         agent.run_pipeline({"resume": False})
 
-        assert agent.create_coach.call_count == 2
+        # behaviour + knowledge + 2 fallback variants (TASK-CR-007)
+        assert agent.create_coach.call_count == 4
         prompts = [
             call.kwargs.get("system_prompt")
             for call in agent.create_coach.call_args_list
