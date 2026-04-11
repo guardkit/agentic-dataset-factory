@@ -499,3 +499,14 @@ Pass to feature-plan:
 
 /feature-plan "GCSE English Tutor GOAL.md — First Domain Configuration" \
   --context features/gcse-goal-md/gcse-goal-md_summary.md
+
+
+
+
+
+Option B, Germany, 1890 to 1945.
+
+Option B, Conflict and Tension, The Interwar Years.
+
+Option A, Britain Health and the People, circa 1000 to the present day.
+Option A, Conflict Untension, The First World War, 1894 to 1918.
