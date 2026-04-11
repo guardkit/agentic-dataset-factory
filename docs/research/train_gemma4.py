@@ -69,9 +69,12 @@ def parse_args():
     p.add_argument("--lr", type=float, default=DEFAULTS["learning_rate"])
     p.add_argument("--batch-size", type=int, default=DEFAULTS["batch_size"])
     p.add_argument("--grad-accum", type=int, default=DEFAULTS["gradient_accumulation"])
+    p.add_argument("--warmup-steps", type=int, default=DEFAULTS["warmup_steps"])
     p.add_argument("--max-steps", type=int, default=DEFAULTS["max_steps"],
                    help="Override num_epochs; set to 60 for a quick test")
     p.add_argument("--epochs", type=int, default=DEFAULTS["num_epochs"])
+    p.add_argument("--logging-steps", type=int, default=DEFAULTS["logging_steps"])
+    p.add_argument("--save-steps", type=int, default=DEFAULTS["save_steps"])
     p.add_argument("--data-path", default=DEFAULTS["data_path"])
     p.add_argument("--output-dir", default=DEFAULTS["output_dir"])
     p.add_argument("--chat-template", default=DEFAULTS["chat_template"],
@@ -91,12 +94,14 @@ def parse_args():
 # ---------------------------------------------------------------------------
 def load_sharegpt_jsonl(path: str) -> Dataset:
     """Load ShareGPT-format JSONL as a HuggingFace Dataset.
-    
-    Expected format per line:
-    {"messages": [{"role": "system"|"user"|"assistant", "content": "..."}], ...}
-    
-    The dataset factory outputs this format. Any extra metadata fields
-    (layer, type, topic, etc.) are preserved but ignored by the trainer.
+
+    Supports multiple format variants:
+      Modern:  {"messages": [{"role": "user", "content": "..."}]}
+      Classic: {"conversations": [{"from": "human", "value": "..."}]}
+      Mixed:   {"messages": [{"from": "human", "value": "..."}]}
+
+    Any extra metadata fields (layer, type, topic, etc.) are preserved
+    but ignored by the trainer.
     """
     records = []
     first_line_keys = None
@@ -114,14 +119,16 @@ def load_sharegpt_jsonl(path: str) -> Dataset:
             if first_line_keys is None:
                 first_line_keys = list(obj.keys())
                 print(f"  First record keys: {first_line_keys}")
-                first_msg = (obj.get("messages") or obj.get("conversations") or obj.get("conversation") or [None])[0]
+                first_msg = (
+                    obj.get("messages")
+                    or obj.get("conversations")
+                    or obj.get("conversation")
+                    or [None]
+                )[0]
                 if first_msg:
                     print(f"  First message keys: {list(first_msg.keys())}")
 
-            # Support multiple ShareGPT format variants:
-            #   Modern:  {"messages": [{"role": "user", "content": "..."}]}
-            #   Classic: {"conversations": [{"from": "human", "value": "..."}]}
-            #   Also:    {"messages": [{"from": "human", "value": "..."}]}
+            # Support multiple top-level key names
             messages = (
                 obj.get("messages")
                 or obj.get("conversations")
@@ -136,8 +143,10 @@ def load_sharegpt_jsonl(path: str) -> Dataset:
             conversations = []
             for msg in messages:
                 # Handle both "role"/"content" and "from"/"value" key styles
-                role = msg.get("role") or msg.get("from", "")
-                content = msg.get("content") or msg.get("value", "")
+                # Also strip whitespace from keys (dataset factory bug workaround)
+                cleaned = {k.strip(): v for k, v in msg.items()}
+                role = cleaned.get("role") or cleaned.get("from", "")
+                content = cleaned.get("content") or cleaned.get("value", "")
 
                 # Normalise role names
                 if role in ("gpt", "bot", "model"):
@@ -189,6 +198,7 @@ def main():
         load_in_4bit=not args.no_4bit,
         full_finetuning=False,
         use_gradient_checkpointing="unsloth",  # Critical for memory
+        attn_implementation="sdpa",            # FA2 head dim >256 not supported on GB10
         # token=os.environ.get("HF_TOKEN"),  # Uncomment if needed
     )
 
