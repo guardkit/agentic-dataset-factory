@@ -37,6 +37,9 @@ _LAYER_PATHS: dict[str, str] = {
     "knowledge": "rag_index/knowledge.jsonl",
 }
 
+_ALLOWED_MESSAGE_KEYS: frozenset[str] = frozenset({"role", "content"})
+_VALID_ROLES: frozenset[str] = frozenset({"system", "user", "assistant"})
+
 
 # ---------------------------------------------------------------------------
 # Factory
@@ -104,9 +107,29 @@ def create_write_output_tool(
         if not isinstance(messages, list) or len(messages) == 0:
             return "Error: Missing required field 'messages'"
 
+        # -- Step 2b: Validate every message dict has exactly {"role", "content"}
+        #    with a valid role value (TASK-DKW-001, bug TASK-REV-4AA0).
+        #    Catches LLM-produced malformed keys like " role" (leading space)
+        #    that json.loads accepts but downstream consumers reject.
+        for i, msg in enumerate(messages):
+            if not isinstance(msg, dict):
+                return f"Error: messages[{i}] is not an object"
+            keys = set(msg.keys())
+            unexpected = keys - _ALLOWED_MESSAGE_KEYS
+            missing = _ALLOWED_MESSAGE_KEYS - keys
+            if unexpected or missing:
+                return (
+                    f"Error: messages[{i}] has invalid keys "
+                    f"(unexpected={sorted(unexpected)}, missing={sorted(missing)})"
+                )
+            if msg["role"] not in _VALID_ROLES:
+                return (
+                    f"Error: messages[{i}].role invalid value "
+                    f"{msg['role']!r} (expected: system, user, assistant)"
+                )
+
         # -- Step 3: Check messages[0].role == "system" -------------------------
-        first_msg = messages[0]
-        if not isinstance(first_msg, dict) or first_msg.get("role") != "system":
+        if messages[0]["role"] != "system":
             return "Error: messages[0].role must be 'system'"
 
         # -- Step 4: Check metadata exists and is object ------------------------

@@ -19,10 +19,8 @@ Covers all acceptance criteria for TASK-LCT-003:
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 
@@ -300,6 +298,208 @@ class TestValidationChain:
         }
         result = write_tool.invoke(json.dumps(example))
         assert result == "Error: Missing required field 'messages'"
+
+    # -- Step 2b: Message structure gate (TASK-DKW-001, bug TASK-REV-4AA0) ----
+
+    def test_step2b_leading_space_in_role_key_rejected(self, write_tool):
+        """Regression for TASK-REV-4AA0: ' role' key (leading space) is rejected.
+
+        Reproduces the defect observed in output_backup_run1/train.jsonl
+        lines 1145 and 1330, where the Player LLM hallucinated a leading
+        space inside the role key of messages[3].
+        """
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "first turn question"},
+                {"role": "assistant", "content": "first turn answer"},
+                {" role": "user", "content": "follow-up question"},  # bug
+                {"role": "assistant", "content": "follow-up answer"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[3]" in result
+        assert "invalid keys" in result
+        assert " role" in result
+
+    def test_step2b_trailing_space_in_role_key_rejected(self, write_tool):
+        """Step 2b: trailing space in role key rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role ": "user", "content": "x"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1]" in result
+        assert "invalid keys" in result
+        assert "role " in result
+
+    def test_step2b_uppercase_role_key_rejected(self, write_tool):
+        """Step 2b: uppercase 'Role' key rejected (unexpected + missing)."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"Role": "user", "content": "x"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1]" in result
+        assert "invalid keys" in result
+        assert "Role" in result
+        assert "role" in result  # missing 'role' also reported
+
+    def test_step2b_unexpected_extra_key_rejected(self, write_tool):
+        """Step 2b: message with extra 'speaker' key rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user", "content": "x", "speaker": "alice"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1]" in result
+        assert "invalid keys" in result
+        assert "speaker" in result
+
+    def test_step2b_missing_content_key_rejected(self, write_tool):
+        """Step 2b: message missing 'content' key rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "user"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1]" in result
+        assert "invalid keys" in result
+        assert "content" in result
+
+    def test_step2b_missing_role_key_rejected(self, write_tool):
+        """Step 2b: message missing 'role' key rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"content": "x"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1]" in result
+        assert "invalid keys" in result
+        assert "role" in result
+
+    def test_step2b_non_dict_message_rejected(self, write_tool):
+        """Step 2b: non-dict message (e.g. bare string) rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                "not a dict",
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert result == "Error: messages[1] is not an object"
+
+    def test_step2b_invalid_role_value_rejected(self, write_tool):
+        """Step 2b: role value 'tool' (not in system/user/assistant) rejected."""
+        example = {
+            "messages": [
+                {"role": "system", "content": "sys"},
+                {"role": "tool", "content": "x"},
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "direct",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "messages[1].role" in result
+        assert "tool" in result
+        assert "system" in result
+        assert "user" in result
+        assert "assistant" in result
+
+    def test_step2b_valid_5_message_conversation_accepted(self, write_tool, output_dir):
+        """Step 2b happy-path: valid 5-message reasoning example passes the gate.
+
+        Reads the written file back and asserts every message dict has
+        exactly the keys {"role", "content"}.
+        """
+        example = {
+            "messages": [
+                {"role": "system", "content": "You are a GCSE English tutor."},
+                {"role": "user", "content": "Explain Macbeth's ambition."},
+                {
+                    "role": "assistant",
+                    "content": (
+                        "<think>\nMacbeth's ambition drives him to murder.\n"
+                        "</think>\n\nMacbeth's ambition is the engine of the play."
+                    ),
+                },
+                {"role": "user", "content": "How does Lady Macbeth influence him?"},
+                {
+                    "role": "assistant",
+                    "content": (
+                        "<think>\nShe challenges his manhood.\n</think>\n\n"
+                        "Lady Macbeth pressures him by questioning his courage."
+                    ),
+                },
+            ],
+            "metadata": {
+                "layer": "behaviour",
+                "type": "reasoning",
+                "source": "synthetic",
+                "text": "macbeth",
+            },
+        }
+        result = write_tool.invoke(json.dumps(example))
+        assert "Written to" in result
+        assert "Error" not in result
+
+        # Read back and verify structural correctness.
+        train_path = output_dir / "train.jsonl"
+        assert train_path.exists()
+        lines = train_path.read_text(encoding="utf-8").strip().split("\n")
+        assert len(lines) == 1
+        written = json.loads(lines[0])
+        assert len(written["messages"]) == 5
+        for msg in written["messages"]:
+            assert set(msg.keys()) == {"role", "content"}
 
     def test_step3_first_message_not_system_rejected(self, write_tool):
         """Step 3: messages[0].role must be 'system'."""
