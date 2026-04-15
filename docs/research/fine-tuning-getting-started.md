@@ -86,15 +86,15 @@ mkdir -p ~/fine-tuning/scripts
 cp /path/to/agentic-dataset-factory/output/train.jsonl ~/fine-tuning/data/
 
 # Copy the training script
-# (transfer train_gemma4.py to the GB10 via scp or git)
-cp /path/to/train_gemma4.py ~/fine-tuning/scripts/
+# (transfer train_gemma4_dense.py to the GB10 via scp or git)
+cp /path/to/train_gemma4_dense.py ~/fine-tuning/scripts/
 
 # Verify
 echo "Training examples:"
 wc -l ~/fine-tuning/data/train.jsonl
 
 echo "Script:"
-ls -la ~/fine-tuning/scripts/train_gemma4.py
+ls -la ~/fine-tuning/scripts/train_gemma4_dense.py
 ```
 
 ### Step 3: Launch Docker with volume mounts
@@ -143,7 +143,7 @@ Before committing to a full training run, do a 30-step test:
 
 ```bash
 cd /workspace
-python scripts/train_gemma4.py --max-steps 30
+python scripts/train_gemma4_dense.py --max-steps 30
 ```
 
 **What to watch for:**
@@ -172,7 +172,7 @@ If it hangs on longer runs, try reducing `--max-seq-length 4096`.
 Once the sanity check passes, run the full training:
 
 ```bash
-python scripts/train_gemma4.py \
+python scripts/train_gemma4_dense.py \
   --epochs 1 \
   --save-steps 200 \
   --lr 2e-4

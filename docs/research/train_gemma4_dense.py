@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-train_gemma4.py — Fine-tune Gemma 4 31B on GCSE tutor dataset
-=============================================================
+train_gemma4_dense.py — Fine-tune Gemma 4 31B Dense on GCSE tutor dataset
+=========================================================================
+Dense 31B variant. For the primary MoE 26B A4B fine-tune, see train_gemma4_moe.py.
+
 Target hardware: Dell DGX Spark GB10 (128GB unified memory)
 Framework:       Unsloth + TRL SFTTrainer
 Input:           /workspace/data/train.jsonl (ShareGPT format)
 Output:          /workspace/output/gcse-tutor-gemma4-31b/ (merged 16-bit + GGUF)
 
 Usage inside Docker:
-    python train_gemma4.py                          # Full training run
-    python train_gemma4.py --max-steps 60           # Quick validation run
-    python train_gemma4.py --resume                 # Resume from checkpoint
+    python train_gemma4_dense.py                    # Full training run
+    python train_gemma4_dense.py --max-steps 60     # Quick validation run
+    python train_gemma4_dense.py --resume           # Resume from checkpoint
 
 Environment variables (optional):
     HF_TOKEN            Hugging Face token for gated model access
