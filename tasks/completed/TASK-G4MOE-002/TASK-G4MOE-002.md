@@ -4,6 +4,8 @@ title: Create train_gemma4_moe.py configured for 26B A4B MoE
 status: completed
 created: 2026-04-15T00:00:00Z
 updated: 2026-04-15T00:00:00Z
+completed: 2026-04-15T00:00:00Z
+completed_location: tasks/completed/TASK-G4MOE-002/
 priority: high
 tags: [fine-tuning, gemma4, moe, unsloth]
 complexity: 3
