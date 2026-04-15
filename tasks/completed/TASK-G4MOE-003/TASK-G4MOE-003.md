@@ -1,9 +1,11 @@
 ---
 id: TASK-G4MOE-003
 title: Update fine-tuning-getting-started.md for MoE primary
-status: backlog
+status: completed
 created: 2026-04-15T00:00:00Z
 updated: 2026-04-15T00:00:00Z
+completed: 2026-04-15T00:00:00Z
+completed_location: tasks/completed/TASK-G4MOE-003/
 priority: high
 tags: [docs, fine-tuning, gemma4, moe]
 complexity: 2
