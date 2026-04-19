@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
-train_gemma4.py — Fine-tune Gemma 4 31B on GCSE tutor dataset
-=============================================================
-Target hardware: Dell DGX Spark GB10 (128GB unified memory)
+train_gemma4_moe.py — Fine-tune Gemma 4 26B A4B MoE on GCSE tutor dataset
+=========================================================================
+MoE 26B A4B variant. For the Dense 31B fine-tune, see train_gemma4_dense.py.
+
+Target hardware: Dell DGX Spark GB10 (128 GB unified memory)
 Framework:       Unsloth + TRL SFTTrainer
+Model:           unsloth/Gemma-4-26B-A4B-it (Mixture-of-Experts)
+Quantisation:    16-bit LoRA (MoE QLoRA unsupported — bitsandbytes cannot
+                 quantise Gemma 4's 3D fused expert tensors)
+Memory:          ~48 GB during training (vs ~22 GB for Dense QLoRA 4-bit)
+Router layers:   handled automatically by Unsloth — no manual freezing
 Input:           /workspace/data/train.jsonl (ShareGPT format)
-Output:          /workspace/output/gcse-tutor-gemma4-31b/ (merged 16-bit + GGUF)
+Output:          /workspace/output/gcse-tutor-gemma4-26b-moe/ (merged 16-bit + GGUF)
 
 Usage inside Docker:
-    python train_gemma4.py                          # Full training run
-    python train_gemma4.py --max-steps 60           # Quick validation run
-    python train_gemma4.py --resume                 # Resume from checkpoint
+    python train_gemma4_moe.py                      # Full training run
+    python train_gemma4_moe.py --max-steps 60       # Quick validation run
+    python train_gemma4_moe.py --resume              # Resume from checkpoint
 
 Environment variables (optional):
     HF_TOKEN            Hugging Face token for gated model access
@@ -38,20 +45,23 @@ from trl import SFTTrainer, SFTConfig
 # Configuration defaults
 # ---------------------------------------------------------------------------
 DEFAULTS = {
-    "model_name": "unsloth/gemma-4-31B-it",
-    "max_seq_length": 8192,
-    "load_in_4bit": True,           # QLoRA — uses ~22GB on GB10
-    "lora_r": 8,
-    "lora_alpha": 8,
-    "learning_rate": 2e-4,          # Reduce to 2e-5 for longer runs
+    "model_name": "unsloth/Gemma-4-26B-A4B-it",
+    "max_seq_length": 4096,
+    "load_in_4bit": False,              # QLoRA not recommended for MoE
+    "load_in_16bit": True,              # MoE path. QLoRA 4-bit blocked by bitsandbytes
+                                        # on Gemma 4's 3D fused expert tensors. Unsloth
+                                        # recommends 16-bit LoRA for Gemma-4-26B-A4B.
+    "lora_r": 16,
+    "lora_alpha": 16,
+    "learning_rate": 2e-4,              # Reduce to 2e-5 for longer runs
     "batch_size": 1,
-    "gradient_accumulation": 4,     # Effective batch = 4
+    "gradient_accumulation": 4,         # Effective batch = 4
     "warmup_steps": 10,
-    "max_steps": None,              # None = full epochs
+    "max_steps": None,                  # None = full epochs
     "num_epochs": 1,
     "logging_steps": 1,
     "save_steps": 100,
-    "output_dir": "/workspace/output/gcse-tutor-gemma4-31b",
+    "output_dir": "/workspace/output/gcse-tutor-gemma4-26b-moe",
     "data_path": "/workspace/data/train.jsonl",
     "chat_template": "gemma-4-thinking",  # Preserves <think> blocks
     "report_to": "none",
@@ -59,11 +69,18 @@ DEFAULTS = {
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Fine-tune Gemma 4 31B for GCSE tutor")
+    p = argparse.ArgumentParser(
+        description="Fine-tune Gemma 4 26B A4B MoE for GCSE tutor"
+    )
     p.add_argument("--model-name", default=DEFAULTS["model_name"])
     p.add_argument("--max-seq-length", type=int, default=DEFAULTS["max_seq_length"])
-    p.add_argument("--no-4bit", action="store_true",
-                   help="Use 16-bit LoRA instead of QLoRA (needs more memory)")
+    p.add_argument("--no-4bit", action="store_true", default=True,
+                   help="Legacy flag — 4-bit QLoRA is off by default for MoE. "
+                        "Kept for interface symmetry with train_gemma4_dense.py.")
+    p.add_argument("--load-in-16bit", action="store_true", default=True,
+                   help="Use 16-bit LoRA (default for MoE)")
+    p.add_argument("--no-16bit", action="store_true",
+                   help="Disable 16-bit loading (not recommended for MoE)")
     p.add_argument("--lora-r", type=int, default=DEFAULTS["lora_r"])
     p.add_argument("--lora-alpha", type=int, default=DEFAULTS["lora_alpha"])
     p.add_argument("--lr", type=float, default=DEFAULTS["learning_rate"])
@@ -76,7 +93,9 @@ def parse_args():
     p.add_argument("--logging-steps", type=int, default=DEFAULTS["logging_steps"])
     p.add_argument("--save-steps", type=int, default=DEFAULTS["save_steps"])
     p.add_argument("--data-path", default=DEFAULTS["data_path"])
-    p.add_argument("--output-dir", default=DEFAULTS["output_dir"])
+    p.add_argument("--output-dir", default=DEFAULTS["output_dir"],
+                   help="Output directory (default includes -moe suffix to avoid "
+                        "collision with Dense outputs)")
     p.add_argument("--chat-template", default=DEFAULTS["chat_template"],
                    choices=["gemma-4-thinking", "gemma-4"],
                    help="gemma-4-thinking preserves <think> blocks (use this)")
@@ -86,7 +105,19 @@ def parse_args():
                    help="Resume training from last checkpoint")
     p.add_argument("--skip-export", action="store_true",
                    help="Skip GGUF export after training")
-    return p.parse_args()
+
+    args = p.parse_args()
+
+    # Validate: --no-4bit and --no-16bit cannot both be set
+    if args.no_4bit and args.no_16bit:
+        p.error("Cannot use --no-4bit and --no-16bit simultaneously. "
+                "At least one quantisation mode must be active.")
+
+    # Apply --no-16bit flag
+    if args.no_16bit:
+        args.load_in_16bit = False
+
+    return args
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +218,8 @@ def main():
     # -----------------------------------------------------------------------
     print(f"\n{'='*60}")
     print(f"Loading {args.model_name}")
-    print(f"  QLoRA 4-bit: {not args.no_4bit}")
+    print(f"  QLoRA 4-bit: {not args.no_4bit}")  # False by default for MoE
+    print(f"  16-bit LoRA: {args.load_in_16bit}")
     print(f"  Max sequence length: {args.max_seq_length}")
     print(f"{'='*60}\n")
 
@@ -195,7 +227,8 @@ def main():
         model_name=args.model_name,
         max_seq_length=args.max_seq_length,
         dtype=None,                         # Auto-detect
-        load_in_4bit=not args.no_4bit,
+        load_in_4bit=not args.no_4bit,      # defaults to False for MoE
+        load_in_16bit=args.load_in_16bit,   # defaults to True for MoE
         full_finetuning=False,
         use_gradient_checkpointing="unsloth",  # Critical for memory
         attn_implementation="sdpa",            # FA2 head dim >256 not supported on GB10
@@ -205,6 +238,18 @@ def main():
     # -----------------------------------------------------------------------
     # 2. Attach LoRA adapters
     # -----------------------------------------------------------------------
+    # Workaround: PEFT torchao version gate (TASK-REV-G4R1)
+    # PEFT's LoRA dispatcher raises ImportError when torchao is installed but
+    # below 0.16.0. The NVIDIA pytorch:25.11-py3 container ships 0.14.0+git.
+    # We don't use torchao quantisation, so bypass the check.
+    # Must patch both the source module AND the importing module, because
+    # `from peft.import_utils import is_torchao_available` creates a local
+    # reference that isn't affected by patching the source alone.
+    import peft.import_utils
+    import peft.tuners.lora.torchao
+    peft.import_utils.is_torchao_available = lambda: False
+    peft.tuners.lora.torchao.is_torchao_available = lambda: False
+
     model = FastModel.get_peft_model(
         model,
         finetune_vision_layers=False,       # Text-only fine-tune
