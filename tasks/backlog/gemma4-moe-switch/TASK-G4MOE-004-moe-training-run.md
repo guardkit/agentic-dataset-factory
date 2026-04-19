@@ -60,6 +60,7 @@ docker run --gpus all \
 pip install transformers peft hf_transfer "datasets==4.3.0" "trl==0.26.1"
 pip install --no-deps unsloth unsloth_zoo bitsandbytes
 pip show unsloth | grep -i version   # record in execution log
+pip show peft | grep -i version      # record — torchao gate was added in recent PEFT (TASK-REV-G4R1)
 ```
 
 ### Step 4: Sanity run (`--max-steps 30`)
@@ -79,6 +80,7 @@ python scripts/train_gemma4_moe.py --max-steps 30
 - [ ] `nvidia-smi` in another terminal shows ~45–55 GB used (not 22 GB — that would mean 4-bit path accidentally active)
 
 **Failure modes to capture**:
+- If `ImportError: Found an incompatible version of torchao`: the script already has a monkey-patch workaround (TASK-REV-G4R1). If this still fires, `pip show peft` and check that the patch is present before `get_peft_model()`
 - If loss explodes to 100+: gradient-accum bug, `pip install --upgrade --no-deps unsloth unsloth_zoo`
 - If hang with CPU 100% GPU 5%: the known Spark long-run hang — drop `--max-seq-length` to 2048 and retry
 - If OOM at 48 GB: unexpected on 128 GB unified; check `nvidia-smi` for zombie processes first

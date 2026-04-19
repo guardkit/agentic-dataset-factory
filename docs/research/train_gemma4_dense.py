@@ -207,6 +207,18 @@ def main():
     # -----------------------------------------------------------------------
     # 2. Attach LoRA adapters
     # -----------------------------------------------------------------------
+    # Workaround: PEFT torchao version gate (TASK-REV-G4R1)
+    # PEFT's LoRA dispatcher raises ImportError when torchao is installed but
+    # below 0.16.0. The NVIDIA pytorch:25.11-py3 container ships 0.14.0+git.
+    # We don't use torchao quantisation, so bypass the check.
+    # Must patch both the source module AND the importing module, because
+    # `from peft.import_utils import is_torchao_available` creates a local
+    # reference that isn't affected by patching the source alone.
+    import peft.import_utils
+    import peft.tuners.lora.torchao
+    peft.import_utils.is_torchao_available = lambda: False
+    peft.tuners.lora.torchao.is_torchao_available = lambda: False
+
     model = FastModel.get_peft_model(
         model,
         finetune_vision_layers=False,       # Text-only fine-tune
