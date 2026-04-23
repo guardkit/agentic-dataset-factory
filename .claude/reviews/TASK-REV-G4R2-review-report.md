@@ -1,5 +1,7 @@
 # Review Report: TASK-REV-G4R2
 
+> **Correction note (2026-04-20)** — This report recommended installing **`chromarag`** via `pip` as the retrieval layer in front of Ollama. During TASK-G4D-003 execution it was confirmed that **no package named `chromarag` exists on PyPI**; the name appears to have been aspirational. The deployment path has been revised to use **Open WebUI's built-in RAG** (ChromaDB + `nomic-embed-text` under the hood). See the rewritten [TASK-G4D-003](../../tasks/backlog/gemma4-moe-deploy/TASK-G4D-003-setup-chromarag-and-openwebui.md) for the actual approach. Future review reports should not re-cite `chromarag`.
+
 ## Executive Summary
 
 The Gemma 4 26B A4B MoE full training run (run 4) completed successfully and the training metrics indicate **healthy learning with no significant issues**. The loss curve shows a textbook descent from 2.16 to the 0.55–0.73 range over 434 steps. Overfitting risk is low (single epoch, 1.88% trainable params). Two isolated gradient norm spikes (34.4 and 90.91) are benign — loss recovered immediately and they are characteristic of MoE routing dynamics. The model is ready to proceed to deployment on MacBook Pro via the Ollama/ChromaRAG/Open WebUI pipeline.

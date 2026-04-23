@@ -18,9 +18,10 @@ Deploy the Q4_K_M quantised GGUF model via:
 | Task | Title | Wave | Status |
 |------|-------|------|--------|
 | [TASK-G4D-001](TASK-G4D-001-transfer-gguf-to-macbook.md) | Transfer GGUF to MacBook | 1 | Backlog |
-| [TASK-G4D-002](TASK-G4D-002-register-ollama-and-smoke-test.md) | Register in Ollama + smoke tests | 2 | Backlog |
-| [TASK-G4D-003](TASK-G4D-003-setup-chromarag-and-openwebui.md) | ChromaRAG + Open WebUI setup | 3 | Backlog |
+| [TASK-G4D-002](../../completed/TASK-G4D-002/TASK-G4D-002-register-ollama-and-smoke-test.md) | Register in Ollama + smoke tests | 2 | ✅ Completed 2026-04-20 |
+| [TASK-G4D-003](../../completed/TASK-G4D-003/TASK-G4D-003-setup-chromarag-and-openwebui.md) | Open WebUI + built-in RAG setup | 3 | ✅ Completed 2026-04-20 |
 | [TASK-G4D-004](TASK-G4D-004-fix-task-metadata-lr-schedule.md) | Fix LR schedule metadata | 1 | Backlog |
+| [TASK-G4D-006](TASK-G4D-006-quote-factuality-eval.md) | Set-text quote-factuality eval (pre-/post-RAG) | 4 | Backlog |
 
 ## Source Review
 
