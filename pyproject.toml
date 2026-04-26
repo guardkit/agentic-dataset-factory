@@ -23,6 +23,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    # TASK-OPS-BDDM-5 / FEAT-BDDM: advisory remediation — pytest-bdd present so future
+    # @task:-tagged scenarios cannot trigger the runner-without-producer silent bypass.
+    "pytest-bdd>=8.1,<9",
     "pytest-cov",
     "ruff",
 ]
