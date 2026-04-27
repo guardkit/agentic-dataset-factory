@@ -1,4 +1,4 @@
-project_id: agentic-dataset-factory
+project_id: agentic_dataset_factory
 enabled: true
 graph_store: falkordb
 falkordb_host: whitestocks
