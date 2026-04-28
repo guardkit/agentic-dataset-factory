@@ -1,4 +1,4 @@
-domain: gcse-english-tutor
+domain: architect-agent-probe
 
 player:
   provider: local
