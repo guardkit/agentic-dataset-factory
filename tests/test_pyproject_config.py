@@ -1,12 +1,13 @@
 """Validate pyproject.toml configuration for agent factory packages.
 
 Ensures that:
-- deepagents>=0.4.11 is in project dependencies
+- deepagents>=0.5.3,<0.6 is in project dependencies (per ADR-ARCH-011)
 - agents*, prompts*, config* are in setuptools package includes
 - Test paths include new test locations (config/tests, agents/tests, prompts/tests)
 - pyproject.toml is valid TOML
 
 References TASK-AF-011 acceptance criteria AC-001 through AC-004.
+Pin updated under TASK-AD14-A / ADR-ARCH-011 (LangChain 1.x portfolio alignment).
 """
 
 from __future__ import annotations
@@ -29,18 +30,18 @@ def pyproject() -> dict:
 
 
 class TestPyprojectDependencies:
-    """AC-001: deepagents>=0.4.11 is in project dependencies."""
+    """AC-001: deepagents pin matches ADR-ARCH-011 portfolio alignment."""
 
     def test_pyproject_is_valid_toml(self, pyproject: dict) -> None:
         """pyproject.toml must parse without errors."""
         assert isinstance(pyproject, dict)
 
     def test_deepagents_in_dependencies(self, pyproject: dict) -> None:
-        """deepagents>=0.4.11 must be listed in [project].dependencies."""
+        """deepagents>=0.5.3,<0.6 must be listed in [project].dependencies (ADR-ARCH-011)."""
         deps = pyproject["project"]["dependencies"]
         deepagents_deps = [d for d in deps if d.startswith("deepagents")]
         assert len(deepagents_deps) == 1, f"Expected exactly one deepagents dep, got: {deepagents_deps}"
-        assert deepagents_deps[0] == "deepagents>=0.4.11"
+        assert deepagents_deps[0] == "deepagents>=0.5.3,<0.6"
 
     def test_langchain_in_dependencies(self, pyproject: dict) -> None:
         """LangChain ecosystem packages must be in dependencies."""
