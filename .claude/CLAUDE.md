@@ -39,6 +39,11 @@ For full usage details, see `.claude/rules/graphiti-knowledge-graph.md`.
 
 ## Technology Stack
 
-**Language**: Python
-**Frameworks**: DeepAgents >=0.4.11, LangChain >=1.2.11, LangChain-Core >=1.2.18, LangGraph >=0.2, LangChain-Community >=0.3
+**Language**: Python 3.11+ (open upper bound — see portfolio-python-pinning guide)
+**Frameworks**: DeepAgents >=0.5.3,<0.6, LangChain >=1.2,<2, LangChain-Core >=1.3,<2, LangChain-Community >=0.4,<1, LangGraph >=1.1,<2
 **Architecture**: Adversarial Cooperation (Player-Coach multi-agent orchestration)
+
+> Pin alignment policy: this project tracks the portfolio canonical (coherent
+> langchain 1.x with `<2` caps, `deepagents>=0.5.3,<0.6`, `requires-python =
+> ">=3.11"`). See `guardkit/docs/guides/portfolio-python-pinning.md` and
+> `docs/architecture/decisions/ADR-ARCH-011-langchain-1x-portfolio-alignment.md`.
