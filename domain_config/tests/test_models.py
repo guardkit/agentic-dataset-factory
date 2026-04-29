@@ -810,15 +810,18 @@ class TestAC002_PydanticModelsMatchContract:
         }
 
     def test_evaluation_criterion_fields_match_contract(self):
-        """EvaluationCriterion: name(str), description(str), weight(float)."""
+        """EvaluationCriterion: name(str), description(str), weight(float),
+        layer(Literal['behaviour','knowledge','all'])."""
         c = EvaluationCriterion(
             name="crit_name", description="desc", weight=0.5
         )
         assert isinstance(c.name, str)
         assert isinstance(c.description, str)
         assert isinstance(c.weight, float)
+        assert isinstance(c.layer, str)
+        assert c.layer in ("behaviour", "knowledge", "all")
         assert set(EvaluationCriterion.model_fields.keys()) == {
-            "name", "description", "weight",
+            "name", "description", "weight", "layer",
         }
 
     def test_metadata_field_fields_match_contract(self):
