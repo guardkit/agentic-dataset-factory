@@ -1,14 +1,34 @@
 # Runbook: Fix Gemma 4 Tutor Template-Token Leak
 
-**Purpose:** Fix the `<|channel>thought<channel|>` and `<think>...</think>` token leak in the fine-tuned GCSE study tutor model output.
+**Status:** Resolved 2026-04-29 (server-side workaround applied; upstream fix pending — see [DATASET-FIX-tutor-template-leak.md](DATASET-FIX-tutor-template-leak.md))
+**Purpose:** Suppress `<|channel>thought\n<channel|>` (and the trailing `<think>...</think>`) tokens leaking from the fine-tuned GCSE study tutor.
 **Machine:** Dell DGX Spark GB10 (`promaxgb10-41b1`)
 **Predecessor:** `RESULTS-v3-production-deployment.md` Follow-up #1
-**Root cause:** The base Gemma 4 GGUF metadata includes a chat template with thinking/reasoning support. `--jinja` reads this from the GGUF, not the Ollama Modelfile. The fine-tune didn't train away the thinking tokens. The workhorse model already uses `--reasoning off` and produces clean output.
-**Expected duration:** ~5 minutes
+**Expected duration:** ~10 minutes (config edit + llama-swap reload + validation)
 
 ---
 
-## Phase 1: Baseline — Confirm the Leak Exists
+## Root cause (corrected after first execution)
+
+The original hypothesis — *"the base Gemma 4 GGUF metadata includes a chat template with thinking support; `--reasoning off` will suppress it"* — was **wrong**. `--reasoning off` only changes how llama.cpp's *parser* surfaces thoughts in the response JSON; it does not modify prompt construction.
+
+> ⚠️ **Red herring:** the original runbook cited the workhorse model as evidence (*"the workhorse model already uses `--reasoning off` and produces clean output"*). The workhorse is clean because it's a Qwen3 model with a Qwen chat template that has no channel-marker injection — *not* because `--reasoning off` is doing anything. Don't reach for `--reasoning off` first when triaging template leaks on a different model family; verify what its template actually contains via `curl http://localhost:5800/props | jq -r .chat_template`.
+
+The real cause is two-part:
+
+1. **GGUF-embedded Jinja template.** The `tokenizer.chat_template` in `gemma-4-26b-a4b-it.Q4_K_M.gguf` injects `<|channel>thought\n<channel|>` *before* the assistant's content for every assistant turn during prompt build. (Inspect via `curl http://localhost:5800/props | jq -r .chat_template`.)
+2. **Fine-tune data leakage.** Because every assistant message in training was prefixed this way (Unsloth's `gemma-4-thinking` template applies the same wrapper), the model learned that `<|turn>model\n` is *always* followed by `<|channel>thought\n<channel|>`. Even when the runtime prompt does not include the marker, the model emits it.
+
+So `--reasoning off` cannot fix this. Two server-side options remain:
+
+- **Option C (`--no-jinja` alone) — fails.** llama.cpp can't auto-detect this custom Gemma 4 template and exits with `chat template parsing error: this custom template is not supported`. Without `--chat-template <name>`, the process dies on startup.
+- **Option D (working) — provide a custom Jinja template that bakes the marker into `add_generation_prompt`.** The marker becomes part of the prompt, so the model's *output* starts after it. No leakage.
+
+`--reasoning-format none` is **not** a fix: per llama.cpp's own help, that value "leaves thoughts unparsed in `message.content`" — i.e. preserves the leak.
+
+---
+
+## Phase 1: Baseline — confirm the leak exists
 
 ```bash
 echo "=== Baseline: checking for template-token leak ==="
@@ -33,113 +53,144 @@ print(text[:400])
 " 2>&1 | tee /tmp/tutor-leak-baseline.txt
 ```
 
-**Expected:** YES — the output contains `<|channel>thought<channel|>` and/or `<think>...</think>` blocks before the actual tutoring response.
-
-**If NO:** The leak may have been intermittent or already fixed. Run three more times to confirm, then skip to Phase 4.
+**Expected:** YES — the output starts with `<|channel>thought\n<channel|>`.
 
 ---
 
-## Phase 2: Apply Fix — Add `--reasoning off` to Tutor Config
+## Phase 2: Apply fix — install the custom chat template
+
+### 2.1 Drop in the template file
+
+Write the GGUF's embedded template verbatim to `/opt/llama-swap/config/gemma4-tutor.jinja`, with one change: extend `add_generation_prompt` so it ends with `<|channel>thought\n<channel|>` (committing the marker as part of the prompt rather than expecting the model to emit it).
 
 ```bash
-echo "=== Applying fix: --reasoning off ==="
+sudo install -o richardwoollcott -g richardwoollcott -m 0644 /dev/stdin /opt/llama-swap/config/gemma4-tutor.jinja <<'JINJA'
+{{ bos_token }}{%- if messages[0]['role'] == 'system' -%}
+    {%- set first_user_prefix = messages[0]['content'] + '
 
+' -%}
+    {%- set loop_messages = messages[1:] -%}
+{%- else -%}
+    {%- set first_user_prefix = "" -%}
+    {%- set loop_messages = messages -%}
+{%- endif -%}
+{%- for message in loop_messages -%}
+    {%- if (message['role'] == 'user') != (loop.index0 % 2 == 0) -%}
+        {{ raise_exception("Conversation roles must alternate user/assistant/user/assistant/...") }}
+    {%- endif -%}
+    {%- if (message['role'] == 'assistant') -%}
+        {%- set role = "model" -%}
+    {%- else -%}
+        {%- set role = message['role'] -%}
+    {%- endif -%}
+    {{ '<|turn>' + role + '
+' + (first_user_prefix if loop.first else "") }}
+    {%- if role == "model" -%}
+        {{ '<|channel>thought
+<channel|>' }}
+    {%- endif -%}
+    {%- if message['content'] is string -%}
+        {{ message['content'] | trim }}
+    {%- elif message['content'] is iterable -%}
+        {%- for item in message['content'] -%}
+            {%- if item['type'] == 'audio' -%}
+                {{ '<|audio|>' }}
+            {%- elif item['type'] == 'image' -%}
+                {{ '<|image|>' }}
+            {%- elif item['type'] == 'video' -%}
+                {{ '<|video|>' }}
+            {%- elif item['type'] == 'text' -%}
+                {{ item['text'] | trim }}
+            {%- endif -%}
+        {%- endfor -%}
+    {%- else -%}
+        {{ raise_exception("Invalid content type") }}
+    {%- endif -%}
+    {{ '<turn|>
+' }}
+{%- endfor -%}
+{%- if add_generation_prompt -%}
+    {{'<|turn>model
+<|channel>thought
+<channel|>'}}
+{%- endif -%}
+JINJA
+```
+
+### 2.2 Point llama-swap at it
+
+```bash
 CONFIG="/opt/llama-swap/config/config.yaml"
+cp "$CONFIG" "${CONFIG}.pre-template-fix.bak"
 
-# Back up current config
-cp "$CONFIG" "${CONFIG}.pre-reasoning-fix.bak"
+# Replace `--jinja` (and any `--reasoning off` left over from earlier attempts)
+# with `--jinja --chat-template-file ...` in the gemma4-tutor block only.
+python3 - <<'PY'
+import pathlib, re
+p = pathlib.Path("/opt/llama-swap/config/config.yaml")
+text = p.read_text()
+# Match the tutor cmd block
+m = re.search(r'("gemma4-tutor":[\s\S]*?)checkEndpoint:', text)
+assert m, "tutor block not found"
+block = m.group(1)
+# Drop a stale --reasoning off line if present
+new = re.sub(r'\n\s+--reasoning off', '', block)
+# Replace bare --jinja with --jinja + custom template file
+new = re.sub(
+    r'--jinja(?!\s*--chat-template-file)',
+    '--jinja\n      --chat-template-file /opt/llama-swap/config/gemma4-tutor.jinja',
+    new, count=1)
+p.write_text(text.replace(block, new))
+print("config patched")
+PY
 
-# Check if --reasoning off is already present for the tutor
-if grep -A 20 "gemma4-tutor" "$CONFIG" | grep -q "reasoning off"; then
-    echo "Fix already applied — --reasoning off present in tutor config"
-else
-    # Insert --reasoning off after the --jinja line in the tutor block
-    # Find the tutor's --jinja line and add --reasoning off after it
-    sed -i '/--alias gemma4-tutor/,/checkEndpoint/{
-        /--jinja/a\      --reasoning off
-    }' "$CONFIG"
-    echo "Added --reasoning off to gemma4-tutor config"
-fi
-
-# Verify the change
-echo ""
-echo "=== Tutor config block (post-fix) ==="
 sed -n '/gemma4-tutor/,/checkEndpoint/p' "$CONFIG"
 ```
 
 ---
 
-## Phase 3: Restart the Tutor Model
+## Phase 3: Reload llama-swap
 
-llama-swap reloads model config when the child process restarts. Kill the tutor child — the keep-alive timer (or a manual request) will revive it with the new flags.
+llama-swap caches its config in memory at startup. **Killing the child process does NOT reload the on-disk config** — llama-swap respawns the child with the cached cmd. Send `SIGHUP` to llama-swap itself (or run it with `-watch-config` going forward — see the systemd unit proposal under "Operational follow-ups" below).
+
+> ⚠️ **Do not `pkill -f "gemma4-tutor"`** from inside a script. The `-f` matches against the *full command line*, which includes the bash script's own argv (heredocs, JSON bodies, etc. that contain the model name). The script kills itself with exit 144. Either look up the child PID from `/running` and `kill` it directly, or scope the pkill so it can't match anything but the child process: `pkill -f 'llama-server.*--alias gemma4-tutor'`.
 
 ```bash
-echo "=== Restarting tutor model ==="
+SWAP_PID=$(pgrep -f "/llama-swap " | head -1)
+echo "swap pid: $SWAP_PID"
+kill -HUP "$SWAP_PID"
 
-# Get the tutor's PID from llama-swap's running list
-TUTOR_PID=$(curl -s http://localhost:9000/running 2>/dev/null | python3 -c "
+echo "Waiting for tutor ready..."
+for i in $(seq 1 60); do
+  STATE=$(curl -s --max-time 5 http://localhost:9000/running 2>/dev/null \
+    | python3 -c "
 import sys, json
-try:
-    data = json.load(sys.stdin)
-    # Handle both list and dict formats
-    if isinstance(data, list):
-        for m in data:
-            name = m.get('model', '') if isinstance(m, dict) else str(m)
-            if 'gemma4-tutor' in str(name):
-                print(m.get('pid', ''))
-                break
-    elif isinstance(data, dict):
-        for k, v in data.items():
-            if 'gemma4-tutor' in str(k) or 'gemma4-tutor' in str(v):
-                if isinstance(v, dict):
-                    print(v.get('pid', ''))
-                break
-except:
-    pass
-" 2>/dev/null)
-
-if [ -n "$TUTOR_PID" ] && [ "$TUTOR_PID" != "" ]; then
-    echo "Killing tutor child PID: $TUTOR_PID"
-    kill "$TUTOR_PID" 2>/dev/null
-else
-    echo "Could not find tutor PID from /running — trying pkill"
-    # The tutor's llama-server process has gemma4-tutor in its args
-    pkill -f "gemma4-tutor" 2>/dev/null || true
-fi
-
-echo "Waiting for keep-alive to revive (or triggering manually)..."
-sleep 5
-
-# Trigger a request to force llama-swap to respawn with new config
-curl -s http://localhost:9000/v1/chat/completions \
-    -H "Content-Type: application/json" \
-    -d '{"model":"gemma4-tutor","max_tokens":1,"messages":[{"role":"user","content":"test"}]}' > /dev/null 2>&1
-
-# Wait for the model to fully load
-echo "Waiting for tutor to load..."
-ATTEMPTS=0
-while [ $ATTEMPTS -lt 30 ]; do
-    RESULT=$(curl -s --max-time 5 http://localhost:9000/v1/chat/completions \
-        -H "Content-Type: application/json" \
-        -d '{"model":"gemma4-tutor","max_tokens":1,"messages":[{"role":"user","content":"ping"}]}' 2>/dev/null)
-    if echo "$RESULT" | grep -q "choices"; then
-        echo "Tutor model reloaded successfully (attempt $((ATTEMPTS+1)))"
+data = json.load(sys.stdin)
+for m in data.get('running', []):
+    if 'tutor' in m.get('model',''):
+        print(m.get('state',''))
         break
-    fi
-    ATTEMPTS=$((ATTEMPTS + 1))
-    sleep 10
+" 2>/dev/null)
+  [ "$STATE" = "ready" ] && { echo "  attempt $i: ready"; break; }
+  echo "  attempt $i: state=${STATE:-(not in /running)}"
+  sleep 5
 done
+```
 
-if [ $ATTEMPTS -ge 30 ]; then
-    echo "ERROR: Tutor did not reload within 5 minutes. Check logs:"
-    echo "  tail -50 /opt/llama-swap/logs/llama-swap.log"
-    exit 1
-fi
+After ready, confirm the loaded template ends with the doctored generation prompt:
+
+```bash
+curl -s http://localhost:5800/props | python3 -c "
+import sys, json
+ct = json.load(sys.stdin).get('chat_template','')
+print(ct[-200:])
+"
+# Expected last line: <|channel>thought\n<channel|>
 ```
 
 ---
 
-## Phase 4: Validate Fix — Three Test Prompts
+## Phase 4: Validate fix — three test prompts
 
 ### 4.1 Same prompt as baseline
 
@@ -165,7 +216,7 @@ print(text[:400])
 "
 ```
 
-### 4.2 Multi-turn conversation (leaks sometimes only appear on turn 2+)
+### 4.2 Multi-turn conversation
 
 ```bash
 echo "=== Test 2: Multi-turn conversation ==="
@@ -223,55 +274,56 @@ echo "$([ $LEAK_COUNT -eq 0 ] && echo 'PASS: fix confirmed stable' || echo 'FAIL
 
 ---
 
-## Phase 5: Decision Gate
+## Phase 5: Decision gate
 
-| Test | Result | Notes |
+| Test | Result on 2026-04-29 | Notes |
 |---|---|---|
-| P1: Baseline leak confirmed | | |
-| P2: `--reasoning off` added to config | | |
-| P3: Tutor model restarted | | |
-| P4.1: Same prompt — clean | | |
-| P4.2: Multi-turn — clean | | |
-| P4.3: Stability 5/5 clean | | |
+| P1: Baseline leak confirmed | PASS | `<\|channel>thought\n<channel\|>` and `<think>` observed |
+| P2: Custom template installed + config patched | PASS | |
+| P3: Tutor reloaded via `kill -HUP <llama-swap pid>` | PASS | child PID change confirms respawn |
+| P4.1: Same prompt — clean | PASS | |
+| P4.2: Multi-turn — clean | PASS | |
+| P4.3: Stability 5/5 clean | PASS | |
 
-### All pass → Fix confirmed
+### All pass → confirm fix
 
-Remove the config backup:
 ```bash
-rm /opt/llama-swap/config/config.yaml.pre-reasoning-fix.bak
+rm /opt/llama-swap/config/config.yaml.pre-template-fix.bak
 echo "Fix confirmed and backup removed."
 ```
 
-### Fix doesn't work → Escalate
+### Fix doesn't work → escalation options
 
-If `--reasoning off` doesn't suppress the tokens, try these in order:
+**Option E (last resort): rewrite the chat template inside the GGUF.**
+This permanently modifies the model file. Prefer the server-side approach above.
 
-**Option A:** Try `--reasoning-format none` instead of `--reasoning off`:
 ```bash
-sed -i 's/--reasoning off/--reasoning-format none/' /opt/llama-swap/config/config.yaml
-# Then repeat Phase 3 restart + Phase 4 tests
-```
-
-**Option B:** Strip the thinking template from the GGUF metadata:
-```bash
-# This permanently modifies the GGUF file
-python3 ~/llama.cpp/gguf-py/scripts/gguf_set_metadata.py \
+python3 ~/llama.cpp/gguf-py/gguf/scripts/gguf_new_metadata.py \
+    --chat-template "$(cat /opt/llama-swap/config/gemma4-tutor.jinja)" \
     /opt/llama-swap/models/gemma4-tutor/gemma-4-26b-a4b-it.Q4_K_M.gguf \
-    tokenizer.chat_template.reasoning ""
-# Then restart the tutor
+    /opt/llama-swap/models/gemma4-tutor/gemma-4-26b-a4b-it.Q4_K_M.patched.gguf
+# Then point the tutor at the patched GGUF and drop --chat-template-file.
 ```
-
-**Option C:** Disable `--jinja` for the tutor only and rely on llama.cpp's built-in Gemma template (loses custom template but eliminates all metadata-derived tokens).
 
 ### Rollback
 
 ```bash
-cp /opt/llama-swap/config/config.yaml.pre-reasoning-fix.bak \
+cp /opt/llama-swap/config/config.yaml.pre-template-fix.bak \
    /opt/llama-swap/config/config.yaml
-# Kill and revive the tutor as in Phase 3
+kill -HUP "$(pgrep -f '/llama-swap ' | head -1)"
 ```
 
 ---
 
-*Prepared: 2026-04-29*
-*Cross-references: RESULTS-v3-production-deployment.md Follow-up #1, RUNBOOK-v3-production-deployment.md*
+## Operational follow-ups
+
+1. **Supervise llama-swap with a systemd user unit.** Installed and active as of 2026-04-29. Full record (unit file, validation, pending sudo cleanup of a stale legacy system unit, rollback) is in [`guardkit/docs/research/dgx-spark/llama-swap-systemd-supervision.md`](../../../../guardkit/docs/research/dgx-spark/llama-swap-systemd-supervision.md). With `-watch-config` now active, future config edits (e.g. swapping the tutor's `--chat-template-file`) auto-reload — no manual `kill -HUP` step needed; the runbook's Phase 3 still works as a fallback.
+2. **Self-kill hazard on `pkill -f`.** Already inlined into Phase 3 — keeping it noted here so it doesn't get edited out of the inline warning by accident.
+
+## Cross-references
+
+- Server-side fix files: [/opt/llama-swap/config/gemma4-tutor.jinja](/opt/llama-swap/config/gemma4-tutor.jinja), [/opt/llama-swap/config/config.yaml](/opt/llama-swap/config/config.yaml)
+- Upstream (dataset/training) fix to drop this server workaround after the next fine-tune: [DATASET-FIX-tutor-template-leak.md](DATASET-FIX-tutor-template-leak.md)
+- Background: `RESULTS-v3-production-deployment.md` Follow-up #1, `RUNBOOK-v3-production-deployment.md`
+
+*First executed: 2026-04-29 (this revision incorporates corrections from that run)*
