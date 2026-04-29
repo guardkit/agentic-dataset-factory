@@ -1,17 +1,15 @@
-domain: architect-agent-probe
+domain: architect-agent
 
 player:
   provider: local
-  model: Qwen/Qwen3.5-35B-A3B-FP8
-  # endpoint: http://promaxgb10-41b1:8002/v1
-  endpoint: http://localhost:8002/v1
+  model: qwen36-workhorse
+  endpoint: http://localhost:9000/v1
   temperature: 0.4
 
 coach:
   provider: local
-  model: Qwen/Qwen3.5-35B-A3B-FP8
-  # endpoint: http://promaxgb10-41b1:8002/v1
-  endpoint: http://localhost:8002/v1
+  model: qwen36-workhorse
+  endpoint: http://localhost:9000/v1
   temperature: 0.3
 
 generation:
