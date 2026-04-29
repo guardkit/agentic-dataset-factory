@@ -5,9 +5,10 @@ falkordb_host: whitestocks
 falkordb_port: 6379
 timeout: 30.0
 max_concurrent_episodes: 3
-chunk_extraction_concurrency: 4llm_provider: vllm
+chunk_extraction_concurrency: 4
+llm_provider: vllm
 llm_base_url: http://promaxgb10-41b1:9000/v1
-llm_model: neuralmagic/Qwen2.5-14B-Instruct-FP8-dynamic
+llm_model: qwen-graphiti
 # --- Fallback: MacBook Pro M2 Max (Ollama, Q4_K_M) — uncomment if GB10 offline ---
 #llm_provider: ollama
 #llm_base_url: http://richards-macbook-pro.tailebf801.ts.net:8000/v1
@@ -15,7 +16,7 @@ llm_model: neuralmagic/Qwen2.5-14B-Instruct-FP8-dynamic
 llm_max_tokens: 4096  # Cap output tokens; prevents 16384 default exceeding 32K context (TASK-REV-84A7)
 embedding_provider: vllm
 embedding_base_url: http://promaxgb10-41b1:9000/v1
-embedding_model: nomic-embed-text-v1.5
+embedding_model: nomic-embed
 # Embedding dimension is resolved from KNOWN_EMBEDDING_DIMS
 # based on embedding_model above. Set explicitly only to override
 # (e.g., for Matryoshka truncation).
