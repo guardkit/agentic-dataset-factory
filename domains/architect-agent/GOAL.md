@@ -8,29 +8,27 @@ Fine-tune Gemma 4 26B-A4B MoE as an expert software architect agent. The target 
 
 ## Source Documents
 
-| File | Docling Mode | Tier | Core Contribution |
+| File Pattern | Mode | Tier | Notes |
 |---|---|---|---|
-| `john-ousterhout-a-philosophy-of-software-design.pdf` | standard | 1 | Complexity as root enemy. Deep vs shallow modules. Information hiding. |
-| `tidy_first_scanned.pdf` | vlm | 1 | Economics of design decisions. When refactoring pays. The "options" model. |
-| `code-that-fits-in-your-head.pdf` | standard | 1 | Cognitive load as architectural constraint. 7±2 applied to code. |
-| `Adam_Tornhill-Your_Code_as_a_Crime_Scene-EN (1).pdf` | standard | 1 | Behavioural analysis of codebases. Hotspots. Temporal coupling. Change patterns. |
-| `modern_software_engineering_scanned.pdf` | vlm | 1 | Software as design engineering. Scientific method applied to development. |
-| `Software_Architecture_The_Hard_Parts_Neal_Ford_OReilly_9781492086895.pdf` | standard | 1 | Trade-off analysis for distributed architectures. No "best" — only trade-offs. |
-| `architecture_for_flow_scanned.pdf` | vlm | 1 | Flow-optimised architecture. Team-first design. Wardley mapping for architects. |
-| `Crafting_Engineering_Strategy_-_Will_Larson.pdf` | standard | 1 | Engineering strategy. Technical vision documents. Organisational architecture. |
-| `team-topologies-organizing-business-and-technology-teams-for-fast-flow-by-matthew-skelton-manuel-pais-skelton-matthew-z-liborgepub.pdf` | standard | 2 | Conway's Law as feature. Four team types, three interaction modes. |
-| `Eric Evans 2003 - Domain-Driven Design - Tackling Complexity in the Heart of Software.pdf` | standard | 2 | Strategic and tactical DDD. Bounded contexts, aggregates, ubiquitous language. |
-| `Implementing Domain-Driven Design.pdf` | standard | 2 | DDD in practice. Concrete implementation patterns for Evans' concepts. |
-| `designing-data-intensive-applications-the-big-ideas-behind-reliable-scalable-and-maintainable-systems.pdf` | standard | 2 | Data systems architecture. Partitioning, replication, consistency, stream processing. |
-| `Building_Evolutionary_Architectures_2nd_Ed_-_Neal_Ford.pdf` | standard | 2 | Fitness functions. Guided architectural change. Architecture as options. |
-| `Facilitating_Software_Architecture_-_Andrew_Harmel-Law.pdf` | standard | 2 | Collaborative architecture. Decision-making with teams. ADR practice. |
-| `The_Software_Architect_Elevator_-_Gregor_Hohpe.pdf` | standard | 2 | Architect as translator between technical and business. Communication patterns. |
-| `Observability-Engineering.pdf` | standard | 2 | Observability vs monitoring. Instrumentation. Understanding production systems. |
-| `Architecture_Modernization.pdf` | standard | 2 | Strangler fig. Domain-driven modernisation. Legacy system strategies. |
-| `Accelerate - Building and Scaling High Performing Technology Organisations - Nicole Fergrson.pdf` | standard | 2 | Four key metrics. Capabilities that drive performance. Evidence-based engineering. |
-| `Threat Modeling - Shostack, Adam.pdf` | standard | 2 | STRIDE. Attack surfaces. Security as an architectural concern, not a bolt-on. |
-
-All 19 books confirmed present in `sources/`.
+| john-ousterhout-a-philosophy-of-software-design.pdf | standard | 1 | Complexity as root enemy. Deep vs shallow modules. Information hiding. |
+| tidy_first_scanned.pdf | vlm | 1 | Economics of design decisions. When refactoring pays. The "options" model. |
+| code-that-fits-in-your-head.pdf | standard | 1 | Cognitive load as architectural constraint. 7±2 applied to code. |
+| Adam_Tornhill-Your_Code_as_a_Crime_Scene-EN (1).pdf | standard | 1 | Behavioural analysis of codebases. Hotspots. Temporal coupling. Change patterns. |
+| modern_software_engineering_scanned.pdf | vlm | 1 | Software as design engineering. Scientific method applied to development. |
+| Software_Architecture_The_Hard_Parts_Neal_Ford_OReilly_9781492086895.pdf | standard | 1 | Trade-off analysis for distributed architectures. No "best" — only trade-offs. |
+| architecture_for_flow_scanned.pdf | vlm | 1 | Flow-optimised architecture. Team-first design. Wardley mapping for architects. |
+| Crafting_Engineering_Strategy_-_Will_Larson.pdf | standard | 1 | Engineering strategy. Technical vision documents. Organisational architecture. |
+| team-topologies-organizing-business-and-technology-teams-for-fast-flow-by-matthew-skelton-manuel-pais-skelton-matthew-z-liborgepub.pdf | standard | 2 | Conway's Law as feature. Four team types, three interaction modes. |
+| Eric Evans 2003 - Domain-Driven Design - Tackling Complexity in the Heart of Software.pdf | standard | 2 | Strategic and tactical DDD. Bounded contexts, aggregates, ubiquitous language. |
+| Implementing Domain-Driven Design.pdf | standard | 2 | DDD in practice. Concrete implementation patterns for Evans' concepts. |
+| designing-data-intensive-applications-the-big-ideas-behind-reliable-scalable-and-maintainable-systems.pdf | standard | 2 | Data systems architecture. Partitioning, replication, consistency, stream processing. |
+| Building_Evolutionary_Architectures_2nd_Ed_-_Neal_Ford.pdf | standard | 2 | Fitness functions. Guided architectural change. Architecture as options. |
+| Facilitating_Software_Architecture_-_Andrew_Harmel-Law.pdf | standard | 2 | Collaborative architecture. Decision-making with teams. ADR practice. |
+| The_Software_Architect_Elevator_-_Gregor_Hohpe.pdf | standard | 2 | Architect as translator between technical and business. Communication patterns. |
+| Observability-Engineering.pdf | standard | 2 | Observability vs monitoring. Instrumentation. Understanding production systems. |
+| Architecture_Modernization.pdf | standard | 2 | Strangler fig. Domain-driven modernisation. Legacy system strategies. |
+| Accelerate - Building and Scaling High Performing Technology Organisations - Nicole Fergrson.pdf | standard | 2 | Four key metrics. Capabilities that drive performance. Evidence-based engineering. |
+| Threat Modeling - Shostack, Adam.pdf | standard | 2 | STRIDE. Attack surfaces. Security as an architectural concern, not a bolt-on. |
 
 ## System Prompt
 
@@ -191,107 +189,13 @@ Per-example metadata fields with constrained valid values.
 
 | Field | Type | Required | Valid Values |
 |---|---|---|---|
-| layer | string | yes | `behaviour`, `knowledge` |
-| type | string | yes | `reasoning` |
-| dimension | string | yes | See dimension enum below |
-| source_books | array of strings | yes | See source_books enum below |
-| topic | string | yes | See topic enum below |
-| source | string | yes | `synthetic` |
+| layer | string | yes | behaviour, knowledge |
+| type | string | yes | reasoning |
+| dimension | string | yes | strategic_ddd, tactical_ddd, trade_off_analysis, complexity_management, evolutionary_architecture, team_org_design, data_architecture, operational_architecture, communication_facilitation, cross_cutting, behavioural_code_analysis |
+| source_books | array of strings | yes | ousterhout_philosophy, beck_tidy_first, seemann_code_head, tornhill_crime_scene, farley_modern_se, ford_hard_parts, kaiser_arch_flow, larson_eng_strategy, skelton_team_topologies, evans_ddd, vernon_iddd, kleppmann_ddia, ford_evolutionary, harmel_law_facilitating, hohpe_elevator, majors_observability, tune_modernization, forsgren_accelerate, shostack_threat |
+| topic | string | yes | bounded_context, context_map, ubiquitous_language, domain_events, aggregate, entity, value_object, repository, domain_service, factory_pattern, anti_corruption_layer, service_granularity, data_decomposition, distributed_transactions, saga, choreography_vs_orchestration, coupling_cohesion, deep_modules, cognitive_load, information_hiding, simplicity, tidying_economics, fitness_functions, guided_change, architecture_as_options, conways_law, team_types, interaction_modes, flow_optimisation, partitioning, replication, consistency_models, stream_processing, data_ownership, observability, threat_modeling, strangler_fig, modernisation_strategy, adrs, stakeholder_communication, technical_vision, engineering_strategy, hotspots, temporal_coupling, change_patterns, cross_framework_synthesis, first_principles_reasoning |
+| source | string | yes | synthetic |
 | turns | integer | yes | 1+ (number of conversation turns) |
-
-### dimension enum
-
-| Value | Description |
-|---|---|
-| `strategic_ddd` | Bounded contexts, context maps, domain events, ubiquitous language |
-| `tactical_ddd` | Aggregates, entities, value objects, repositories, domain services |
-| `trade_off_analysis` | Service granularity, data decomposition, distributed transactions, architectural decisions |
-| `complexity_management` | Deep modules, cognitive load, information hiding, simplicity, tidying economics |
-| `evolutionary_architecture` | Fitness functions, guided change, architecture as options, designing for change |
-| `team_org_design` | Conway's Law, team topologies, flow optimisation, team-first architecture |
-| `data_architecture` | Partitioning, replication, consistency models, stream processing, data ownership |
-| `operational_architecture` | Observability, threat modeling, modernisation, production concerns during design |
-| `communication_facilitation` | ADRs, stakeholder communication, strategy documents, explaining decisions |
-| `cross_cutting` | Connecting concepts across books and traditions |
-| `behavioural_code_analysis` | Hotspots, temporal coupling, change patterns as architecture signals |
-
-### source_books enum
-
-| Value | Book |
-|---|---|
-| `ousterhout_philosophy` | A Philosophy of Software Design |
-| `beck_tidy_first` | Tidy First? |
-| `seemann_code_head` | Code That Fits in Your Head |
-| `tornhill_crime_scene` | Your Code as a Crime Scene |
-| `farley_modern_se` | Modern Software Engineering |
-| `ford_hard_parts` | Software Architecture: The Hard Parts |
-| `kaiser_arch_flow` | Architecture for Flow |
-| `larson_eng_strategy` | Crafting Engineering Strategy |
-| `skelton_team_topologies` | Team Topologies |
-| `evans_ddd` | Domain-Driven Design |
-| `vernon_iddd` | Implementing Domain-Driven Design |
-| `kleppmann_ddia` | Designing Data-Intensive Applications |
-| `ford_evolutionary` | Building Evolutionary Architectures |
-| `harmel_law_facilitating` | Facilitating Software Architecture |
-| `hohpe_elevator` | The Software Architect Elevator |
-| `majors_observability` | Observability Engineering |
-| `tune_modernization` | Architecture Modernization |
-| `forsgren_accelerate` | Accelerate |
-| `shostack_threat` | Threat Modeling |
-
-### topic enum
-
-Topics span across books. An example may draw from multiple books on the same topic.
-
-| Value | Primary dimension(s) |
-|---|---|
-| `bounded_context` | strategic_ddd |
-| `context_map` | strategic_ddd |
-| `ubiquitous_language` | strategic_ddd |
-| `domain_events` | strategic_ddd, data_architecture |
-| `aggregate` | tactical_ddd |
-| `entity` | tactical_ddd |
-| `value_object` | tactical_ddd |
-| `repository` | tactical_ddd |
-| `domain_service` | tactical_ddd |
-| `factory_pattern` | tactical_ddd |
-| `anti_corruption_layer` | strategic_ddd, operational_architecture |
-| `service_granularity` | trade_off_analysis |
-| `data_decomposition` | trade_off_analysis, data_architecture |
-| `distributed_transactions` | trade_off_analysis, data_architecture |
-| `saga` | trade_off_analysis, data_architecture |
-| `choreography_vs_orchestration` | trade_off_analysis |
-| `coupling_cohesion` | trade_off_analysis, complexity_management |
-| `deep_modules` | complexity_management |
-| `cognitive_load` | complexity_management, team_org_design |
-| `information_hiding` | complexity_management |
-| `simplicity` | complexity_management |
-| `tidying_economics` | complexity_management, evolutionary_architecture |
-| `fitness_functions` | evolutionary_architecture |
-| `guided_change` | evolutionary_architecture |
-| `architecture_as_options` | evolutionary_architecture, complexity_management |
-| `conways_law` | team_org_design |
-| `team_types` | team_org_design |
-| `interaction_modes` | team_org_design |
-| `flow_optimisation` | team_org_design |
-| `partitioning` | data_architecture |
-| `replication` | data_architecture |
-| `consistency_models` | data_architecture |
-| `stream_processing` | data_architecture |
-| `data_ownership` | data_architecture, strategic_ddd |
-| `observability` | operational_architecture |
-| `threat_modeling` | operational_architecture |
-| `strangler_fig` | operational_architecture |
-| `modernisation_strategy` | operational_architecture |
-| `adrs` | communication_facilitation |
-| `stakeholder_communication` | communication_facilitation |
-| `technical_vision` | communication_facilitation |
-| `engineering_strategy` | communication_facilitation |
-| `hotspots` | behavioural_code_analysis |
-| `temporal_coupling` | behavioural_code_analysis |
-| `change_patterns` | behavioural_code_analysis |
-| `cross_framework_synthesis` | cross_cutting |
-| `first_principles_reasoning` | cross_cutting |
 
 ## Layer Routing
 
