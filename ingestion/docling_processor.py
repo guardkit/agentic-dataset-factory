@@ -95,11 +95,19 @@ def _build_converter(mode: str):
 
     if mode == "vlm":
         try:
-            from docling.datamodel.pipeline_options import PipelineOptions
+            from docling.datamodel.base_models import InputFormat
+            from docling.datamodel.pipeline_options import VlmPipelineOptions
+            from docling.document_converter import PdfFormatOption
+            from docling.pipeline.vlm_pipeline import VlmPipeline
 
-            pipeline_options = PipelineOptions()
-            pipeline_options.do_ocr = True
-            return converter_cls(pipeline_options=pipeline_options)
+            return converter_cls(
+                format_options={
+                    InputFormat.PDF: PdfFormatOption(
+                        pipeline_cls=VlmPipeline,
+                        pipeline_options=VlmPipelineOptions(),
+                    )
+                }
+            )
         except (ImportError, TypeError):
             # Fall back to default converter if VLM-specific options
             # are unavailable in this Docling version.
