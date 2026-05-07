@@ -128,7 +128,14 @@ df -h ~/Projects
 
 ## Phase 2: Set Up tmux Session
 
-Everything from here runs inside a tmux session so it survives SSH disconnect.
+Everything from here runs inside a tmux session so it survives SSH disconnect. The session has four named windows, each with one job; switch between them with `Ctrl+B 0/1/2/3`.
+
+| Window | Name       | Purpose                                                                     |
+|--------|------------|-----------------------------------------------------------------------------|
+| 0      | `pipeline` | Foreground process for ingestion (Stage 0) and generation (Stage 1)         |
+| 1      | `monitor`  | Filtered `tail -F` of accept/reject events from the generation log          |
+| 2      | `logs`     | Raw generation log tail (full debug stream, including HTTP traffic)         |
+| 3      | `status`   | `watch`-refreshed dashboard of `/tmp/architect-pipeline-status.txt` + counts |
 
 ```bash
 # Kill any existing session with this name
@@ -137,21 +144,134 @@ tmux kill-session -t architect-pipeline 2>/dev/null || true
 # Create new session
 tmux new-session -d -s architect-pipeline -x 200 -y 50
 
-# Create named windows for different concerns
+# Window 0 — pipeline: holds the running ingestion / generation command
 tmux rename-window -t architect-pipeline:0 'pipeline'
+
+# Helper script for the monitor pane. Lives in /tmp so it can be re-launched
+# after a Ctrl-C without re-doing send-keys, and so the same logic is reused
+# on resume. Two key behaviours:
+#   1. Watcher loop: re-resolves the latest architect-generation-*.log every 15s
+#      so the pane follows --resume restarts (a fresh log file appearing).
+#      Without the loop, $(ls -t ...) is evaluated once at pane start and the
+#      tail stays pinned to the original log forever.
+#   2. Show last 5 matching events at startup, so attaching/reattaching from
+#      the MacBook gives immediate context instead of an empty pane.
+cat > /tmp/architect-monitor-tail.sh << 'MONITOR_TAIL'
+#!/bin/bash
+cd ~/Projects/appmilla_github/agentic-dataset-factory || exit 1
+PATTERN="target_accepted|target_rejected|generation_summary|Pipeline complete|Pipeline failed|Total accepted|Generation Run Finished|fatal_error"
+# Forward Ctrl-C / TERM to the backgrounded tail so it doesn't survive as an
+# orphan on the same TTY (which would cause duplicate output if the script is
+# restarted in the same pane).
+trap 'kill "$TAIL_PID" 2>/dev/null; exit 0' INT TERM
+while true; do
+    LATEST="$(ls -t run_logs/architect-generation-*.log 2>/dev/null | head -1)"
+    if [ -z "$LATEST" ]; then sleep 5; continue; fi
+    echo "[monitor] following $LATEST"
+    grep -E "$PATTERN" "$LATEST" 2>/dev/null | tail -n 5
+    tail -n0 -F "$LATEST" 2>/dev/null | grep --line-buffered -E "$PATTERN" &
+    TAIL_PID=$!
+    while [ "$(ls -t run_logs/architect-generation-*.log 2>/dev/null | head -1)" = "$LATEST" ]; do
+        sleep 15
+    done
+    kill "$TAIL_PID" 2>/dev/null
+    wait 2>/dev/null
+done
+MONITOR_TAIL
+chmod +x /tmp/architect-monitor-tail.sh
+
+# Helper script for the logs pane. Same watcher-loop pattern; no grep filter so
+# the full raw stream is visible (debug HTTP traffic and all). Useful only when
+# diagnosing failures — for healthy progress watch the monitor pane instead.
+cat > /tmp/architect-logs-tail.sh << 'LOGS_TAIL'
+#!/bin/bash
+cd ~/Projects/appmilla_github/agentic-dataset-factory || exit 1
+# Forward Ctrl-C / TERM to the backgrounded tail so it doesn't survive as an
+# orphan on the same TTY (which would cause duplicate output if the script is
+# restarted in the same pane).
+trap 'kill "$TAIL_PID" 2>/dev/null; exit 0' INT TERM
+while true; do
+    LATEST="$(ls -t run_logs/architect-*.log 2>/dev/null | head -1)"
+    if [ -z "$LATEST" ]; then sleep 5; continue; fi
+    echo "[logs] following $LATEST"
+    tail -n0 -F "$LATEST" 2>/dev/null &
+    TAIL_PID=$!
+    while [ "$(ls -t run_logs/architect-*.log 2>/dev/null | head -1)" = "$LATEST" ]; do
+        sleep 15
+    done
+    kill "$TAIL_PID" 2>/dev/null
+    wait 2>/dev/null
+done
+LOGS_TAIL
+chmod +x /tmp/architect-logs-tail.sh
+
+# Window 1 — monitor: filtered accept/reject tail.
 tmux new-window -t architect-pipeline -n 'monitor'
+tmux send-keys -t architect-pipeline:monitor '/tmp/architect-monitor-tail.sh' Enter
+
+# Window 2 — logs: full raw log tail (debug noise; only useful for diagnosis).
 tmux new-window -t architect-pipeline -n 'logs'
+tmux send-keys -t architect-pipeline:logs    '/tmp/architect-logs-tail.sh'    Enter
 
-# Set up the monitor window with a status loop
-tmux send-keys -t architect-pipeline:monitor 'watch -n 30 "cat /tmp/architect-pipeline-status.txt 2>/dev/null || echo No status yet"' Enter
+# Window 3 — status: refreshing dashboard (status file + output line counts)
+tmux new-window -t architect-pipeline -n 'status'
+tmux send-keys -t architect-pipeline:status \
+  'watch -n 30 "echo === Pipeline Status ===; cat /tmp/architect-pipeline-status.txt 2>/dev/null; \
+   echo; echo === Output counts ===; cd ~/Projects/appmilla_github/agentic-dataset-factory; \
+   printf \"behaviour: %s\\nknowledge: %s\\nrejected:  %s\\n\" \
+     \$(wc -l < output/train.jsonl 2>/dev/null) \
+     \$(wc -l < output/rag_index/knowledge.jsonl 2>/dev/null) \
+     \$(wc -l < output/rejected.jsonl 2>/dev/null)"' \
+  Enter
 
-# Set up the logs window
-tmux send-keys -t architect-pipeline:logs 'echo "Waiting for pipeline to start..." && sleep 5' Enter
-
-echo "tmux session 'architect-pipeline' created with 3 windows: pipeline, monitor, logs"
-echo "Attach with: tmux attach -t architect-pipeline"
-echo "Detach with: Ctrl+B then D"
+echo "tmux session 'architect-pipeline' created with 4 windows: pipeline, monitor, logs, status"
+echo "Attach with:   ssh -t promaxgb10-41b1 'tmux attach -t architect-pipeline'"
+echo "Switch window: Ctrl+B then 0|1|2|3 (or Ctrl+B then n / p)"
+echo "Detach:        Ctrl+B then D"
 ```
+
+### Switching between windows once attached
+
+Tmux uses **prefix-then-key** bindings, not held key combinations. Each command is two distinct actions: press and release `Ctrl+B`, then tap the next key. If you keep `Ctrl` held while tapping the second key, nothing happens.
+
+| Press                 | Action                                                        |
+|-----------------------|---------------------------------------------------------------|
+| `Ctrl+B` then `0`     | Jump to window 0 (`pipeline`)                                 |
+| `Ctrl+B` then `1`     | Jump to window 1 (`monitor`)                                  |
+| `Ctrl+B` then `2`     | Jump to window 2 (`logs`)                                     |
+| `Ctrl+B` then `3`     | Jump to window 3 (`status`)                                   |
+| `Ctrl+B` then `n`     | Next window (cycle forward)                                   |
+| `Ctrl+B` then `p`     | Previous window                                               |
+| `Ctrl+B` then `w`     | Interactive window picker (arrow keys + Enter — easiest)      |
+| `Ctrl+B` then `d`     | Detach (leaves everything running on the GB10)                |
+| `Ctrl+B` then `?`     | Show the full key-binding cheat sheet (sanity-check that the prefix works) |
+
+The status bar at the bottom of the terminal lists every window. `*` marks the active window and `-` marks the previously-active one — e.g. `0:pipeline 1:monitor 2:logs- 3:status*` means you're on `status` and were last on `logs`.
+
+**MacBook gotchas:**
+- Use `Ctrl`, not `Cmd` — tmux has no concept of the Cmd key.
+- Terminal.app and iTerm2 both work out of the box; no profile changes needed.
+- If `Ctrl+B ?` does nothing, the prefix is being intercepted by the terminal — switch to iTerm2 or check for a custom binding.
+
+### Recovery: rewiring a single window
+
+If a window dies (e.g. the watcher loop got `Ctrl-C`'d, or you accidentally typed into `pipeline`), recreate it without rebuilding the whole session by relaunching the helper script:
+
+```bash
+# Monitor pane
+tmux send-keys -t architect-pipeline:monitor C-c   # if a process is still bound
+tmux send-keys -t architect-pipeline:monitor 'clear && /tmp/architect-monitor-tail.sh' Enter
+
+# Logs pane
+tmux send-keys -t architect-pipeline:logs    C-c
+tmux send-keys -t architect-pipeline:logs    'clear && /tmp/architect-logs-tail.sh'    Enter
+```
+
+If the helper scripts themselves were lost (e.g. `/tmp` was wiped on reboot), regenerate them by re-running the two `cat > /tmp/architect-*-tail.sh << '…'` heredoc blocks from Phase 2 above.
+
+### Notes on the older "Monitor task" approach
+
+Earlier iterations of this runbook drove progress reporting through a Claude Code background `Monitor` task that re-entered the conversation on every accept/reject event. That works but is **expensive** at scale (each event spends a full conversation round-trip; cost grows with the conversation length, not the event size). For the architect run (2,200 targets, ~88 % accept rate ≈ 2,500 events) it dominated token spend. Once the trajectory is stable, prefer the tmux `monitor` window above and reserve background tasks for transient watches.
 
 ---
 
@@ -563,6 +683,125 @@ echo "Estimated completion: ~30-40 hours from now"
 
 ---
 
+## Recovery: handling a Stage 1 context-overrun crash
+
+### Symptoms
+
+Status file shows `STAGE: Generation FAILED`, exit code 1, and the log tail contains:
+
+```
+Pipeline failed: Error code: 400 - {'error': {'code': 400, 'message':
+  'request (NNNNN tokens) exceeds the available context size (65536 tokens),
+   try increasing it', 'type': 'exceed_context_size_error', ...}}
+```
+
+The pipeline has no per-target retry/skip for `exceed_context_size_error`; the exception bubbles to the top and the run aborts. Output files retain everything written before the crash (append-mode JSONL); `output/.checkpoint` records the **last fully-completed** target index.
+
+### Why it happens
+
+The Player conversation accumulates: domain system prompt + GOAL.md + pre-fetched RAG chunks + Coach revision history. On long back-and-forths (`coach_turns ≥ 3`, multiple `rag_retrieval` calls, large per-chunk text from VLM-mode books) the cumulative prompt edges over `--ctx-size`. With the default workhorse setting of `--ctx-size 65536`, requests in the 60–66k token range happen near the end of long runs. One outlier 91 tokens over the limit is enough to abort.
+
+### Fix that was applied on 2026-05-01
+
+**Crash:** target index 1997, request 65,627 tokens vs ctx-size 65,536 (over by 91). 1,674 examples already accepted (683 behaviour + 991 knowledge), 323 rejected. Pipeline crashed at 10:46 BST after ~41h.
+
+**1. Bump workhorse context window from 65k → 96k:**
+
+```bash
+# Backup the live llama-swap config
+cp /opt/llama-swap/config/config.yaml \
+   /opt/llama-swap/config/config.yaml.bak-pre-arch-bump-$(date +%Y%m%d-%H%M%S)
+
+# Edit qwen36-workhorse block: --ctx-size 65536  →  --ctx-size 98304
+# (llama-swap is launched with -watch-config, so it auto-restarts the worker
+#  on the next request; no manual reload needed.)
+```
+
+Blast radius: every app aliased to `qwen36-workhorse` (`forge-orchestrator`, `jarvis-reasoner`, `autobuild-player`, `coach`, `dataset-factory`, `claude-sonnet-4-6`, `claude-opus-4-7`) gains the larger window. KV-cache memory grows proportionally; on the GB10's 128 GB unified memory this is comfortable.
+
+Verify the new value took effect by spawning the worker with a probe and inspecting its argv:
+
+```bash
+curl -s -X POST http://localhost:9000/v1/chat/completions -H "Content-Type: application/json" \
+  -d '{"model":"qwen36-workhorse","messages":[{"role":"user","content":"hi"}],"max_completion_tokens":4}' \
+  > /dev/null
+ps -ef | grep llama-server | grep workhorse | grep -v grep
+# Expect: ... --ctx-size 98304 ...
+```
+
+**2. Advance the checkpoint past the offending target:**
+
+The crashing target is deterministic — without changes to its inputs it will overflow again on resume. Skip it:
+
+```bash
+cd ~/Projects/appmilla_github/agentic-dataset-factory
+cat output/.checkpoint                     # e.g. 1996 (last completed)
+echo 1997 > output/.checkpoint             # treat 1997 as done; resume starts at 1998
+```
+
+Trade-off: losing one target out of 2,400 has negligible curriculum impact. If you want it preserved, instead increase `--ctx-size` further and *do not* advance the checkpoint — the resumed run will re-attempt 1997.
+
+**3. Clear the stale lockfile** (the crash leaves `output/.lock` behind; the lock manager refuses to start while it exists):
+
+```bash
+pgrep -fa "agent.py"     # confirm no live process before removing
+rm -f output/.lock
+```
+
+**4. Relaunch with `--resume`** using a dedicated wrapper that mirrors the original launcher (writes a fresh `architect-generation-…-resume.log`, updates the status file, calls `agent.py --resume` so `CheckpointManager` picks up `output/.checkpoint`):
+
+```bash
+cat > /tmp/run-architect-generation-resume.sh << 'RESUME_SCRIPT'
+#!/bin/bash
+set -e
+cd ~/Projects/appmilla_github/agentic-dataset-factory
+
+DOMAIN="architect-agent"
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+LOG_FILE="run_logs/architect-generation-${TIMESTAMP}-resume.log"
+STATUS_FILE="/tmp/architect-pipeline-status.txt"
+CHECKPOINT_VAL=$(cat output/.checkpoint 2>/dev/null || echo "(none)")
+
+mkdir -p run_logs output output/rag_index
+
+{
+  echo "=== Architect Agent Generation Pipeline (RESUME) ==="
+  echo "Start: $(date)"
+  echo "Resuming from checkpoint $CHECKPOINT_VAL  (next target = $((CHECKPOINT_VAL + 1)))"
+} | tee "$LOG_FILE"
+
+cat > "$STATUS_FILE" << EOF
+STAGE: Generation (Stage 1, RESUMED)
+Started: $(date)
+Status: Running (resumed from index $CHECKPOINT_VAL)
+Log: $LOG_FILE
+EOF
+
+PYTHONPATH=src python3 agent.py --resume 2>&1 | tee -a "$LOG_FILE"
+GEN_RC=${PIPESTATUS[0]}
+
+# (final summary block identical to run-architect-generation.sh — see that file)
+RESUME_SCRIPT
+chmod +x /tmp/run-architect-generation-resume.sh
+
+# Send to the existing pipeline window (do NOT relaunch run-architect-generation.sh
+# directly — it starts at index 0, which would overwrite/duplicate already-accepted
+# rows depending on the prepare_output_directory mode.)
+tmux send-keys -t architect-pipeline:pipeline '/tmp/run-architect-generation-resume.sh' Enter
+```
+
+After launch, the log should show `Checkpoint loaded: target_index=1997` followed by `Resuming from target index 1998`.
+
+### Future safeguards
+
+If this class of crash happens twice, consider one of:
+
+- **Patch the LLM call site** to catch `openai.BadRequestError` with `type='exceed_context_size_error'`, treat it as a per-target rejection (write to `rejected.jsonl` with reason `context_overrun`), advance the checkpoint, and continue. Eliminates the abort path entirely.
+- **Cap RAG chunk count and per-chunk size** on revision turns. The Player is told *"do NOT call rag_retrieval again on revision turns"* but a long Coach back-and-forth still inflates the prompt without new retrieval.
+- **Lower `generation.max_turns`** in `agent-config.yaml` from 3 to 2. The current run shows acceptance is dominated by `coach_turns=1` (~75 % of accepts at the 800-target checkpoint); turn 3+ accepts rarely produce higher-quality data than turn 1–2 accepts.
+
+---
+
 ## Phase 5: Write Status Updater (runs alongside generation)
 
 This script updates the status file every 60 seconds with live output counts so Rich can check remotely.
@@ -580,18 +819,26 @@ while true; do
         REJECTED=$(wc -l < output/rejected.jsonl 2>/dev/null || echo 0)
         TOTAL=$((BEHAVIOUR + KNOWLEDGE))
         
-        # Estimate completion
+        # Estimate completion.
+        # Take the start time from the OLDEST architect-generation log filename
+        # (pattern architect-generation-YYYYMMDD-HHMMSS[-resume].log).  Filenames
+        # are immutable, unlike ctime which gets reset whenever the file is touched.
+        # Using the first launch's timestamp gives a meaningful overall rate that
+        # survives --resume restarts; using ctime produced absurd numbers like
+        # "0.01h elapsed, ~167400/h" right after a resume.
         ELAPSED_HOURS=$(python3 -c "
-import os, time
-log_files = sorted([f for f in os.listdir('run_logs') if f.startswith('architect-generation')])
-if log_files:
-    mtime = os.path.getmtime(f'run_logs/{log_files[0]}')
-    hours = (time.time() - os.path.getctime(f'run_logs/{log_files[0]}')) / 3600
+import glob, os, re, time
+logs = sorted(glob.glob('run_logs/architect-generation-*.log'))
+if not logs:
+    print('calculating...')
+else:
+    m = re.search(r'(\\d{8})-(\\d{6})', os.path.basename(logs[0]))
+    start = time.mktime(time.strptime(m.group(1) + m.group(2), '%Y%m%d%H%M%S')) \\
+            if m else os.path.getmtime(logs[0])
+    hours = (time.time() - start) / 3600
     rate = $TOTAL / max(hours, 0.01)
     remaining = max(0, (2200 - $TOTAL) / max(rate, 0.1))
-    print(f'{hours:.1f}h elapsed, ~{rate:.0f}/h, ~{remaining:.1f}h remaining')
-else:
-    print('calculating...')
+    print(f'{hours:.1f}h since first launch, ~{rate:.0f}/h overall, ~{remaining:.1f}h remaining')
 " 2>/dev/null || echo "calculating...")
         
         cat > /tmp/architect-pipeline-status.txt << EOF
