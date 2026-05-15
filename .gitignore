@@ -56,6 +56,28 @@ chroma/
 chroma_data_backup/
 chromadb/
 
+# Run-log dumps — capture LLM payloads with copyrighted source chunks; never commit
+docs/reviews/first-run/vllm-nemotron3-nano-1.md
+docs/reviews/first-run/vllm-qwen-25-2.md
+docs/reviews/longer-runs/2500-run-1.md
+docs/reviews/longer-runs/factor-run2.md
+docs/reviews/longer-runs/factory-run-1.md
+docs/reviews/longer-runs/factory-run-3.md
+docs/reviews/longer-runs/long_run_1.md
+docs/reviews/longer-runs/test-FPF1-fixes.md
+docs/reviews/longer-runs/test-fixes-run-1.md
+docs/reviews/longer-runs/test-fpf1-regression-fixes.md
+docs/reviews/longer-runs/test-run-after-params-fixes.md
+docs/reviews/second-run/qwen35-run-1.md
+docs/reviews/second-run/qwen35-run-2.md
+docs/reviews/second-run/qwen35-run-4.md
+docs/reviews/second-run/qwen35-run-5.md
+docs/reviews/second-run/qwen35-run-6.md
+docs/reviews/second-run/qwen35-run-7.md
+docs/reviews/second-run/qwen35-run-8.md
+docs/reviews/second-run/qwen35-run-9.md
+docs/reviews/second-run/qwen35-run03.md
+
 # Run logs
 *.log
 !docs/**/*.log
