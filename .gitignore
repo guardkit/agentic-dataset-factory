@@ -47,8 +47,14 @@ domains/*/sources/*.pdf
 # Synthesis outputs
 output/
 output-run*/
+output_backup*/
 checkpoints/
+
+# Chroma vector stores (may contain copyrighted source chunks — never commit)
 chroma_data/
+chroma/
+chroma_data_backup/
+chromadb/
 
 # Run logs
 *.log
