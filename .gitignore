@@ -84,3 +84,13 @@ docs/reviews/second-run/qwen35-run03.md
 
 # Per-machine Claude Code overrides
 .claude/settings.local.json
+
+# Coach fine-tune data artefacts under domains/coach-agent/ — regenerable from the
+# scripts. The real-sample (step0_samples) + reconstructed-real (step0_eval, *_report)
+# ones embed copyrighted source chunks; never commit. Track docs (*.md) + scripts
+# (*.py/*.js) only. Add a specific synthetic file back with `git add -f` if needed.
+domains/coach-agent/*.jsonl
+domains/coach-agent/*.json
+domains/coach-agent/step0_samples/
+domains/coach-agent/step0_synth_prompts/
+domains/coach-agent/v3_prompts/
