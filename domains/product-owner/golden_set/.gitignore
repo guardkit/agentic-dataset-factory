@@ -1,0 +1,4 @@
+# Generated Phase-0 run outputs — reproducible via score_golden_set.py.
+# The committed record of results is ../RESULTS-po-phase0.md.
+phase0_*.json
+phase0_*.log
