@@ -6,9 +6,11 @@
 
 ---
 
-## TL;DR
+## TL;DR — Phase 0 CONCLUDED (2026-07-02): the base is strong
 
-The Phase-0 harness runs end-to-end against the real MoE base + an independent Coach, co-resident (no per-item model swap). The **first batch (greenfield, 4 items) came back 4/4 accept, score 5, both assumption-traps genuinely handled** — a real positive (the base does greenfield PO decomposition well and holds the loud/conservative posture), **but a perfect sweep is non-discriminating**: greenfield is the easiest mode, the sample is tiny, and the guided prompt spoon-feeds the rubric shape. So the edge-density vector is empty and gives no Phase-3 guidance yet. The response was to **sharpen the probe** (guided-vs-light A/B + 3 harder traps) and **add the harder, higher-value `extract` mode** (6 items seeded from real harvest triples) before drawing conclusions. That expanded run is pending.
+Across three runs (guided prose, light prose, and the real ProductRoadmap-JSON `contract` run with a `## File:` corpus), the **Gemma-4-26B-A4B MoE base is a strong starting point**. It **grounds faithfully when given a corpus (extract 6/6), never fabricates sources** (greenfield: `coverage_score=null` + empty `source_documents`, correct), **surfaces unknowns as confidence-tagged assumptions (100%)**, holds decomposition/scope/prioritisation (100%), and **never false-confidences on any of the 11 traps in any run**. The naive "weak" numbers (grounding 46%, acceptance-criteria 23%) were **eval-design artifacts**, not base gaps: `grounding_fidelity` mis-scoped no-corpus modes (now fixed in GOAL.md), and single-pass `ProductRoadmap` has no acceptance-criteria field (ACs live in the phased `EnrichmentBatch` — deferred to Phase 2). **Implication for the fine-tune: reinforcement + serving-shape fluency, not judgment repair.** Full arc below.
+
+**Applied on conclusion:** the light-touch `grounding_fidelity` mode-scoping fix (GOAL.md) so no-corpus modes aren't penalised for correct empty-citation behaviour — this also corrects training-time gating, not just the eval. The phased-extract AC path is logged as a Phase-2 item.
 
 ---
 
