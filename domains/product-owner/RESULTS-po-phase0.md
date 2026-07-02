@@ -108,6 +108,37 @@ Build the **contract-aligned run**: (1) a `--instruction contract` preset that e
 
 ---
 
+## Contract grounding run — the real grounding read (2026-07-02)
+
+Ran the 13-item grounding set (greenfield 7 + **corpus** extract 6) under `--instruction contract` (real ProductRoadmap JSON + `## File:` corpus).
+
+| criterion | pass | read |
+|---|---|---|
+| **grounding_fidelity** | 46% (7/13 fail) | **all 7 failures are greenfield; extract 6/6 PASS** |
+| acceptance_criteria_testability | 23% | **artifact** (see below) |
+| outcome_over_output | 62% | modest real signal (JSON nudges to output-listing) |
+| assumption_explicitness / decomposition / scope / prioritisation / terminology | 100% | robust under JSON too |
+| false-confidence (traps) | **0/11** | robust across all 3 runs |
+
+### The headline: the base does NOT have a grounding/fabrication problem
+- **Extract (corpus provided): grounding passes 6/6.** Given real `## File:` documents, the base cites them faithfully and covers them — no `FABRICATED_SOURCE_REFERENCE`. This is exactly what the extract batch was built to test, and the answer is **the base grounds well.**
+- **Greenfield (no corpus): grounding "fails" 7/7 — but the base did the *right* thing:** it set `coverage_score=null` and emitted **empty** `source_documents` (it did **not** invent sources). The Coach failed it for "empty source_documents / no citation to the brief" — i.e. it over-applies a corpus-centric criterion to a no-corpus mode. **Not base fabrication; a criterion mis-scoping.**
+
+### Two eval-design artifacts (not base defects), both localized
+1. **`grounding_fidelity` mis-scopes greenfield/idea.** It should, for no-corpus modes, check *"no fabricated sources + features trace to the brief"* — not *"non-empty source_documents."* The base already exhibits the correct behaviour (no fabrication).
+2. **`acceptance_criteria_testability` is unmeasurable under single-pass `ProductRoadmap`.** That schema's `FeatureSpecInput` has **no `acceptance_criteria` field** — ACs live in the phased `EnrichmentBatch` (Phase B, per OUTPUT-CONTRACT §60-75). So the 23% is "the JSON has no AC field," not a base weakness (the base aced ACs at 100% in prose). Every corpus-extract item's blocker was this artifact (grounding passed; `extractc-005` fully accepted). To test ACs under the real contract, use the **phased extract flow** (EpicPlan→EnrichmentBatch) or add ACs to the feature shape.
+
+### Phase-0 verdict
+The **Gemma-4-26B-A4B MoE base is a strong starting point**: it grounds faithfully when given a corpus, does not fabricate sources when there isn't one, surfaces unknowns as confidence-tagged assumptions (100%), holds scope/decomposition/prioritisation (100%), and **never false-confidences on any of the 11 traps across three runs** (guided prose, light prose, contract JSON). The fine-tune's job is therefore **reinforcement + serving-shape fluency** (emit the exact JSON contract; ACs in the right phase; keep outcome-framing crisp under JSON), **not fixing broken judgment**. The only modest real gap is `outcome_over_output` under JSON (62%; 85% in light prose) — a Phase-3 reinforcement target, not a deficiency.
+
+### Corrected edge-density (artifacts discounted)
+Raw numbers say oversample AC (0.44) + grounding (0.30) — but both are eval artifacts. **Real** Phase-3 emphasis: **outcome-framing under the JSON contract** and **prioritisation_rationale** (weak in the light-prose run), plus **serving-shape fluency** (correct JSON, phased ACs). Judgment and grounding need reinforcement, not remediation.
+
+### Next refinements (to get a clean final number)
+(1) mode-scope `grounding_fidelity` (greenfield = no-fabrication + brief-trace); (2) add a `--phase` / EnrichmentBatch path (or AC-in-feature) so acceptance-criteria testability is measurable under the contract. Both are eval-harness/GOAL refinements — the base conclusion stands regardless.
+
+---
+
 ## Open items / caveats
 
 - **Sample is still small** (13). Percentages are coarse; trap behaviour is the signal to trust. Expand the other four modes (`idea`/`evolve`/`impact`/`scope`) next for full coverage.
