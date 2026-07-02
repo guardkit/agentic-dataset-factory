@@ -122,10 +122,50 @@ _MINIMAL_INSTRUCTION = """
 
 Reason inside a <think>...</think> block first, then give your answer.
 """
+# Serving-contract-aligned probe (OUTPUT-CONTRACT.md): emits the mode's real
+# ProductRoadmap JSON with source_documents/citations, so grounding_fidelity is
+# actually measurable (does it cite the provided ## File: corpus, cover it, and
+# not fabricate sources?) rather than failing for lack of any citation structure.
+_CONTRACT_INSTRUCTION = """
+
+--- OUTPUT FORMAT (required) ---
+First a <think>...</think> block reasoning about the outcome, the unknowns you
+must surface as assumptions (with confidence + basis), scope, and sequencing.
+Then output ONE ```json fenced object — the ProductRoadmap serving schema:
+
+{
+  "project_name": str, "mode": "<idea|greenfield|extract|evolve|impact|scope>",
+  "epics": [ { "id": str, "name": str, "bounded_context": str, "description": str,
+    "source_documents": [ {"filename": str, "contribution": str} ],
+    "features": [ { "feature_id": str, "title": str,
+      "description": "2+ sentences, behavioural, spec-ready",
+      "bounded_context": str, "constraints": [str], "suggested_context_files": [str],
+      "depends_on": [str],
+      "source_documents": [ {"filename": str, "contribution": str} ] } ] } ],
+  "feature_spec_inputs": [ <the SAME feature objects, flattened across all epics> ],
+  "priority_rationale": "advisory prose only — never numeric scores",
+  "constraints_and_dependencies": [str], "open_questions": [str],
+  "coverage_score": <fraction of the provided corpus covered, or null if NO documents were provided>,
+  "source_documents": [ {"filename": str, "contribution": str} ],
+  "assumptions": [ { "id": str, "category": str, "statement": "falsifiable",
+    "source": "where it comes from", "confidence": "low|medium|high",
+    "impact_if_wrong": str } ]
+}
+
+GROUNDING (critical): every source_documents entry MUST reference a document
+actually provided above as a "## File: <filename>" block — cite it by that exact
+filename. If NO "## File:" documents were provided, set coverage_score to null,
+invent NO source_documents, and ground features in the brief itself. NEVER cite a
+source that was not provided, and COVER the provided material (do not silently
+drop a document). Surface unstated parameters/policies as assumptions (never
+invent a confident value). Propose features; do not ask the user questions.
+"""
+
 INSTRUCTIONS = {
     "guided": MUT_OUTPUT_INSTRUCTION,
     "light": _LIGHT_INSTRUCTION,
     "minimal": _MINIMAL_INSTRUCTION,
+    "contract": _CONTRACT_INSTRUCTION,
 }
 
 # Fallback behaviour-criteria keys. The RUNTIME list is derived dynamically from
@@ -193,6 +233,18 @@ async def _ainvoke_retry(
     raise last  # pragma: no cover - loop always returns or raises
 
 
+def _user_content(item: dict[str, Any]) -> str:
+    """The full user message: any attached corpus rendered as ## File: blocks,
+    then the item's request. Makes grounding/coverage verifiable for extract."""
+    corpus = item.get("corpus")
+    if not corpus:
+        return item["user"]
+    docs = "\n\n".join(
+        f"## File: {d['filename']}\n{d['content']}" for d in corpus
+    )
+    return f"{docs}\n\n---\n\n{item['user']}"
+
+
 def _content_to_text(content: Any) -> str:
     """Coerce a chat-model response content into a plain string."""
     if isinstance(content, str):
@@ -208,7 +260,9 @@ def _content_to_text(content: Any) -> str:
     return str(content)
 
 
-def _example_envelope(system_prompt: str, item: dict[str, Any], assistant: str) -> str:
+def _example_envelope(
+    system_prompt: str, item: dict[str, Any], assistant: str, user_content: str
+) -> str:
     """Assemble the {messages, metadata} training-example JSON the Coach grades.
 
     Matches the ShareGPT envelope the generation loop hands the Coach; metadata
@@ -218,7 +272,7 @@ def _example_envelope(system_prompt: str, item: dict[str, Any], assistant: str) 
     example = {
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": item["user"]},
+            {"role": "user", "content": user_content},
             {"role": "assistant", "content": assistant},
         ],
         "metadata": {
@@ -252,13 +306,14 @@ async def _score_item(
     goes into the example envelope the Coach grades (train==serve — the appended
     output instruction is harness scaffolding, not part of the example).
     """
+    user_content = _user_content(item)
     async with sem:
         try:
             gen = await _ainvoke_retry(
                 mut_model,
                 [
                     SystemMessage(content=mut_system),
-                    HumanMessage(content=item["user"]),
+                    HumanMessage(content=user_content),
                 ],
             )
             assistant = _content_to_text(gen.content).strip()
@@ -267,7 +322,9 @@ async def _score_item(
             return {"id": item["id"], "error": f"generate: {exc}"}
 
         has_think = "<think>" in assistant and "</think>" in assistant
-        example_json = _example_envelope(po_system_prompt, item, assistant)
+        example_json = _example_envelope(
+            po_system_prompt, item, assistant, user_content
+        )
 
         try:
             verdict_raw = await _ainvoke_retry(
@@ -314,9 +371,14 @@ async def _score_item(
     }
 
 
-def _load_golden(path: Path) -> list[dict[str, Any]]:
-    """Load golden items from a .jsonl file or a directory of .jsonl files."""
-    files = sorted(path.glob("*.jsonl")) if path.is_dir() else [path]
+def _load_golden(paths: list[Path]) -> list[dict[str, Any]]:
+    """Load golden items from one or more .jsonl files / directories of them."""
+    files: list[Path] = []
+    for p in paths:
+        if p.is_dir():
+            files.extend(sorted(p.glob("*.jsonl")))
+        else:
+            files.append(p)
     items: list[dict[str, Any]] = []
     for f in files:
         for line in f.read_text().splitlines():
@@ -508,8 +570,8 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     mut_model = create_model(player_cfg, timeout=args.timeout)
     coach_model = create_model(coach_cfg, timeout=args.timeout)
 
-    items = _load_golden(Path(args.golden))
-    logger.info("loaded %d golden items", len(items))
+    items = _load_golden([Path(p) for p in args.golden])
+    logger.info("loaded %d golden items from %s", len(items), args.golden)
     sem = asyncio.Semaphore(args.concurrency)
     results = await asyncio.gather(
         *(
@@ -539,7 +601,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     _here = Path(__file__).resolve().parent
     ap.add_argument("--goal", default=str(_here / "GOAL.md"))
-    ap.add_argument("--golden", default=str(_here / "golden_set"))
+    ap.add_argument("--golden", nargs="+", default=[str(_here / "golden_set")],
+                    help="one or more .jsonl files or dirs. For a grounding run "
+                         "pass the greenfield + *_corpus files (not the prose "
+                         "extract set, which can't test grounding)")
     ap.add_argument("--player-model", default="gemma4-26b",
                     help="the model-under-test being diagnosed (default: the "
                          "Gemma-4-26B-A4B MoE base the PO fine-tune trains from)")
@@ -552,11 +617,13 @@ def main() -> None:
     ap.add_argument("--max-tokens", type=int, default=6000,
                     help="model-under-test completion budget (roomy for a roadmap)")
     ap.add_argument("--coach-max-tokens", type=int, default=2048)
-    ap.add_argument("--instruction", choices=["guided", "light", "minimal"],
+    ap.add_argument("--instruction",
+                    choices=["guided", "light", "minimal", "contract"],
                     default="guided",
-                    help="output-shape spoon-feed for the model-under-test; A/B "
-                         "'guided' vs 'light' to expose native PO tendency vs "
-                         "instruction-following")
+                    help="output-shape for the model-under-test. guided/light/"
+                         "minimal = prose (A/B native tendency vs spoon-feed); "
+                         "contract = the real ProductRoadmap JSON with citations "
+                         "(required to actually measure grounding_fidelity)")
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--concurrency", type=int, default=2,
                     help="keep <= the model's llama-swap concurrencyLimit (2) to "
