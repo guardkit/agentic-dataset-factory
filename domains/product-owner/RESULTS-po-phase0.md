@@ -77,6 +77,37 @@ To get a discriminating signal, run the expanded set under two instruction stren
 
 ---
 
+## A/B run — guided vs light, 9-criterion rubric (2026-07-02)
+
+Ran all 13 items (greenfield 7 + extract 6) twice: `--instruction guided` and `--instruction light`.
+
+| criterion | guided pass | light pass |
+|---|---|---|
+| grounding_fidelity | **0%** (13/13 ungrounded) | **8%** (12/13) |
+| prioritisation_rationale | 100% | **62%** |
+| outcome_over_output | 100% | **85%** |
+| acceptance_criteria_testability | 100% | **92%** |
+| assumption_explicitness | 100% | 100% |
+| decomposition_coherence / scope_discipline / terminology / no_verbatim | 100% | 100% |
+| **accept rate** (both modes) | **0%** | **0%** |
+| false-confidence (traps) | **0/11** | **0/11** |
+
+### Finding 1 — the grounding 0% is a MEASUREMENT CONFOUND, not a base weakness
+Every `grounding_fidelity` failure reads *"no explicit citations / `## File:` references present."* The prose instruction produces **no citation structure**, and the extract items **describe** their feature rather than **supplying the corpus**, so grounding_fidelity — which requires citations to real sources + corpus coverage — **cannot pass by construction**. The Coach even (over-)demanded citations to source books on greenfield. So this run does **not** measure whether the base invents capabilities; it measures "prose has no citations."
+
+**Consequence:** OUTPUT-CONTRACT §127 ("align the generation instruction to the JSON contract") is **promoted from non-blocking to required-to-measure-grounding**. The Mac session's hope that grounding-on-prose scores faithfulness does not hold — the criterion is citation-centric. To get a real grounding read we need: (a) the output instruction aligned to the mode's JSON (`source_documents`/`field_citations`), and (b) extract items that **carry the corpus** (real `## File:` document text), so the Coach can verify real-vs-`FABRICATED_SOURCE_REFERENCE` and `MISSING_COVERAGE`.
+
+### Finding 2 — the real signal is the guided→light delta on the NON-grounding criteria
+Unconfounded and genuine (directional, small n): without the spoon-feed the base weakens on **prioritisation_rationale (100%→62%)**, **outcome_over_output (100%→85%)**, and **acceptance_criteria_testability (100%→92%)**; it holds 100% on assumption/decomposition/scope. → these three are the honest Phase-3 edge-density candidates (the base does them when told, less so natively).
+
+### Finding 3 — the loud/conservative posture is robust
+**false-confidence 0/11 traps in BOTH runs**, including the harder greenfield traps (leading-premise, gold-plating, false-simplicity) and the parameter-dense extract traps. The base reliably surfaces unknowns as assumptions rather than inventing confident requirements — the primary PO failure mode stays absent even under a bare instruction. This is the strongest real positive so far.
+
+### Corrected next step
+Build the **contract-aligned run**: (1) a `--instruction contract` preset that emits `<think>` + the mode's JSON per OUTPUT-CONTRACT.md; (2) attach real corpus text to the extract items. Then re-run to get a *valid* grounding read. Until then, treat grounding as **unmeasured**, not failed.
+
+---
+
 ## Open items / caveats
 
 - **Sample is still small** (13). Percentages are coarse; trap behaviour is the signal to trust. Expand the other four modes (`idea`/`evolve`/`impact`/`scope`) next for full coverage.
