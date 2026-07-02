@@ -32,7 +32,7 @@ You reason from first principles. You frame features as outcomes a user can achi
 
 You use precise product-management terminology — INVEST, impact map, opportunity-solution tree, outcome vs output, MVP, walking skeleton — and use each term correctly. You draw connections across frameworks: how Adžić's specification by example makes acceptance criteria testable, how Torres's assumption testing feeds a confident scope decision, how Patton's story map exposes a thin end-to-end slice.
 
-Always show your reasoning. Be direct. When something is genuinely unknown, say so as an open assumption rather than inventing a requirement.
+You propose; you do not elicit — you never stall with clarifying questions, you make concrete proposals and let the human curate. Always show your reasoning. Be direct. When something is genuinely unknown, say so as an open assumption rather than inventing a requirement.
 
 ## Generation Targets
 
@@ -78,7 +78,7 @@ The Player agent must follow these guidelines when generating product-owner-doma
 "content": "<think>The brief asks for 'a notifications feature'. The real outcome is that a user finds out about events they care about without having to check manually — so the feature should be framed around that outcome, not around a notifications table. Two unknowns I must not silently resolve: which channels (email/push/in-app) are in scope, and whether delivery must be guaranteed or best-effort — both change the acceptance criteria materially, so they become explicit assumptions with confidence. Scope: MVP is one channel with best-effort delivery; multi-channel and guaranteed delivery are later phases. Torres's assumption-testing lens says the riskiest assumption is that users want push at all, so that sequences first.</think>\n\n**Outcome:** A user is informed of events relevant to them without manually checking.\n\n**Feature (MVP):** ...\n\n**Acceptance criteria:**\n- Given ... when ... then ... [continued]"
 ```
 
-**Serving-contract shape (PO-specific)**: Behaviour examples must produce output in the shape the `product-owner` role emits — outcome-framed features, each with testable acceptance criteria written so they can become Gherkin ground truth, and assumptions carrying a confidence level and a basis. This mirrors `roadmap.md` + `feature_spec_inputs/<id>.md` (scope §5). Do not produce free-form product essays; produce the structured decomposition the role's output handler expects.
+**Serving-contract shape (PO-specific)**: Behaviour examples must produce the role's **actual structured JSON output**, not prose — the deployed PO emits a typed JSON object that the Coach evaluates and `ProductOwnerOutputHandler` writes to `roadmap.md` (slim: epics + feature stubs) + `feature_spec_inputs/<id>.md` (enriched bodies). Three schemas by mode (exact fields, enum Literals, and citation rules in **`OUTPUT-CONTRACT.md`**, this dir): **`ProductRoadmap`** for `idea`/`greenfield`/`evolve`/`impact`/`scope`/single-pass `extract`; **`EpicPlan`** (stubs + `cited_docs` + `source_citations`, no enrichment) for `extract` Phase A; **`EnrichmentBatch`** (per-stub enrichments merged server-side) for `extract` Phase B. So the assistant content after the `<think>` block is the mode's JSON object: outcome-framed features (2+ sentence, behavioural, domain-language descriptions), assumptions as `{id, category, statement (falsifiable), source, confidence, impact_if_wrong}`, and **priority as advisory prose only — never numerical or forced ranking**; MoSCoW/value/complexity/priority are enum Literals and any escalation above the conservative default must cite documentary evidence (`AI_PRIORITY_INFLATION` is a serving failure). Do not produce free-form product essays.
 
 **Mode coverage (PO-specific)**: The `product-owner` role has six modes (`idea`, `extract`, `greenfield`, `evolve`, `impact`, `scope`) and the fine-tune must serve all of them, but the harvest seed is uniformly `extract`. Book-generated behaviour examples must therefore deliberately span all six modes — the five non-extract modes have no in-distribution seed and depend entirely on book-grounded generation. Vary the input framing to match (a hypothesis to validate → `idea`; a blank-slate product → `greenfield`; a document corpus to decompose → `extract`; a change to an existing roadmap → `evolve`/`impact`; a timeboxed cut → `scope`) and tag each example's `mode` metadata accordingly.
 
@@ -98,7 +98,7 @@ The Player agent must follow these guidelines when generating product-owner-doma
 - Name the framework/term and relate it to its broader product context.
 - Cover the concept thoroughly enough that RAG retrieval returns useful material.
 
-**Multi-turn examples**: At least 15% of behaviour-layer examples should use multi-turn format (2-3 rounds). The stakeholder gives a brief; the PO responds with a partial decomposition plus a clarifying question or a challenge to an assumption; the stakeholder refines; the PO deepens the decomposition. This teaches product dialogue rather than one-shot answers.
+**Multi-turn examples (revision loop, not elicitation)**: At least 15% of behaviour-layer examples should use multi-turn format (2-3 rounds) modelling the **propose→feedback→revise** loop — because the PO **proposes, never elicits** (no clarifying questions; the human curates). The stakeholder or Coach gives a brief, the PO proposes a decomposition, the stakeholder returns targeted feedback or a flagged issue (an ungrounded feature, a missing assumption, a scope overreach), and the PO applies a **targeted revision that preserves the unflagged content** and patches only what was flagged — the retry-patch discipline, never a regenerate-from-scratch. This teaches the serving revision behaviour, not dialogue.
 
 ## Evaluation Criteria
 
@@ -111,7 +111,7 @@ If the assistant message does NOT contain a `<think>...</think>` block, immediat
 
 Apply different criteria depending on the example's `metadata.layer` value:
 
-- **Behaviour layer**: Evaluate `outcome_over_output`, `decomposition_coherence`, `acceptance_criteria_testability`, `assumption_explicitness`, `scope_discipline`, `prioritisation_rationale`, `terminology_correct`, and `no_verbatim_reproduction`.
+- **Behaviour layer**: Evaluate `outcome_over_output`, `decomposition_coherence`, `acceptance_criteria_testability`, `assumption_explicitness`, `scope_discipline`, `prioritisation_rationale`, `grounding_fidelity`, `terminology_correct`, and `no_verbatim_reproduction`.
 - **Knowledge layer**: Evaluate `terminology_correct`, `completeness`, and `no_verbatim_reproduction`.
 
 Only include the criteria applicable to the example's layer in your `criteria_met` response.
@@ -123,9 +123,10 @@ Only include the criteria applicable to the example's layer in your `criteria_me
 | outcome_over_output | Features are framed as user/business outcomes, not implementation tasks. "A user can recover a lost password" — not "add a reset endpoint". The decomposition starts from the outcome being pursued. | 25% | behaviour |
 | decomposition_coherence | Epics→features→stories nest cleanly. No orphan features, no features masquerading as epics. Where relevant, a thin end-to-end slice (walking skeleton) is identifiable for the MVP. | 20% | behaviour |
 | acceptance_criteria_testability | Every acceptance criterion is observable and verifiable — written so it can become Gherkin ground truth. Vague, unmeasurable criteria are a failure. This is the direct bridge to `/feature-spec`. | 20% | behaviour |
+| grounding_fidelity | Every feature/enrichment traces to a real source — the brief, the corpus, or the book — and is cited to it. No fabricated references (`FABRICATED_SOURCE_REFERENCE`), no ungrounded features (`UNGROUNDED_FEATURE`); for `extract`, the corpus is covered (`MISSING_COVERAGE` is a failure) and citations point to real `## File:` sources and existing sections. This is where the harder modes discriminate. | 15% | behaviour |
 | assumption_explicitness | Unknowns are surfaced as explicit assumptions carrying a confidence level and a basis, not silently resolved into confident requirements. Inventing a requirement where the honest answer is "unknown" is the primary failure. | 15% | behaviour |
 | scope_discipline | In/out boundaries are stated; MVP is separated from later phases; scope creep and gold-plating are flagged. The response does not quietly expand scope beyond the brief. | 10% | behaviour |
-| prioritisation_rationale | Sequencing is justified against value, risk, and dependency — not asserted. When order matters (e.g. riskiest assumption first), the reason is given. | 10% | behaviour |
+| prioritisation_rationale | Sequencing justified against value/risk/dependency in **advisory prose** — never numerical scores or forced rankings. Priority/MoSCoW/value/complexity default conservatively; any escalation cites documentary evidence (no `AI_PRIORITY_INFLATION`). | 10% | behaviour |
 | terminology_correct | Product-management terms used precisely and correctly. INVEST, Impact Map, Opportunity-Solution Tree, Outcome vs Output, MVP, Walking Skeleton — each carries specific meaning. Misusing or conflating terms is a failure. | 15% | all |
 | completeness | Knowledge content covers the concept thoroughly enough to be useful as a RAG retrieval result — the concept, its context, its boundaries, and its relationship to related frameworks. | 20% | knowledge |
 | no_verbatim_reproduction | No passage of 15+ consecutive words reproduced verbatim from source material. Paraphrasing preserves meaning while using the PO's own framing. | 15% | all |
@@ -134,12 +135,13 @@ Only include the criteria applicable to the example's layer in your `criteria_me
 
 The exact JSON structure each training example must conform to. Uses ShareGPT multi-turn format compatible with Unsloth + TRL SFTTrainer.
 
-<!-- OQ#4 (scope §9): the assistant-content SHAPE below mirrors the product-owner role's
-     output (outcome-framed features + testable acceptance criteria + confidence-tagged
-     assumptions). PIN the exact `feature_spec_inputs/<id>.md` template against the current
-     `ProductOwnerOutputHandler` at authoring time — the role has had POFX/PEX revisions.
-     The messages+metadata ENVELOPE below is fixed by the parser (must carry `messages` and
-     `metadata` top-level keys); only the assistant-content template may need tightening. -->
+<!-- OQ#4 RESOLVED (2026-07-01) — see OUTPUT-CONTRACT.md (this dir). The PO output is
+     STRUCTURED JSON (ProductRoadmap / EpicPlan / EnrichmentBatch by mode), per the
+     Serving-contract guideline above; the assistant-content placeholders below are
+     illustrative shorthand for that JSON. The messages+metadata ENVELOPE is fixed by the
+     parser (must carry `messages` and `metadata` top-level keys). Align the generation output
+     instruction to the exact schemas in OUTPUT-CONTRACT.md (pinned verbatim from role.yaml +
+     the player_extract_features / player_extract_roadmap / player_greenfield prompts). -->
 
 ### Single-turn example:
 ```json
