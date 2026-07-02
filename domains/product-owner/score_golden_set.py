@@ -67,7 +67,10 @@ from agents.model_factory import create_model  # noqa: E402
 from config.coach_verdict import CoachVerdict  # noqa: E402
 from config.models import ModelConfig  # noqa: E402
 from domain_config.parser import parse_goal_md  # noqa: E402
-from prompts.coach_prompts import build_coach_prompt  # noqa: E402
+from prompts.coach_prompts import (  # noqa: E402
+    _filter_criteria_for_layer,
+    build_coach_prompt,
+)
 
 # Reuse the loop's robust 3-try verdict parser; fall back to a local extractor
 # only if importing the loop module is unavailable in this environment.
@@ -125,9 +128,10 @@ INSTRUCTIONS = {
     "minimal": _MINIMAL_INSTRUCTION,
 }
 
-# The 8 behaviour-layer criteria keys the Coach reports in criteria_met
-# (valid Python identifiers, per GOAL.md §Evaluation Criteria). Listed so the
-# report has stable columns even when a verdict omits a key.
+# Fallback behaviour-criteria keys. The RUNTIME list is derived dynamically from
+# the GOAL (see _behaviour_criteria) so the report tracks whatever the rubric
+# defines — e.g. the 2026-07-01 `grounding_fidelity` addition, the exact axis the
+# extract items test. This constant is only a last-resort default.
 BEHAVIOUR_CRITERIA = [
     "outcome_over_output",
     "decomposition_coherence",
@@ -135,9 +139,25 @@ BEHAVIOUR_CRITERIA = [
     "assumption_explicitness",
     "scope_discipline",
     "prioritisation_rationale",
+    "grounding_fidelity",
     "terminology_correct",
     "no_verbatim_reproduction",
 ]
+
+
+def _behaviour_criteria(goal: Any) -> list[str]:
+    """The behaviour-layer criterion keys the Coach will report, from the GOAL.
+
+    Derived from ``goal.evaluation_criteria`` (layer behaviour or all) so the
+    harness never lags the rubric — the exact bug that would have let the extract
+    items run against a grounding-blind report.
+    """
+    try:
+        crits = [c.name for c in _filter_criteria_for_layer(
+            goal.evaluation_criteria, "behaviour")]
+        return crits or list(BEHAVIOUR_CRITERIA)
+    except Exception:  # pragma: no cover - defensive
+        return list(BEHAVIOUR_CRITERIA)
 
 # Default source_books per mode when a golden item does not pin them (metadata
 # is secondary to the content criteria the Coach actually scores).
@@ -306,24 +326,29 @@ def _load_golden(path: Path) -> list[dict[str, Any]]:
     return items
 
 
-def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
-    """Per-dimension / per-mode pass rates, two-sided counts, edge weights."""
+def _aggregate(
+    results: list[dict[str, Any]], criteria: list[str]
+) -> dict[str, Any]:
+    """Per-dimension / per-mode pass rates, two-sided counts, edge weights.
+
+    ``criteria`` is the behaviour-criterion set derived from the GOAL, so a
+    rubric change (e.g. added ``grounding_fidelity``) flows through automatically.
+    """
     scored = [r for r in results if "criteria_met" in r]
     errored = [r for r in results if "error" in r]
 
     # per-criterion pass rate (the weakness ranking / edge-density signal)
-    seen = 0
     passed: dict[str, int] = defaultdict(int)
     total: dict[str, int] = defaultdict(int)
     for r in scored:
         cm = r["criteria_met"]
-        for crit in BEHAVIOUR_CRITERIA:
+        for crit in criteria:
             if crit in cm:
                 total[crit] += 1
                 passed[crit] += 1 if cm[crit] else 0
     dim_pass = {
         crit: (passed[crit] / total[crit]) if total[crit] else None
-        for crit in BEHAVIOUR_CRITERIA
+        for crit in criteria
     }
 
     # per-mode acceptance + mean score
@@ -356,9 +381,26 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
         )
     ]
 
+    # grounding — the axis the extract items exist to test (ungrounded = invented
+    # capabilities / fabricated citations). Only meaningful once the GOAL rubric
+    # carries grounding_fidelity (added 2026-07-01).
+    grounding: dict[str, Any] | None = None
+    if "grounding_fidelity" in criteria:
+        gf = [r for r in scored if "grounding_fidelity" in r["criteria_met"]]
+        fails = [r for r in gf if r["criteria_met"]["grounding_fidelity"] is False]
+        by_mode_fail: dict[str, int] = defaultdict(int)
+        for r in fails:
+            by_mode_fail[r.get("mode") or "unknown"] += 1
+        grounding = {
+            "n_evaluated": len(gf),
+            "n_ungrounded": len(fails),
+            "ungrounded_ids": [r["id"] for r in fails],
+            "ungrounded_by_mode": dict(by_mode_fail),
+        }
+
     # edge-density weight vector: oversample proportional to miss rate.
     miss = {
-        crit: (1.0 - dim_pass[crit]) for crit in BEHAVIOUR_CRITERIA if dim_pass[crit] is not None
+        crit: (1.0 - dim_pass[crit]) for crit in criteria if dim_pass[crit] is not None
     }
     denom = sum(miss.values()) or 1.0
     edge_weights = {crit: round(m / denom, 3) for crit, m in sorted(
@@ -386,6 +428,7 @@ def _aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
                 "ids": [r["id"] for r in over_conservative],
             },
         },
+        "grounding": grounding,
         "edge_density_weights": edge_weights,
     }
 
@@ -414,6 +457,14 @@ def _print_summary(agg: dict[str, Any], meta: dict[str, Any]) -> None:
         f"\ntwo-sided:  false-confidence {ts['false_confidence']['n']}/{ts['n_traps']} traps"
         f"  |  over-conservative(proxy) {ts['over_conservative_proxy']['n']}"
     )
+    g = agg.get("grounding")
+    if g is not None:
+        print(
+            f"grounding:  {g['n_ungrounded']}/{g['n_evaluated']} ungrounded"
+            f"  |  by mode {g['ungrounded_by_mode'] or '{}'}"
+        )
+    else:
+        print("grounding:  n/a (grounding_fidelity not in the GOAL rubric)")
     print("\nedge-density weights (Phase-3 oversample distribution):")
     for crit, w in agg["edge_density_weights"].items():
         print(f"  {crit:<34} {w}")
@@ -425,6 +476,13 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
     coach_prompt = build_coach_prompt(goal, target_layer="behaviour")
     po_system_prompt = goal.system_prompt
     mut_system = po_system_prompt + INSTRUCTIONS[args.instruction]
+    criteria = _behaviour_criteria(goal)
+    logger.info("behaviour criteria from GOAL (%d): %s", len(criteria), criteria)
+    if "grounding_fidelity" not in criteria:
+        logger.warning(
+            "grounding_fidelity NOT in the GOAL rubric — the extract items will "
+            "not measure grounding. Is domains/product-owner/GOAL.md up to date?"
+        )
 
     player_cfg = ModelConfig(
         provider="local",
@@ -467,11 +525,12 @@ async def _run(args: argparse.Namespace) -> dict[str, Any]:
             for it in items
         )
     )
-    agg = _aggregate(results)
+    agg = _aggregate(results, criteria)
     meta = {
         "player": args.player_model,
         "coach": args.coach_model,
         "instruction": args.instruction,
+        "behaviour_criteria": criteria,
     }
     return {"meta": meta, "aggregate": agg, "results": results}
 

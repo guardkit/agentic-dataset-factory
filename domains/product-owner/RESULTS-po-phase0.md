@@ -22,7 +22,11 @@ The Phase-0 harness runs end-to-end against the real MoE base + an independent C
 **Harness (`score_golden_set.py`):** reuses the factory rubric verbatim (`build_coach_prompt` + `create_coach` + `_parse_coach_verdict` → `CoachVerdict`). Additions this phase:
 - retry-with-backoff on transient HTTP 429 (llama-swap `concurrencyLimit`), default `--concurrency 2` (the model's limit);
 - persists the model-under-test's full output for auditing/curation;
-- **`--instruction {guided,light,minimal}`** — A/B how much output shape is spoon-fed, to separate native PO tendency from instruction-following.
+- **`--instruction {guided,light,minimal}`** — A/B how much output shape is spoon-fed, to separate native PO tendency from instruction-following;
+- **derives the behaviour-criteria set dynamically from the GOAL** (via `_filter_criteria_for_layer`), not a hardcoded list — so the 2026-07-01 `grounding_fidelity` addition is measured, reported, and edge-weighted; adds a **grounding-failure summary** (ungrounded count by mode) — the axis the `extract` items exist to test.
+
+### Rubric sync (2026-07-02, from the Mac session)
+`GOAL.md` gained a 9th behaviour criterion **`grounding_fidelity`** (15%: every feature/enrichment traces to a real source — brief/corpus/book — no `FABRICATED_SOURCE_REFERENCE`/`UNGROUNDED_FEATURE`; for `extract`, corpus coverage), and a new **`OUTPUT-CONTRACT.md`** pins the real serving output as **structured JSON** (`ProductRoadmap`/`EpicPlan`/`EnrichmentBatch`), not prose. Because the Coach prompt is built from `goal.evaluation_criteria`, the Coach already scores grounding; the harness was the lagging layer (it hardcoded 8 criteria) — now fixed. **Aligning the guided instruction to emit the real JSON contract is a deliberately deferred, non-blocking follow-up** (OUTPUT-CONTRACT §127-132): grounding on prose still meaningfully scores "did it stay faithful to the described feature."
 
 **Golden set (`golden_set/`, 13 items, 11 traps):**
 - `golden_greenfield.jsonl` (4) — blank-slate briefs, 2 traps.
@@ -41,6 +45,8 @@ The Phase-0 harness runs end-to-end against the real MoE base + an independent C
 | 004 | support analytics dashboard | ✅ | accept | 5 | ✅ surfaced data-source, latency, "resolved" definition |
 
 All 8 behaviour criteria 100%. **Two-sided:** false-confidence 0/2 traps, over-conservative 0. Coach assessments confirm the traps were *genuinely* handled (real unknowns surfaced as confidence-tagged assumptions), not rubber-stamped.
+
+> ⚠️ This batch was scored on the **8-criterion (pre-`grounding_fidelity`) rubric** and greenfield mode (no corpus), so it says nothing about grounding. The pending run scores the **9-criterion** rubric across greenfield + extract, where grounding discriminates.
 
 ### Honest interpretation
 - **Real positive:** under the serving prompt, the base already handles greenfield decomposition and does **not** invent confident requirements on the traps — the primary PO failure mode is absent here. Encouraging for how much greenfield the fine-tune must teach (little).
@@ -67,7 +73,7 @@ To get a discriminating signal, run the expanded set under two instruction stren
   --out domains/product-owner/golden_set/phase0_light.json
 ```
 
-**What to watch:** extract-mode accept rate (real grounded features — likely lower than greenfield); whether the harder greenfield traps (005-007) still get 0 false-confidence; and the guided→light delta on `assumption_explicitness` / `acceptance_criteria_testability` (the dimensions most likely to depend on the spoon-feed).
+**What to watch:** **`grounding_fidelity` on the extract items** (the point of the sync — does the base stay faithful to the described feature and surface gaps as assumptions, or invent capabilities? this is the axis most likely to break 100%); extract-mode accept rate (real grounded features — likely lower than greenfield); whether the harder greenfield traps (005-007) still get 0 false-confidence; and the guided→light delta on `assumption_explicitness` / `acceptance_criteria_testability` / `grounding_fidelity` (dimensions most likely to depend on the spoon-feed).
 
 ---
 
