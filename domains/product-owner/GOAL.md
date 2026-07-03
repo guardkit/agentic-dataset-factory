@@ -80,6 +80,45 @@ The Player agent must follow these guidelines when generating product-owner-doma
 
 **Serving-contract shape (PO-specific)**: Behaviour examples must produce the role's **actual structured JSON output**, not prose — the deployed PO emits a typed JSON object that the Coach evaluates and `ProductOwnerOutputHandler` writes to `roadmap.md` (slim: epics + feature stubs) + `feature_spec_inputs/<id>.md` (enriched bodies). Three schemas by mode (exact fields, enum Literals, and citation rules in **`OUTPUT-CONTRACT.md`**, this dir): **`ProductRoadmap`** for `idea`/`greenfield`/`evolve`/`impact`/`scope`/single-pass `extract`; **`EpicPlan`** (stubs + `cited_docs` + `source_citations`, no enrichment) for `extract` Phase A; **`EnrichmentBatch`** (per-stub enrichments merged server-side) for `extract` Phase B. So the assistant content after the `<think>` block is the mode's JSON object: outcome-framed features (2+ sentence, behavioural, domain-language descriptions), assumptions as `{id, category, statement (falsifiable), source, confidence, impact_if_wrong}`, and **priority as advisory prose only — never numerical or forced ranking**; MoSCoW/value/complexity/priority are enum Literals and any escalation above the conservative default must cite documentary evidence (`AI_PRIORITY_INFLATION` is a serving failure). Do not produce free-form product essays.
 
+**ProductRoadmap serving schema (the assistant JSON after the `<think>` block)**: For Phase 1 (single-pass), the assistant content is a `<think>...</think>` block **followed by ONE ```json fenced object** — the `ProductRoadmap` (the inner fence lives inside the assistant `content` string; the *outer* ShareGPT envelope is still raw JSON with `messages`/`metadata`). Emit exactly these fields:
+
+```json
+{
+  "project_name": "str",
+  "mode": "<idea|greenfield|extract|evolve|impact|scope>",
+  "epics": [
+    {
+      "id": "str", "name": "str", "bounded_context": "str", "description": "str",
+      "source_documents": [ {"filename": "str", "contribution": "str"} ],
+      "features": [
+        {
+          "feature_id": "str", "title": "str",
+          "description": "2+ sentences, behavioural, domain language, spec-ready",
+          "bounded_context": "str", "constraints": ["str"],
+          "suggested_context_files": ["str"], "depends_on": ["str"],
+          "source_documents": [ {"filename": "str", "contribution": "str"} ]
+        }
+      ]
+    }
+  ],
+  "feature_spec_inputs": [ "<the SAME feature objects, flattened across all epics>" ],
+  "priority_rationale": "advisory prose only — never numeric scores or forced rankings",
+  "constraints_and_dependencies": ["str"],
+  "open_questions": ["str"],
+  "coverage_score": "<fraction of the provided corpus covered, or null if NO documents were provided>",
+  "source_documents": [ {"filename": "str", "contribution": "str"} ],
+  "assumptions": [
+    {
+      "id": "str", "category": "str", "statement": "falsifiable",
+      "source": "where it comes from", "confidence": "low|medium|high",
+      "impact_if_wrong": "str"
+    }
+  ]
+}
+```
+
+**Grounding discipline (mode-aware, critical)**: In the **no-corpus** generative modes (`greenfield`/`idea` — Phase 1 has no `## File:` documents), `coverage_score` MUST be `null`, `source_documents` MUST be empty at every level, and you invent NO citations — ground features in the brief you construct; empty `source_documents` is correct here, not a failure. In **corpus** modes (`extract`), every `source_documents` entry MUST reference a document actually provided as a `## File: <filename>` block (cite by that exact filename), cover the provided material, and never cite a source that was not provided. Surface unstated parameters/policies as `assumptions` (never invent a confident value). Propose features; do not ask the user questions.
+
 **Mode coverage (PO-specific)**: The `product-owner` role has six modes (`idea`, `extract`, `greenfield`, `evolve`, `impact`, `scope`) and the fine-tune must serve all of them, but the harvest seed is uniformly `extract`. Book-generated behaviour examples must therefore deliberately span all six modes — the five non-extract modes have no in-distribution seed and depend entirely on book-grounded generation. Vary the input framing to match (a hypothesis to validate → `idea`; a blank-slate product → `greenfield`; a document corpus to decompose → `extract`; a change to an existing roadmap → `evolve`/`impact`; a timeboxed cut → `scope`) and tag each example's `mode` metadata accordingly.
 
 **Cross-referencing between frameworks**: Where frameworks relate, the PO should draw the connection explicitly. Adžić's specification-by-example makes acceptance criteria testable; Torres's opportunity-solution trees expose the assumptions a scope decision rests on; Patton's story map surfaces a thin end-to-end slice for the MVP. These connections are high-value training signal — they teach the model to reason across frameworks rather than within one book's vocabulary.
@@ -149,7 +188,7 @@ The exact JSON structure each training example must conform to. Uses ShareGPT mu
   "messages": [
     {"role": "system", "content": "<System Prompt from section above>"},
     {"role": "user", "content": "<a brief, a document excerpt, or a decomposition request>"},
-    {"role": "assistant", "content": "<think>...</think>\n\n<outcome-framed decomposition: feature(s), testable acceptance criteria, assumptions with confidence + basis, in/out scope>"}
+    {"role": "assistant", "content": "<think>reasoning: outcome, unknowns→assumptions, scope, sequencing</think>\n\n```json\n<ONE ProductRoadmap object — exact fields under Generation Guidelines → 'ProductRoadmap serving schema'>\n```"}
   ],
   "metadata": {
     "layer": "behaviour",
@@ -170,9 +209,9 @@ The exact JSON structure each training example must conform to. Uses ShareGPT mu
   "messages": [
     {"role": "system", "content": "<System Prompt from section above>"},
     {"role": "user", "content": "<initial brief>"},
-    {"role": "assistant", "content": "<think>...</think>\n\n<partial decomposition + a clarifying question or an assumption challenge>"},
-    {"role": "user", "content": "<refined brief or answer to the clarifying question>"},
-    {"role": "assistant", "content": "<think>...</think>\n\n<deepened decomposition with resolved scope>"}
+    {"role": "assistant", "content": "<think>...</think>\n\n```json\n<ProductRoadmap object — first-pass decomposition>\n```"},
+    {"role": "user", "content": "<targeted feedback: a flagged ungrounded feature, a missing assumption, or a scope overreach>"},
+    {"role": "assistant", "content": "<think>...</think>\n\n```json\n<ProductRoadmap object — targeted revision preserving unflagged content>\n```"}
   ],
   "metadata": {
     "layer": "behaviour",

@@ -138,7 +138,7 @@ def pipeline_env(tmp_path: Path):
         ),
         "build_player_prompt": patch(
             "agent.build_player_prompt",
-            side_effect=lambda g: (
+            side_effect=lambda g, **kw: (
                 call_order.append("build_player_prompt"),
                 "player prompt",
             )[-1],

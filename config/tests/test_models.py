@@ -519,9 +519,31 @@ class TestGenerationConfigDefaults:
         cfg = GenerationConfig()
         assert cfg.target_timeout == 600
 
+    def test_default_grounded_is_true(self) -> None:
+        """grounded defaults True — architect/tutor RAG modes unchanged."""
+        cfg = GenerationConfig()
+        assert cfg.grounded is True
+
+    def test_default_limit_is_none(self) -> None:
+        """limit defaults None — full run over every expanded target."""
+        cfg = GenerationConfig()
+        assert cfg.limit is None
+
 
 class TestGenerationConfigValidation:
     """GenerationConfig validation rules."""
+
+    def test_grounded_false_accepted(self) -> None:
+        cfg = GenerationConfig(grounded=False)
+        assert cfg.grounded is False
+
+    def test_limit_positive_accepted(self) -> None:
+        cfg = GenerationConfig(limit=8)
+        assert cfg.limit == 8
+
+    def test_limit_zero_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="limit"):
+            GenerationConfig(limit=0)
 
     def test_max_turns_at_minimum_1_accepted(self) -> None:
         cfg = GenerationConfig(max_turns=1)

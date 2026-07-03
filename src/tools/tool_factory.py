@@ -100,6 +100,8 @@ def _validate_metadata_schema(metadata_schema: list[MetadataField]) -> None:
 def create_player_tools(
     collection_name: str,
     persist_directory: str = "./chroma_data",
+    *,
+    grounded: bool = True,
 ) -> list[Callable]:
     """Create the tool list for the Player agent.
 
@@ -110,19 +112,32 @@ def create_player_tools(
     owns all writes and only persists examples after Coach acceptance
     (TASK-TRF-005).
 
+    When ``grounded`` is ``False`` (the no-book **generative** mode — PO
+    Phase 1), the Player has no corpus to retrieve from: return an empty
+    tool list and skip building the RAG tool entirely, so no ChromaDB
+    collection is required.  ``collection_name`` is not validated in that
+    case because it is never used.
+
     Args:
         collection_name: ChromaDB collection name for RAG retrieval.
-            Must be non-empty; passed to ``create_rag_retrieval_tool``.
+            Must be non-empty (validated only when ``grounded``); passed to
+            ``create_rag_retrieval_tool``.
         persist_directory: Path to the ChromaDB persistence directory.
             Defaults to ``"./chroma_data"`` to match the ingestion pipeline.
+        grounded: Whether the Player retrieves from a corpus.  Defaults to
+            ``True`` (RAG-grounded — architect/tutor unchanged).  ``False``
+            skips the RAG tool for corpus-free generative generation.
 
     Returns:
-        A list of exactly 1 LangChain ``@tool``-decorated callable:
-        ``[rag_retrieval]``.
+        ``[rag_retrieval]`` when grounded, otherwise ``[]``.
 
     Raises:
-        ValueError: If collection_name is empty or not a string.
+        ValueError: If ``grounded`` and collection_name is empty or not a
+            string.
     """
+    if not grounded:
+        return []
+
     _validate_collection_name(collection_name)
 
     rag_tool = create_rag_retrieval_tool(collection_name, persist_directory)

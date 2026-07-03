@@ -113,6 +113,95 @@ will cause a parsing failure and force a revision turn.
 """
 
 # ---------------------------------------------------------------------------
+# Ungrounded (generative) Base Prompt Constant
+# ---------------------------------------------------------------------------
+#
+# Used when ``grounded=False`` (the no-book generative mode — PO Phase 1).
+# The Player has NO rag_retrieval tool and NO pre-fetched "Curriculum Context":
+# it generates from its own domain expertise plus the injected DOMAIN CONTEXT.
+# This variant deliberately OMITS the Tools / Curriculum-Context / tool-call
+# workflow blocks so the prompt never tells the model to use a tool it does not
+# have or reference context that is not there — re-teaching that would invite
+# the exact fabrication the generative plan warns against.  Keep the ShareGPT /
+# metadata / raw-JSON / response-format discipline in sync with
+# ``PLAYER_BASE_PROMPT`` above.
+PLAYER_BASE_PROMPT_UNGROUNDED: str = """\
+You are a training data generator for fine-tuning language models.
+
+## Role
+
+Your task is to generate high-quality training examples in ShareGPT conversation \
+format.  Each example must include a system message, a human turn, and a \
+model (gpt) response, along with structured metadata.
+
+## Generative mode — no retrieval
+
+You have NO retrieval tool and NO pre-fetched corpus.  Generate each example \
+from your own domain expertise together with the DOMAIN CONTEXT injected below \
+(Goal, System Prompt, Generation Guidelines, Output Schema).  Do NOT reference \
+"retrieved" or "curriculum" context, and do NOT attempt to call any tool — \
+there is none.
+
+## Workflow
+
+1. Receive a generation target (category, type, layer) plus the DOMAIN CONTEXT \
+below.
+2. Construct a plausible, self-contained brief or request appropriate to the \
+target, then reason about it and produce the decomposition the domain requires.
+3. Return a ShareGPT training example that satisfies the target specification.
+4. Return the complete example as a JSON object in your response for Coach \
+evaluation.
+5. If the Coach returns a "revise" verdict, apply a targeted fix that preserves \
+the unflagged content and patches only what was flagged — do not regenerate \
+from scratch.
+
+## Output
+
+Return the training example as a single JSON object in your response.  The \
+JSON must contain ``"messages"`` and ``"metadata"`` top-level keys conforming \
+to the Output Schema.  Do not call any write tool — the orchestrator handles \
+persistence after Coach acceptance.
+
+## CRITICAL — Mandatory Metadata
+
+You MUST include the ``metadata`` object in every response.  Omitting metadata \
+will cause automatic rejection by the Coach.  The ``metadata`` object is a \
+required top-level key alongside ``messages`` in every training example.  \
+Responses without metadata are never accepted, regardless of content quality.
+
+## Output Format
+
+Every training example must conform to the ShareGPT conversation format with \
+metadata.  Ensure the JSON structure matches the Output Schema provided in \
+the domain context below.
+
+## Quality Standards
+
+- Ground every example in the brief you construct and the DOMAIN CONTEXT — \
+never fabricate a source, citation, quote, date, or reference.  When no corpus \
+is supplied there is nothing to cite: leave source/citation fields empty rather \
+than inventing them.
+- Surface genuine unknowns as explicit assumptions rather than inventing \
+confident facts.
+- Match the style and disciplines described in the Generation Guidelines.
+- Classify the layer (behaviour vs knowledge) correctly per the Layer Routing \
+rules.
+- Set metadata fields to valid values per the Metadata Schema.
+
+## CRITICAL — Response Format
+
+Your response MUST be ONLY a valid JSON object.  No exceptions.
+
+- Start your response with `{` and end it with `}`
+- Do NOT include any text before or after the JSON
+- Do NOT wrap the JSON in markdown code fences
+- Do NOT include explanatory prose, analysis, or commentary
+
+The orchestrator parses your response as raw JSON.  Any surrounding text \
+will cause a parsing failure and force a revision turn.
+"""
+
+# ---------------------------------------------------------------------------
 # Validation Helpers
 # ---------------------------------------------------------------------------
 
@@ -175,7 +264,7 @@ def _format_layer_routing(layer_routing: dict[str, str]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def build_player_prompt(goal: GoalConfig) -> str:
+def build_player_prompt(goal: GoalConfig, *, grounded: bool = True) -> str:
     """Build the complete Player system prompt from base prompt + GOAL.md sections.
 
     The base prompt is placed FIRST to establish authoritative instructions.
@@ -183,6 +272,12 @@ def build_player_prompt(goal: GoalConfig) -> str:
 
     Args:
         goal: Parsed and validated GoalConfig from a GOAL.md file.
+        grounded: Whether the Player retrieves from a RAG corpus.  ``True``
+            (default) uses :data:`PLAYER_BASE_PROMPT` (rag_retrieval +
+            pre-fetched Curriculum Context — architect/tutor unchanged).
+            ``False`` uses :data:`PLAYER_BASE_PROMPT_UNGROUNDED` for the
+            no-book generative mode, omitting the tool/curriculum blocks so
+            the Player is not told to use a tool it does not have.
 
     Returns:
         Complete system prompt string for the Player agent.
@@ -191,6 +286,8 @@ def build_player_prompt(goal: GoalConfig) -> str:
         ValueError: If any required GOAL.md section is empty or missing.
     """
     _validate_player_sections(goal)
+
+    base_prompt = PLAYER_BASE_PROMPT if grounded else PLAYER_BASE_PROMPT_UNGROUNDED
 
     domain_sections = f"""\
 
@@ -237,4 +334,4 @@ Before submitting your response, confirm:
 - All required fields from the Metadata Schema above are populated
 - Field values match the valid values listed in the Metadata Schema
 """
-    return PLAYER_BASE_PROMPT + domain_sections
+    return base_prompt + domain_sections

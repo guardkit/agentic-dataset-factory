@@ -1364,6 +1364,57 @@ class TestExtractPlayerContentReasoningFallback:
 
 
 # ---------------------------------------------------------------------------
+# Coach refusal detection — empty structured-output vs content-policy refusal
+# ---------------------------------------------------------------------------
+
+
+class TestExtractCoachContentRefusal:
+    """_extract_coach_content classifies refusals for correct fallback routing."""
+
+    def test_truthy_refusal_is_policy_refusal(self) -> None:
+        """A refusal STRING is a content-policy refusal (not empty-structured)."""
+        from entrypoint.generation_loop import (
+            CoachRefusalError,
+            _extract_coach_content,
+        )
+
+        msg = MagicMock()
+        msg.content = ""
+        msg.additional_kwargs = {"refusal": "I cannot evaluate this content."}
+        response = {"messages": [msg]}
+        with pytest.raises(CoachRefusalError) as exc_info:
+            _extract_coach_content(response)
+        assert exc_info.value.empty_structured_output is False
+
+    def test_empty_content_null_refusal_key_is_structured_failure(self) -> None:
+        """Empty content + null-valued `refusal` key => empty_structured_output."""
+        from entrypoint.generation_loop import (
+            CoachRefusalError,
+            _extract_coach_content,
+        )
+
+        msg = MagicMock()
+        msg.content = ""
+        # llama.cpp gemma4-coach signature under a json_schema grammar
+        msg.additional_kwargs = {"refusal": None}
+        response = {"messages": [msg]}
+        with pytest.raises(CoachRefusalError) as exc_info:
+            _extract_coach_content(response)
+        assert exc_info.value.empty_structured_output is True
+
+    def test_empty_content_no_refusal_key_raises_value_error(self) -> None:
+        """No content and no refusal key still raises the generic ValueError."""
+        from entrypoint.generation_loop import _extract_coach_content
+
+        msg = MagicMock()
+        msg.content = ""
+        msg.additional_kwargs = {}
+        response = {"messages": [msg]}
+        with pytest.raises(ValueError, match="no extractable content"):
+            _extract_coach_content(response)
+
+
+# ---------------------------------------------------------------------------
 # TASK-TRF-006: Write retry cap (3 per target)
 # ---------------------------------------------------------------------------
 

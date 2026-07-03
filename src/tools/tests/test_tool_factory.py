@@ -168,6 +168,63 @@ class TestAC001PlayerToolsReturnsExactlyOneTool:
 
 
 # ---------------------------------------------------------------------------
+# Generative mode: grounded=False returns [] (no RAG tool) — PO Phase 1
+# ---------------------------------------------------------------------------
+
+
+class TestUngroundedGenerativeMode:
+    """create_player_tools(grounded=False) returns [] without building RAG."""
+
+    @patch("tools.tool_factory.create_rag_retrieval_tool")
+    def test_grounded_false_returns_empty_list(
+        self,
+        mock_rag_factory: MagicMock,
+        valid_collection_name: str,
+    ) -> None:
+        tools = create_player_tools(
+            collection_name=valid_collection_name,
+            grounded=False,
+        )
+
+        assert tools == []
+
+    @patch("tools.tool_factory.create_rag_retrieval_tool")
+    def test_grounded_false_does_not_build_rag_tool(
+        self,
+        mock_rag_factory: MagicMock,
+        valid_collection_name: str,
+    ) -> None:
+        create_player_tools(collection_name=valid_collection_name, grounded=False)
+
+        mock_rag_factory.assert_not_called()
+
+    @patch("tools.tool_factory.create_rag_retrieval_tool")
+    def test_grounded_false_skips_collection_name_validation(
+        self,
+        mock_rag_factory: MagicMock,
+    ) -> None:
+        """An empty collection name is harmless when ungrounded — it is unused."""
+        tools = create_player_tools(collection_name="", grounded=False)
+
+        assert tools == []
+        mock_rag_factory.assert_not_called()
+
+    @patch("tools.tool_factory.create_rag_retrieval_tool")
+    def test_grounded_defaults_true(
+        self,
+        mock_rag_factory: MagicMock,
+        valid_collection_name: str,
+    ) -> None:
+        """Default (grounded=True) still returns the single rag_retrieval tool."""
+        mock_rag_factory.return_value = MagicMock(name="rag_retrieval")
+
+        tools = create_player_tools(collection_name=valid_collection_name)
+
+        assert len(tools) == 1
+        mock_rag_factory.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
 # AC-002: create_coach_tools() returns [] — always empty list
 # ---------------------------------------------------------------------------
 

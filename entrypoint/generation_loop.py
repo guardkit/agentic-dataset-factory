@@ -82,10 +82,19 @@ class CoachRefusalError(Exception):
 
     Attributes:
         reason: The refusal reason text from the model's ``additional_kwargs``.
+        empty_structured_output: ``True`` when the signature is an *empty*
+            Coach response carrying a (typically null-valued) ``refusal`` key
+            under a structured-output/json_schema grammar — e.g. llama.cpp
+            gemma4-coach intermittently emits ``content=''`` with
+            ``additional_kwargs={'refusal': None}``.  This is NOT a
+            content-policy refusal: the reframed-prompt retry (which omits the
+            example) cannot help and risks grading a placeholder, so callers
+            should route straight to the non-structured fallback coach.
     """
 
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, *, empty_structured_output: bool = False) -> None:
         self.reason = reason
+        self.empty_structured_output = empty_structured_output
         super().__init__(reason)
 
 
@@ -582,11 +591,67 @@ def _extract_coach_content(coach_response: dict[str, Any]) -> str:
         logger.warning("Coach refused to evaluate content: %s", refusal)
         raise CoachRefusalError(str(refusal))
 
+    # Empty content carrying a (null-valued) `refusal` key is the
+    # structured-output/grammar failure signature — e.g. llama.cpp gemma4-coach
+    # returning content='' with additional_kwargs={'refusal': None} under a
+    # json_schema grammar.  Treat it as a refusal so the non-structured
+    # fallback coach (TASK-CR-007) recovers instead of the target failing as an
+    # unrecoverable llm_failure.  Flag it so the caller skips the reframe retry
+    # (which omits the example) and goes straight to the fallback.
+    if "refusal" in additional_kwargs:
+        logger.warning(
+            "Coach returned empty content with a null 'refusal' field "
+            "(structured-output grammar failure); routing to fallback."
+        )
+        raise CoachRefusalError(
+            "empty content with null refusal field (structured-output failure)",
+            empty_structured_output=True,
+        )
+
     raise ValueError(
         "Coach response has no extractable content: "
         f"content={content!r}, "
         f"additional_kwargs keys={list(additional_kwargs.keys())}"
     )
+
+
+async def _invoke_coach_fallback(
+    coach_fallback: Any,
+    player_content: str,
+    config: GenerationConfig,
+) -> tuple[str, int, int]:
+    """Invoke the non-structured fallback coach and extract its content.
+
+    The fallback coach is created without the structured-outputs constraint
+    (TASK-CR-007), so it emits free-form JSON that ``_parse_coach_verdict``
+    can extract — used when the primary (structured) coach refuses or returns
+    empty content under its json_schema grammar.
+
+    Args:
+        coach_fallback: Coach agent created with ``structured_outputs=False``.
+        player_content: The Player training example to evaluate (passed in
+            full, unlike the reframed refusal retry).
+        config: Generation config supplying retry attempts / backoff.
+
+    Returns:
+        A ``(coach_content, prompt_tokens, completion_tokens)`` tuple.
+
+    Raises:
+        CoachRefusalError | ValueError: If the fallback coach also produces no
+            extractable content (propagates to the per-target handler).
+    """
+    fallback_input: dict[str, Any] = {
+        "messages": [{"role": "user", "content": player_content}]
+    }
+    fallback_response = await _invoke_with_retry(
+        coach_fallback,
+        fallback_input,
+        max_retries=config.llm_retry_attempts,
+        backoff_base=config.llm_retry_backoff,
+    )
+    fb_prompt, fb_completion = _extract_token_usage(fallback_response)
+    coach_content = _extract_coach_content(fallback_response)
+    return coach_content, fb_prompt, fb_completion
 
 
 # ---------------------------------------------------------------------------
@@ -809,12 +874,62 @@ async def _process_single_target(
             backoff_base=config.llm_retry_backoff,
         )
 
-        # TASK-CR-006: Refusal detection with reframed-prompt retry
+        # TASK-CR-006/007: Refusal detection — a reframed-prompt retry for
+        # content-policy refusals, and the non-structured fallback coach for
+        # both persistent refusals and empty structured-output responses.
         try:
             coach_content = _extract_coach_content(coach_response)
         except CoachRefusalError as refusal_exc:
-            if not coach_refusal_retried:
-                coach_refusal_retried = True
+            if coach_refusal_retried:
+                raise  # Already retried once, let it propagate
+
+            coach_refusal_retried = True
+
+            if refusal_exc.empty_structured_output and coach_fallback is not None:
+                # Empty content under the structured-output grammar — NOT a
+                # content-policy refusal.  The reframe omits the example and
+                # could grade a placeholder, so route STRAIGHT to the
+                # non-structured fallback coach with the real Player content.
+                logger.warning(
+                    "Coach returned empty structured output (index=%d, "
+                    "turn=%d), routing straight to non-structured fallback",
+                    target_index,
+                    coach_turn,
+                )
+                coach_content, fb_prompt, fb_completion = (
+                    await _invoke_coach_fallback(
+                        coach_fallback, player_content, config
+                    )
+                )
+                if fb_prompt or fb_completion:
+                    target_prompt_tokens += fb_prompt
+                    target_completion_tokens += fb_completion
+                    if token_usage is not None:
+                        token_usage.add(fb_prompt, fb_completion)
+                    logger.info(
+                        "LLM usage: agent=coach_structured_outputs_fallback, "
+                        "index=%d, turn=%d, prompt_tokens=%d, "
+                        "completion_tokens=%d, total_tokens=%d",
+                        target_index,
+                        coach_turn,
+                        fb_prompt,
+                        fb_completion,
+                        fb_prompt + fb_completion,
+                    )
+                logger.info(
+                    "coach_content_source: structured_outputs_fallback "
+                    "(index=%d, turn=%d)",
+                    target_index,
+                    coach_turn,
+                )
+                rejection_history.append({
+                    "structured_outputs_fallback": True,
+                    "turn": coach_turn,
+                })
+            else:
+                # Content-policy refusal: reframe as a neutral quality
+                # assessment first (TASK-CR-006), then fall back to the
+                # non-structured coach if it still refuses (TASK-CR-007).
                 logger.warning(
                     "Coach refused to evaluate (index=%d, turn=%d), "
                     "retrying with reframed prompt: %s",
@@ -869,71 +984,53 @@ async def _process_single_target(
                 try:
                     coach_content = _extract_coach_content(coach_response)
                 except CoachRefusalError as fallback_exc:
-                    # TASK-CR-007: Both initial and reframed retry refused.
-                    # Try a third attempt without structured_outputs constraint.
-                    if coach_fallback is not None:
-                        logger.warning(
-                            "Coach refused after reframed retry (index=%d, "
-                            "turn=%d), attempting structured_outputs fallback: "
-                            "%s",
-                            target_index,
-                            coach_turn,
-                            fallback_exc.reason,
-                        )
-                        fallback_input: dict[str, Any] = {
-                            "messages": [
-                                {
-                                    "role": "user",
-                                    "content": player_content,
-                                }
-                            ]
-                        }
-                        fallback_response = await _invoke_with_retry(
-                            coach_fallback,
-                            fallback_input,
-                            max_retries=config.llm_retry_attempts,
-                            backoff_base=config.llm_retry_backoff,
-                        )
-                        fb_prompt, fb_completion = _extract_token_usage(
-                            fallback_response
-                        )
-                        if fb_prompt or fb_completion:
-                            target_prompt_tokens += fb_prompt
-                            target_completion_tokens += fb_completion
-                            if token_usage is not None:
-                                token_usage.add(fb_prompt, fb_completion)
-                            logger.info(
-                                "LLM usage: agent=coach_structured_outputs_"
-                                "fallback, index=%d, turn=%d, "
-                                "prompt_tokens=%d, completion_tokens=%d, "
-                                "total_tokens=%d",
-                                target_index,
-                                coach_turn,
-                                fb_prompt,
-                                fb_completion,
-                                fb_prompt + fb_completion,
-                            )
-                        coach_content = _extract_coach_content(
-                            fallback_response
-                        )
-                        logger.info(
-                            "coach_content_source: "
-                            "structured_outputs_fallback "
-                            "(index=%d, turn=%d)",
-                            target_index,
-                            coach_turn,
-                        )
-                        rejection_history.append({
-                            "structured_outputs_fallback": True,
-                            "turn": coach_turn,
-                        })
-                        # If _extract_coach_content raises again
-                        # (CoachRefusalError or ValueError), it propagates
-                        # to the per-target handler in run_generation_loop
-                    else:
+                    # Both initial and reframed retry refused — try the
+                    # non-structured fallback coach (TASK-CR-007).
+                    if coach_fallback is None:
                         raise  # No fallback available, propagate
-            else:
-                raise  # Already retried once, let it propagate
+                    logger.warning(
+                        "Coach refused after reframed retry (index=%d, "
+                        "turn=%d), attempting structured_outputs fallback: "
+                        "%s",
+                        target_index,
+                        coach_turn,
+                        fallback_exc.reason,
+                    )
+                    coach_content, fb_prompt, fb_completion = (
+                        await _invoke_coach_fallback(
+                            coach_fallback, player_content, config
+                        )
+                    )
+                    if fb_prompt or fb_completion:
+                        target_prompt_tokens += fb_prompt
+                        target_completion_tokens += fb_completion
+                        if token_usage is not None:
+                            token_usage.add(fb_prompt, fb_completion)
+                        logger.info(
+                            "LLM usage: agent=coach_structured_outputs_"
+                            "fallback, index=%d, turn=%d, "
+                            "prompt_tokens=%d, completion_tokens=%d, "
+                            "total_tokens=%d",
+                            target_index,
+                            coach_turn,
+                            fb_prompt,
+                            fb_completion,
+                            fb_prompt + fb_completion,
+                        )
+                    logger.info(
+                        "coach_content_source: "
+                        "structured_outputs_fallback "
+                        "(index=%d, turn=%d)",
+                        target_index,
+                        coach_turn,
+                    )
+                    rejection_history.append({
+                        "structured_outputs_fallback": True,
+                        "turn": coach_turn,
+                    })
+                    # If _extract_coach_content raises again inside the helper
+                    # (CoachRefusalError or ValueError), it propagates to the
+                    # per-target handler in run_generation_loop.
 
         # Extract and log Coach token usage
         c_prompt, c_completion = _extract_token_usage(coach_response)
@@ -1266,6 +1363,17 @@ async def run_generation_loop(
         for target in targets
         for _ in range(target.count)
     ]
+
+    # Optional smoke cap: process only the first `limit` expanded targets
+    # (config.limit). None => full run. Applied before the resume slice so a
+    # capped run and its resume agree on the same target window.
+    if getattr(config, "limit", None) is not None and config.limit < len(targets):
+        logger.info(
+            "targets_limited: cap=%d, from=%d (smoke run)",
+            config.limit,
+            len(targets),
+        )
+        targets = targets[: config.limit]
 
     logger.info(
         "targets_expanded: categories=%d, total=%d",

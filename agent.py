@@ -130,7 +130,17 @@ def run_pipeline(state: PipelineState) -> PipelineState:
         domain_path = resolve_domain(config.domain)
 
         # Step 5: ChromaDB readiness check
-        verify_chromadb_collection(config.domain)
+        # Skip in the no-book generative mode (grounded=False): a corpus-free
+        # domain (e.g. product-owner, PO Phase 1) has no ChromaDB collection,
+        # so the check would hard-fail with ConnectionError.
+        if config.generation.grounded:
+            verify_chromadb_collection(config.domain)
+        else:
+            logger.info(
+                "Ungrounded generative mode (grounded=false): skipping ChromaDB "
+                "collection check for domain '%s'",
+                config.domain,
+            )
 
         # Step 6: Parse GOAL.md
         goal = parse_goal_md(domain_path / "GOAL.md")
@@ -139,13 +149,17 @@ def run_pipeline(state: PipelineState) -> PipelineState:
         prepare_output_directory(OUTPUT_DIR, resume=resume)
 
         # Step 8: Build prompts
-        player_prompt = build_player_prompt(goal)
+        player_prompt = build_player_prompt(
+            goal, grounded=config.generation.grounded
+        )
         coach_prompt_behaviour = build_coach_prompt(goal, target_layer="behaviour")
         coach_prompt_knowledge = build_coach_prompt(goal, target_layer="knowledge")
 
         # Step 9: Create tools
+        # grounded=False returns [] (no rag_retrieval) for the generative mode.
         tools = create_player_tools(
             collection_name=config.domain,
+            grounded=config.generation.grounded,
         )
 
         # Step 9a: Keep a reference to the rag_retrieval tool for

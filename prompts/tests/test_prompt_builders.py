@@ -245,6 +245,59 @@ class TestPlayerPrompts:
 
 
 # ---------------------------------------------------------------------------
+# Generative mode: build_player_prompt(grounded=False) omits the RAG blocks
+# ---------------------------------------------------------------------------
+
+
+class TestUngroundedPlayerPrompt:
+    """The no-book generative Player prompt has no tool/curriculum blocks."""
+
+    def test_grounded_default_includes_rag_and_curriculum(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config)
+        assert "rag_retrieval" in result
+        assert "Curriculum Context" in result
+
+    def test_ungrounded_omits_rag_retrieval(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config, grounded=False)
+        assert "rag_retrieval" not in result
+
+    def test_ungrounded_omits_curriculum_context(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config, grounded=False)
+        assert "Curriculum Context" not in result
+
+    def test_ungrounded_still_requires_messages_and_metadata(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """The ShareGPT envelope discipline is preserved in generative mode."""
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config, grounded=False)
+        assert "messages" in result
+        assert "metadata" in result
+
+    def test_ungrounded_forbids_fabricated_sources(
+        self, valid_goal_config: GoalConfig
+    ) -> None:
+        """Anti-fabrication grounding discipline replaces 'retrieved source'."""
+        from prompts.player_prompts import build_player_prompt
+
+        result = build_player_prompt(valid_goal_config, grounded=False)
+        assert "never fabricate a source" in result
+
+
+# ---------------------------------------------------------------------------
 # AC-002: coach_prompts.py — COACH_BASE_PROMPT + build_coach_prompt
 # ---------------------------------------------------------------------------
 

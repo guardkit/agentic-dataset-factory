@@ -115,6 +115,17 @@ class GenerationConfig(BaseModel):
         max_write_attempts: Max write_output retries per target before rejection.
         max_format_retries: Max format correction retries per target before
             rejection (TASK-FPF1-003).
+        grounded: Whether the Player retrieves from a RAG corpus.  ``True``
+            (default) keeps the book-grounded modes (architect, tutor)
+            unchanged.  ``False`` enables the no-book **generative** mode (PO
+            Phase 1): the Player is built with no rag_retrieval tool, the
+            ChromaDB readiness check is skipped, and no "Curriculum Context"
+            is pre-fetched or injected.
+        limit: Optional cap on the number of expanded targets to process.
+            ``None`` (default) processes every target.  Set a small value
+            (e.g. 8) to run a smoke over a subset without editing GOAL.md's
+            count table.  Applied after target expansion, before the
+            ``start_index`` resume slice.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -153,6 +164,22 @@ class GenerationConfig(BaseModel):
         default=3,
         ge=0,
         description="Max format correction retries per target before rejection (TASK-FPF1-003).",
+    )
+    grounded: bool = Field(
+        default=True,
+        description=(
+            "Whether the Player retrieves from a RAG corpus. False enables the "
+            "no-book generative mode (no rag tool, no ChromaDB check, no "
+            "pre-fetched curriculum context)."
+        ),
+    )
+    limit: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Optional cap on expanded targets processed (smoke runs). None "
+            "processes every target."
+        ),
     )
 
     @field_validator("max_turns", mode="after")

@@ -1,19 +1,35 @@
-domain: architect-agent
+# PO Phase 1 — generative (no-book) mode QUALITY smoke.
+# grounded: false => no ChromaDB, no rag tool, no Curriculum Context injection;
+# the Player generates PO ProductRoadmap examples from the GOAL taxonomy.
+#
+# Player gpt-oss-120b + Coach gemma4-coach co-reside via the EXISTING
+# `autobuild_go` llama-swap set ("go & gc") — no llama-swap config edit.
+# Requesting gpt-oss-120b EVICTS the always-on fleet, so the keepalive timer
+# MUST be paused first (else it revives the fleet on top of gpt-oss -> OOM):
+#   sudo systemctl stop llama-swap-keepalive.timer     # before the run
+#   sudo systemctl start llama-swap-keepalive.timer    # after the run
+#
+# The plumbing pre-flight (qwen36-workhorse + coach-ft-v3) already PASSED the
+# Phase-1 definition of done on 2026-07-02 (4/6 accepted, contract-valid
+# think+ProductRoadmap JSON, clean greenfield grounding). This run is quality.
+domain: product-owner
 
 player:
   provider: local
-  model: qwen36-workhorse
+  model: gpt-oss-120b
   endpoint: http://localhost:9000/v1
   temperature: 0.4
 
 coach:
   provider: local
-  model: qwen36-workhorse
+  model: gemma4-coach
   endpoint: http://localhost:9000/v1
-  temperature: 0.3
+  temperature: 0.2
 
 generation:
-  max_turns: 3
+  grounded: false                  # PO Phase 1: no-book generative mode
+  limit: 6                         # smoke: process only the first 6 expanded targets
+  max_turns: 2
   llm_retry_attempts: 3
   llm_retry_backoff: 2.0
   llm_timeout: 300
@@ -24,5 +40,5 @@ chunking:
   overlap: 64
 
 logging:
-  level: DEBUG
+  level: INFO
   format: json
