@@ -28,10 +28,12 @@ coach:
   model: gemma4-coach
   endpoint: http://localhost:9000/v1
   temperature: 0.2
+  max_tokens: 8192                 # headroom so verbose fallback verdicts don't truncate
 
 generation:
   grounded: false                  # PO Phase 1: no-book generative mode
-  limit: 60                        # PILOT: cap (remove for the full ~82h run)
+  require_fenced_json: true        # gate: assistant ```json ProductRoadmap must strictly parse
+  limit: 12                        # SMALL re-verify of the fixes (was 60 pilot; remove for full run)
   modes:                           # round-robined per target (no-corpus modes)
     - idea
     - greenfield

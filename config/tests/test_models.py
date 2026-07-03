@@ -556,6 +556,12 @@ class TestGenerationConfigValidation:
         with pytest.raises(ValidationError, match="modes"):
             GenerationConfig(modes=[])
 
+    def test_default_require_fenced_json_is_false(self) -> None:
+        assert GenerationConfig().require_fenced_json is False
+
+    def test_require_fenced_json_true_accepted(self) -> None:
+        assert GenerationConfig(require_fenced_json=True).require_fenced_json is True
+
     def test_max_turns_at_minimum_1_accepted(self) -> None:
         cfg = GenerationConfig(max_turns=1)
         assert cfg.max_turns == 1

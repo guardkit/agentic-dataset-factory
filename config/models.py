@@ -197,6 +197,17 @@ class GenerationConfig(BaseModel):
             "None leaves mode choice to the Player."
         ),
     )
+    require_fenced_json: bool = Field(
+        default=False,
+        description=(
+            "When True, the pre-Coach format gate also requires the last "
+            "assistant message to contain a parseable ```json fenced object "
+            "(strict json.loads) — for domains whose assistant content is a "
+            "```json block after <think> (e.g. product-owner ProductRoadmap). "
+            "False (default) leaves prose-output domains (architect/tutor) "
+            "unaffected."
+        ),
+    )
 
     @field_validator("modes", mode="after")
     @classmethod

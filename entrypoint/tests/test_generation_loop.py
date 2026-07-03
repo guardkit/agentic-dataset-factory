@@ -1368,6 +1368,64 @@ class TestExtractPlayerContentReasoningFallback:
 # ---------------------------------------------------------------------------
 
 
+class TestAssistantFencedJsonValid:
+    """_assistant_fenced_json_valid gates the inner ```json object (opt-in)."""
+
+    def _row(self, assistant_content: str) -> dict:
+        return {
+            "messages": [
+                {"role": "system", "content": "s"},
+                {"role": "user", "content": "u"},
+                {"role": "assistant", "content": assistant_content},
+            ],
+            "metadata": {"layer": "behaviour"},
+        }
+
+    def test_valid_fenced_json_passes(self) -> None:
+        from entrypoint.generation_loop import _assistant_fenced_json_valid
+
+        data = self._row('<think>r</think>\n\n```json\n{"mode": "greenfield", "epics": []}\n```')
+        ok, reason = _assistant_fenced_json_valid(data)
+        assert ok is True
+        assert reason == "ok"
+
+    def test_no_fenced_block_fails(self) -> None:
+        from entrypoint.generation_loop import _assistant_fenced_json_valid
+
+        data = self._row("<think>r</think>\n\nOutcome: a user can log in. Feature: ...")
+        ok, reason = _assistant_fenced_json_valid(data)
+        assert ok is False
+        assert "no ```json" in reason
+
+    def test_raw_control_char_in_string_fails(self) -> None:
+        from entrypoint.generation_loop import _assistant_fenced_json_valid
+
+        # A literal newline inside a JSON string value is invalid JSON.
+        data = self._row('<think>r</think>\n\n```json\n{"desc": "line one\nline two"}\n```')
+        ok, reason = _assistant_fenced_json_valid(data)
+        assert ok is False
+        assert "does not parse" in reason
+
+    def test_missing_comma_fails(self) -> None:
+        from entrypoint.generation_loop import _assistant_fenced_json_valid
+
+        data = self._row('<think>r</think>\n\n```json\n{"a": 1 "b": 2}\n```')
+        ok, reason = _assistant_fenced_json_valid(data)
+        assert ok is False
+        assert "does not parse" in reason
+
+    def test_non_string_content_fails(self) -> None:
+        from entrypoint.generation_loop import _assistant_fenced_json_valid
+
+        data = {
+            "messages": [{"role": "assistant", "content": [{"type": "text"}]}],
+            "metadata": {},
+        }
+        ok, reason = _assistant_fenced_json_valid(data)
+        assert ok is False
+        assert "not a string" in reason
+
+
 class TestExtractCoachContentRefusal:
     """_extract_coach_content classifies refusals for correct fallback routing."""
 

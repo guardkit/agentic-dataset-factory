@@ -253,6 +253,56 @@ def _extract_json_object(raw_content: str) -> str:
     )
 
 
+def _assistant_fenced_json_valid(data: dict[str, Any]) -> tuple[bool, str]:
+    """Check the last assistant message carries a strictly-parseable fenced JSON.
+
+    The outer ShareGPT envelope gate validates only ``messages``/``metadata``;
+    it does not look INSIDE the assistant ``content`` string.  For domains whose
+    assistant content is a ``<think>`` block followed by a ```` ```json ````
+    fenced object (e.g. product-owner ``ProductRoadmap``), this gates on that
+    inner object parsing under strict ``json.loads`` — so accepted rows are
+    serving-faithful rather than carrying malformed inner JSON (raw control
+    characters, missing delimiters).
+
+    Args:
+        data: The parsed outer ShareGPT example (``{"messages": [...],
+            "metadata": {...}}``).
+
+    Returns:
+        ``(ok, reason)`` — ``ok`` is True when a ```` ```json ```` block is
+        found in the last assistant message and parses; otherwise ``reason``
+        describes the problem.
+    """
+    messages = data.get("messages")
+    if not isinstance(messages, list) or not messages:
+        return False, "no messages array"
+
+    assistant: dict[str, Any] | None = None
+    for msg in reversed(messages):
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            assistant = msg
+            break
+    if assistant is None and isinstance(messages[-1], dict):
+        assistant = messages[-1]
+    if assistant is None:
+        return False, "no assistant message"
+
+    content = assistant.get("content")
+    if not isinstance(content, str):
+        return False, "assistant content is not a string"
+
+    match = re.search(r"```json\s*\n(.*?)\n```", content, re.DOTALL)
+    if match is None:
+        return False, "no ```json fenced block in assistant content"
+
+    try:
+        json.loads(match.group(1))
+    except (json.JSONDecodeError, ValueError) as exc:
+        return False, f"fenced JSON does not parse: {exc}"
+
+    return True, "ok"
+
+
 def _extract_player_content(player_response: dict[str, Any]) -> str:
     """Extract the Player's text content from an agent response.
 
@@ -731,6 +781,7 @@ async def _process_single_target(
     write_attempts = 0
     coach_retried = False
     coach_refusal_retried = False
+    coach_used_fallback = False
     target_prompt_tokens = 0
     target_completion_tokens = 0
 
@@ -816,9 +867,13 @@ async def _process_single_target(
                 p_prompt + p_completion,
             )
 
-        # Pre-Coach JSON format gate — skip Coach if Player output
-        # is not parseable as JSON or lacks required keys (saves wasted
-        # Coach invocations and downstream validation failures).
+        # Pre-Coach JSON format gate — skip Coach if Player output is not
+        # parseable as JSON, lacks required keys, or (when
+        # require_fenced_json) carries a malformed inner ```json object
+        # (saves wasted Coach invocations and downstream validation failures).
+        format_gate: str | None = None
+        format_reason = ""
+        format_feedback = ""
         try:
             extracted = _extract_json_object(player_content)
             data = json.loads(extracted)
@@ -828,23 +883,9 @@ async def _process_single_target(
                     f"(has: {sorted(data.keys())})"
                 )
         except ValueError as exc:
-            format_retries += 1
-            logger.warning(
-                "Pre-Coach format gate: Player output is not valid JSON "
-                "(index=%d, turn=%d, content_len=%d, reason=%s). "
-                "Skipping Coach.",
-                target_index,
-                total_invocations,
-                len(player_content),
-                exc,
-            )
-            rejection_history.append(
-                {"format_gate": "player_output_not_json", "turn": total_invocations,
-                 "reason": str(exc)}
-            )
-            if format_retries > config.max_format_retries:
-                break
-            coach_feedback = (
+            format_gate = "player_output_not_json"
+            format_reason = str(exc)
+            format_feedback = (
                 "FORMAT ERROR: Your previous response could not be parsed "
                 "as a valid JSON object with both 'messages' and 'metadata' "
                 "top-level keys. You MUST respond with ONLY a raw JSON object "
@@ -853,6 +894,43 @@ async def _process_single_target(
                 "Do NOT include any text before or after the JSON. "
                 "Do NOT output messages and metadata as separate JSON objects."
             )
+
+        # Inner fenced-JSON gate (opt-in) — the assistant content must carry a
+        # strictly-parseable ```json object (e.g. product-owner ProductRoadmap).
+        if format_gate is None and getattr(config, "require_fenced_json", False):
+            inner_ok, inner_reason = _assistant_fenced_json_valid(data)
+            if not inner_ok:
+                format_gate = "assistant_fenced_json_invalid"
+                format_reason = inner_reason
+                format_feedback = (
+                    "FORMAT ERROR: The JSON object inside your assistant "
+                    "message's ```json fenced block is not valid JSON "
+                    f"({inner_reason}). Keep the same <think> block and the "
+                    "same content, but emit the fenced object as STRICT JSON: "
+                    "escape every newline/tab inside string values (\\n, \\t), "
+                    "quote all keys, and add any missing commas. It must parse "
+                    "with a strict JSON parser."
+                )
+
+        if format_gate is not None:
+            format_retries += 1
+            logger.warning(
+                "Pre-Coach format gate (%s): Player output rejected "
+                "(index=%d, turn=%d, content_len=%d, reason=%s). "
+                "Skipping Coach.",
+                format_gate,
+                target_index,
+                total_invocations,
+                len(player_content),
+                format_reason,
+            )
+            rejection_history.append(
+                {"format_gate": format_gate, "turn": total_invocations,
+                 "reason": format_reason}
+            )
+            if format_retries > config.max_format_retries:
+                break
+            coach_feedback = format_feedback
             continue
 
         # Format gate passed — this counts as a real Coach turn
@@ -927,6 +1005,7 @@ async def _process_single_target(
                     "structured_outputs_fallback": True,
                     "turn": coach_turn,
                 })
+                coach_used_fallback = True
             else:
                 # Content-policy refusal: reframe as a neutral quality
                 # assessment first (TASK-CR-006), then fall back to the
@@ -1029,6 +1108,7 @@ async def _process_single_target(
                         "structured_outputs_fallback": True,
                         "turn": coach_turn,
                     })
+                    coach_used_fallback = True
                     # If _extract_coach_content raises again inside the helper
                     # (CoachRefusalError or ValueError), it propagates to the
                     # per-target handler in run_generation_loop.
@@ -1078,8 +1158,17 @@ async def _process_single_target(
                         },
                     ]
                 }
+                # If the unparseable content came from the non-structured
+                # fallback coach, reinforce THAT coach — retrying the primary
+                # (structured) coach here would just return empty again under
+                # the same grammar that triggered the fallback.
+                retry_coach = (
+                    coach_fallback
+                    if coach_used_fallback and coach_fallback is not None
+                    else coach
+                )
                 coach_response = await _invoke_with_retry(
-                    coach,
+                    retry_coach,
                     retry_input,
                     max_retries=config.llm_retry_attempts,
                     backoff_base=config.llm_retry_backoff,
