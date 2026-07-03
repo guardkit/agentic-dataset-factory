@@ -2112,6 +2112,41 @@ class TestBuildPlayerMessageWithRag:
         assert rag_pos < feedback_pos
 
 
+class TestBuildPlayerMessageWithMode:
+    """_build_player_message injects a per-target generation mode when given."""
+
+    def test_mode_injected_when_provided(self) -> None:
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target()
+        msg = _build_player_message(target, None, mode="evolve")
+
+        assert "Mode: evolve" in msg
+        assert 'Set metadata.mode to "evolve".' in msg
+        # A framing hint is appended from _MODE_HINTS
+        assert "EXISTING roadmap" in msg
+
+    def test_no_mode_line_when_none(self) -> None:
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target()
+        msg = _build_player_message(target, None, mode=None)
+
+        assert "Mode:" not in msg
+        assert "metadata.mode" not in msg
+
+    def test_unknown_mode_still_injected_without_hint(self) -> None:
+        """A mode with no hint entry is still set (no trailing dash noise)."""
+        from entrypoint.generation_loop import _build_player_message
+
+        target = _make_target()
+        msg = _build_player_message(target, None, mode="custom_mode")
+
+        assert "Mode: custom_mode" in msg
+        assert 'Set metadata.mode to "custom_mode".' in msg
+        assert "Mode: custom_mode —" not in msg
+
+
 # ---------------------------------------------------------------------------
 # TASK-TRF-020: normalise_think_closing_tags before JSON extraction
 # ---------------------------------------------------------------------------

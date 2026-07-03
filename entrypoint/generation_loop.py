@@ -671,6 +671,7 @@ async def _process_single_target(
     token_usage: TokenUsage | None = None,
     rag_tool: Callable | None = None,
     coach_fallback: Any | None = None,
+    mode: str | None = None,
 ) -> tuple[bool, int, list[dict[str, Any]]]:
     """Process a single generation target through the Player-Coach cycle.
 
@@ -776,7 +777,7 @@ async def _process_single_target(
                 {
                     "role": "user",
                     "content": _build_player_message(
-                        target, coach_feedback, rag_context, grade_target
+                        target, coach_feedback, rag_context, grade_target, mode
                     ),
                 }
             ]
@@ -1248,11 +1249,35 @@ async def _process_single_target(
     return False, total_invocations, rejection_history
 
 
+# One-line input-framing hints per no-corpus generative mode, mirroring the
+# GOAL.md "Mode coverage" guideline.  Used to steer the Player when a run
+# round-robins modes (config.generation.modes) so a corpus-free run spans
+# multiple modes instead of defaulting every example to greenfield.
+_MODE_HINTS: dict[str, str] = {
+    "idea": "frame the input as a product hypothesis / opportunity to validate",
+    "greenfield": "frame the input as a blank-slate product brief",
+    "evolve": (
+        "briefly establish an EXISTING roadmap, then frame the input as an "
+        "extension or change to it"
+    ),
+    "impact": (
+        "briefly establish an EXISTING roadmap, then frame the input as "
+        "assessing the impact of a proposed change on it"
+    ),
+    "scope": (
+        "frame the input as cutting a larger brief down to a timeboxed "
+        "release / MVP"
+    ),
+    "extract": "frame the input around decomposing a provided document corpus",
+}
+
+
 def _build_player_message(
     target: GenerationTarget,
     coach_feedback: str | None,
     rag_context: str | None = None,
     grade_target: int | None = 7,
+    mode: str | None = None,
 ) -> str:
     """Build the user message for the Player agent.
 
@@ -1264,6 +1289,9 @@ def _build_player_message(
             does not invoke the ``rag_retrieval`` tool (TASK-TRF-009).
         grade_target: The specific grade target for this example, selected
             via round-robin from the target's ``grade_targets`` list.
+        mode: Optional generation mode to steer the Player's input framing and
+            ``metadata.mode`` (round-robined per target for corpus-free
+            generative runs).  ``None`` leaves mode selection to the Player.
 
     Returns:
         Formatted message string for the Player.
@@ -1276,6 +1304,13 @@ def _build_player_message(
         f"  Layer: {target.layer}\n"
         f"  Grade Target: {grade_display}\n"
     )
+    if mode:
+        hint = _MODE_HINTS.get(mode, "")
+        hint_txt = f" — {hint}" if hint else ""
+        msg += (
+            f"  Mode: {mode}{hint_txt}\n"
+            f'  Set metadata.mode to "{mode}".\n'
+        )
     if rag_context:
         msg += (
             f"\n--- Curriculum Context (use this to ground your example) ---\n"
@@ -1364,16 +1399,31 @@ async def run_generation_loop(
         for _ in range(target.count)
     ]
 
-    # Optional smoke cap: process only the first `limit` expanded targets
+    # Optional smoke/pilot cap: process only the first `limit` expanded targets
     # (config.limit). None => full run. Applied before the resume slice so a
-    # capped run and its resume agree on the same target window.
+    # capped run and its resume agree on the same target window.  When capped,
+    # round-robin interleave across categories first so a small cap SPANS all
+    # categories rather than only the first (full runs stay category-contiguous
+    # so grade round-robin distribution is unchanged).
     if getattr(config, "limit", None) is not None and config.limit < len(targets):
+        by_category: dict[str, list] = {}
+        for t in targets:
+            by_category.setdefault(t.category, []).append(t)
+        interleaved: list = []
+        groups = list(by_category.values())
+        idx = 0
+        while len(interleaved) < len(targets):
+            group = groups[idx % len(groups)]
+            offset = idx // len(groups)
+            if offset < len(group):
+                interleaved.append(group[offset])
+            idx += 1
         logger.info(
-            "targets_limited: cap=%d, from=%d (smoke run)",
+            "targets_limited: cap=%d, from=%d, category_interleaved (pilot run)",
             config.limit,
             len(targets),
         )
-        targets = targets[: config.limit]
+        targets = interleaved[: config.limit]
 
     logger.info(
         "targets_expanded: categories=%d, total=%d",
@@ -1388,12 +1438,22 @@ async def run_generation_loop(
     for i, target in enumerate(targets_to_process):
         absolute_index = start_index + i
 
+        # Round-robin the configured generation modes across targets so a
+        # corpus-free run spans them (config.generation.modes); None leaves
+        # mode selection to the Player.
+        mode = (
+            config.modes[absolute_index % len(config.modes)]
+            if getattr(config, "modes", None)
+            else None
+        )
+
         logger.info(
-            "target_start: index=%d, total=%d, category=%s, type=%s",
+            "target_start: index=%d, total=%d, category=%s, type=%s, mode=%s",
             absolute_index,
             len(targets),
             target.category,
             target.type,
+            mode or "player-choice",
         )
 
         try:
@@ -1411,6 +1471,7 @@ async def run_generation_loop(
                     token_usage=cumulative_tokens,
                     rag_tool=rag_tool,
                     coach_fallback=coach_fallback,
+                    mode=mode,
                 ),
                 timeout=config.target_timeout,
             )

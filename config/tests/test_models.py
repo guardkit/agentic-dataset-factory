@@ -545,6 +545,17 @@ class TestGenerationConfigValidation:
         with pytest.raises(ValidationError, match="limit"):
             GenerationConfig(limit=0)
 
+    def test_default_modes_is_none(self) -> None:
+        assert GenerationConfig().modes is None
+
+    def test_modes_list_accepted(self) -> None:
+        cfg = GenerationConfig(modes=["idea", "greenfield", "scope"])
+        assert cfg.modes == ["idea", "greenfield", "scope"]
+
+    def test_empty_modes_list_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="modes"):
+            GenerationConfig(modes=[])
+
     def test_max_turns_at_minimum_1_accepted(self) -> None:
         cfg = GenerationConfig(max_turns=1)
         assert cfg.max_turns == 1

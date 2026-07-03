@@ -125,7 +125,15 @@ class GenerationConfig(BaseModel):
             ``None`` (default) processes every target.  Set a small value
             (e.g. 8) to run a smoke over a subset without editing GOAL.md's
             count table.  Applied after target expansion, before the
-            ``start_index`` resume slice.
+            ``start_index`` resume slice.  When set, the expanded targets are
+            round-robin interleaved across categories first, so a small cap
+            spans all categories rather than only the first.
+        modes: Optional list of generation modes to round-robin across targets
+            (by absolute index), injected into the Player message so a
+            corpus-free generative run deliberately spans multiple no-corpus
+            PO modes (e.g. idea/greenfield/evolve/impact/scope) instead of
+            defaulting every example to one mode.  ``None`` (default) leaves
+            mode selection to the Player (grounded architect/tutor unchanged).
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -181,6 +189,25 @@ class GenerationConfig(BaseModel):
             "processes every target."
         ),
     )
+    modes: list[str] | None = Field(
+        default=None,
+        description=(
+            "Optional generation modes to round-robin across targets and "
+            "inject into the Player message (corpus-free generative runs). "
+            "None leaves mode choice to the Player."
+        ),
+    )
+
+    @field_validator("modes", mode="after")
+    @classmethod
+    def validate_modes(cls, v: list[str] | None) -> list[str] | None:
+        """Reject an empty modes list (None disables; a list must be non-empty)."""
+        if v is not None and len(v) == 0:
+            raise ValueError(
+                "modes must be a non-empty list when set, or omitted/null to "
+                "leave mode selection to the Player"
+            )
+        return v
 
     @field_validator("max_turns", mode="after")
     @classmethod
