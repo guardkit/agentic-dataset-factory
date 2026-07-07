@@ -1,5 +1,11 @@
 # QAV Fine-Tune Scope — Training / Serving / Scheduling (the WS4 half)
 
+> **Plan-of-record pointer (added 2026-07-08):** the umbrella phase pair now lives at
+> `ai-transition/docs/qav-fine-tune-{scope,build-plan}.md` (`1ace79d`, PO-pair-templated) — it
+> federates this doc (the WS4 training/serving half) with the WS2 dataset half in this directory
+> and NEVER re-decides either. Day-of operator checklist: `../../docs/BUILDPLAN-fine-tunes-po-and-qav-2026-07-07.md`.
+> This doc remains the owning authority for training/serving/scheduling decisions.
+
 **Status:** WS4-S8, 2026-07-07 (Fable 5, in-window). This is the fine-tune scope doc the
 2026-06-11 findings named (`guardkit/docs/retro/conversation-starter-qa-verifier-finetune.md`,
 piece #1) and nobody wrote — its blocker, COACHGATHER01, was decided **Option B-min on
