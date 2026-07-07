@@ -1,8 +1,17 @@
 # Buildplan — the two fine-tune lanes: PO Phase-3 run + QAV chain
 
-**Status:** 2026-07-07 late. Written for Rich as the execution checklist; every claim below
-re-verified on disk/live today (llama-swap :9000 model list, keepalive timer state, configs,
-commits `11db17a`/`6d2fc98`/`77877f7`/`0e3a5d1`).
+**Status:** 2026-07-07 late · **updated 2026-07-08** (pre-flight re-verified, calendar advanced,
+QAV plan-of-record pair woven into Lane B). Written for Rich as the execution checklist; every
+claim below re-verified on disk/live (llama-swap :9000 model list, keepalive timer state,
+configs, commits `11db17a`/`6d2fc98`/`77877f7`/`0e3a5d1`).
+
+> **Where we are (2026-07-08):** HSBC demo is TOMORROW (07-09, box quiet); PO launch window
+> opens at the weekend (NET weekend per D-WS4-3, filed at launch). **Today's actionable item is
+> QAV Step 1** — the seeded-defect code half (Opus, no GPU, this repo) per
+> `ai-transition/docs/qav-fine-tune-build-plan.md` Step 1; nothing else on either lane can
+> usefully run before the weekend. Live state re-verified 07-08: identical to the 07-07 check
+> (keepalive timer inactive+enabled, llama-swap :9000 up with all needed models, adf tree
+> clean, 1.5T free). No new commits on either lane since `074248b`/`1ace79d`.
 > **2026-07-07 (later):** the QAV lane now has its durable scope/build-plan pair, template-matched
 > to the PO precedent: `ai-transition/docs/qav-fine-tune-scope.md` + `qav-fine-tune-build-plan.md`
 > (`1ace79d`). Lane B below remains the day-of operator checklist; the pair is the plan of record.
@@ -26,7 +35,7 @@ pilot spot-check → bulk manifests → B12 eval suite → train+grade). Realist
 **w/c 07-14** (teacher-rationale + train stages need the GPU, which the PO run owns until
 ~07-13 late if launched Saturday... see calendar at the end).
 
-## Pre-flight state (verified 2026-07-07 late)
+## Pre-flight state (verified 2026-07-07 late; re-verified unchanged 2026-07-08)
 
 - llama-swap up on **:9000**; serves `gpt-oss-120b` (Player) + `gemma4-coach` (Coach fallback)
   + `coach-ft-v3` + `gemma4-26b` — everything both lanes need. `autobuild_go` co-residency set
@@ -125,10 +134,13 @@ on-demand entry first, preload only after burn-in.
 
 ## Lane B — QAV: from spec to deployed L5 judge (8 steps, 5 gates)
 
-**Docs of record:** `domains/qa-verifier/` — `PLAN-qav-phase1-dataset-generation.md` (the mode
-design), `OUTPUT-CONTRACT.md` (row + manifest), `SPEC-qav-gold-negatives.md`,
-`SCOPE-qav-finetune-training-serving.md` (training/serving half). Kickoff text for B-1 lives
-in the WS2 build plan §B11.
+**Plan of record (2026-07-07 late):** `ai-transition/docs/qav-fine-tune-scope.md` +
+`qav-fine-tune-build-plan.md` (`1ace79d`) — the durable pair, template-matched to the PO
+precedent; its Steps 1–8 are this table's B1–B8, same numbering, same gates. This section
+stays the day-of checklist. Underlying spec docs: `domains/qa-verifier/` —
+`PLAN-qav-phase1-dataset-generation.md` (the mode design), `OUTPUT-CONTRACT.md` (row +
+manifest), `SPEC-qav-gold-negatives.md`, `SCOPE-qav-finetune-training-serving.md`
+(training/serving half). Kickoff text for B1 lives in the WS2 build plan §B11.
 
 | # | Step | Owner/Model | GPU? | Earliest slot |
 |---|---|---|---|---|
@@ -153,7 +165,7 @@ gpt-oss/frontier Player), QAT base swap rejected, never q4_0; DF-008 — dataset
 
 | When | Box | Lane A | Lane B |
 |---|---|---|---|
-| 07-08 → 07-10 | free (07-09 demo QUIET) | idle; D-WS4-3 pre-drafted | **B1 code half** (Opus, no GPU) |
+| **07-08 (today)** → 07-10 | free (**07-09 demo QUIET — tomorrow**) | idle; D-WS4-3 pre-drafted | **B1 code half** (Opus, no GPU) — start today; per plan-of-record Step 1 |
 | 07-11 (weekend, per D-WS4-3) | **PO run starts (~90h)** | launch steps above | B1 finishes; CPU-side regen smoke OK on a worktree; no teacher calls |
 | ~07-14/15 | PO run ends → restore posture | RESULTS delta; curation begins | **B2 pilot → B3 Rich audit** |
 | w/c 07-14 (booked vs WS2 V1) | contended — program plan books it | A′ seq audit + QLoRA train + `po-heldout` grade | **B4 bulk → B5 B12 filing** |
