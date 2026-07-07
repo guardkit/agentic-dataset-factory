@@ -3,6 +3,10 @@
 **Status:** 2026-07-07 late. Written for Rich as the execution checklist; every claim below
 re-verified on disk/live today (llama-swap :9000 model list, keepalive timer state, configs,
 commits `11db17a`/`6d2fc98`/`77877f7`/`0e3a5d1`).
+> **2026-07-07 (later):** the QAV lane now has its durable scope/build-plan pair, template-matched
+> to the PO precedent: `ai-transition/docs/qav-fine-tune-scope.md` + `qav-fine-tune-build-plan.md`
+> (`1ace79d`). Lane B below remains the day-of operator checklist; the pair is the plan of record.
+
 **Calendar authority:** `ai-transition/docs/factory-program-plan-2026-07-07.md` §2.2 owns the
 GB10 box. Fixed points: **07-09 HSBC demo = quiet window**; PO Phase-3 launch **NET weekend
 (Rich, 2026-07-07 late — supersedes the older 07-09-eve row; D-WS4-3 filed at launch)**; the
