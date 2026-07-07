@@ -50,17 +50,20 @@ You propose; you do not elicit — you never stall with clarifying questions, yo
 
      TYPE: 100% reasoning (every example carries <think>) — proven architect approach over the
      nominal 75%; rule 10 needs >= 70% anyway.
-     LAYER: behaviour-heavy (~76/24) — the judgment is the point; knowledge seeds a deferred
-     RAG (scope §7). Total book-generation = 1,050; harvest adds 91 `extract` seed records. -->
+     LAYER: behaviour-heavy (~79/21 after D-WS4-1) — the judgment is the point; knowledge
+     seeds a deferred RAG (scope §7). Total book-generation = 1,210 (D-WS4-1/2, 2026-07-07:
+     was "1,050" stale arithmetic; Rich chose additive edge-density boost — +60 outcome-framing,
+     +50 prioritisation, knowledge layer untouched → behaviour 850→960, total 1,210; RAG follows
+     soon so knowledge is NOT cannibalised); harvest adds 91 `extract` seed records. -->
 
 | Category | Type | Layer | Count | Grade Targets | Books (primary) |
 |---|---|---|---|---|---|
-| Outcome framing — features as user/business outcomes, not tasks | reasoning | behaviour | 150 | [null] | Adžić Impact Mapping, Perri, Cagan |
+| Outcome framing — features as user/business outcomes, not tasks | reasoning | behaviour | 210 | [null] | Adžić Impact Mapping, Perri, Cagan |
 | Feature decomposition — epics→features→stories, thin end-to-end slices | reasoning | behaviour | 150 | [null] | Patton, Cohn |
 | Acceptance criteria — observable, testable, Gherkin-ready | reasoning | behaviour | 150 | [null] | Adžić SbE, Cohn |
 | Assumption surfacing — unknowns as assumptions with confidence + basis | reasoning | behaviour | 125 | [null] | Torres, Adžić Impact Mapping |
 | Scope discipline — in/out boundaries, MVP vs later, creep and gold-plating | reasoning | behaviour | 100 | [null] | Perri, Olsen |
-| Prioritisation — sequencing justified by value / risk / dependency | reasoning | behaviour | 100 | [null] | Adžić Impact Mapping, Olsen |
+| Prioritisation — sequencing justified by value / risk / dependency | reasoning | behaviour | 150 | [null] | Adžić Impact Mapping, Olsen |
 | Cross-framework synthesis — connecting SbE, impact mapping, OST, story mapping | reasoning | behaviour | 75 | [null] | All books |
 | Product-management concepts — INVEST, impact map, OST, outcome vs output, MVP | reasoning | knowledge | 150 | [null] | Adžić, Torres, Patton, Olsen |
 | Discovery & framing knowledge — build-trap, PMF pyramid, discovery habits | reasoning | knowledge | 100 | [null] | Perri, Olsen, Torres, Cagan |

@@ -45,7 +45,8 @@ Keep the table as-is; file this decision so the uniform walk is chosen, not drif
 
 **Recommendation: Option 1.** Mechanism: edit the GOAL Generation Targets table per the Δ column with a dated `<!-- D-WS4-1 -->` comment; WS4-S2 lands the edit once Rich signs.
 
-**Decision (Rich):** ______________  **Date:** ______________
+**Decision (Rich): Option 2 — additive oversample (total → 1,210, ~90h run).**  **Date: 2026-07-07.**
+Rationale: RAG will follow this fine-tune fairly quickly — templates exist from prior use elsewhere, so the knowledge layer is a near-term asset, not a deferred one. That fails the one condition under which Option 1's rebalance is justified ("only because RAG is deferred"), so the +110 edge-density boost is funded **additively** rather than by cannibalising knowledge. The two Phase-0 soft spots get their extra mass (+60 outcome-framing, +50 prioritisation) and the knowledge layer stays whole at 250 for the imminent RAG index. Accepted cost: +~8h wall-clock (feeds D-WS4-3 fleet-quiet scheduling). Applied edit: GOAL table rows 150→210 (outcome framing) and 100→150 (prioritisation); behaviour 850→960; total 1,210.
 
 ---
 
@@ -65,13 +66,27 @@ Cut 50 from the table (no principled donor category exists — the comment never
 
 **Recommendation: Option A** — the table is the operative artifact; correct the prose to match it.
 
-**Decision (Rich):** ______________  **Date:** ______________
+**Decision (Rich): Option A — adopt the table total; fix the stale prose.**  **Date: 2026-07-07.**
+Rationale: the table is the operative artifact and the "1,050" comment is stale arithmetic — kill it. Reconciled with the D-WS4-1 = Option 2 verdict above: Option A's principle ("comment matches the table") now resolves to **1,210**, not the 1,100 this option assumed under a total-preserving D-WS4-1. Applied edit: `GOAL.md` comment `Total book-generation = 1,050` → `1,210`, with a dated note recording the additive boost and the ~79/21 behaviour/knowledge ratio.
 
 ---
 
 ## Run-composition note (informational — config default, not a filed decision)
 
 SPEC §5.6 sets the bulk-run mode list to `[idea, greenfield, extract:a, evolve, impact, scope, extract:b]`: extract's phased shapes get 2/7 of behaviour targets (knowledge-layer targets never receive phased tokens — SPEC §5.2) (they carry the AC/enum/citation disciplines that have zero coverage otherwise and cure the Phase-0 AC-testability artifact); the five no-corpus modes keep 5/7. Two implications for the launch runbook (WS4-S3): extract targets author an in-message synthetic corpus, so Player outputs run longer — watch wall-clock against the 82h estimate in the P2 loop; and the Phase-1 watch items (decomposition depth ~1 epic/1 feature; inner-JSON reject rate, `RESULTS-po-phase1.md:92–96`) apply with extra force to the two new shapes. The mode list is `agent-config.yaml` data — Rich can override it at launch without code.
+
+---
+
+## Decisions filed — 2026-07-07 (Rich)
+
+| Gate | Verdict | Effect |
+|---|---|---|
+| **D-WS4-1** (edge-density) | **Option 2 — additive oversample** | +60 outcome-framing, +50 prioritisation, knowledge untouched; behaviour 850→960; total → **1,210**; run ~90h (+~8h). Rationale: RAG follows soon (reusable templates), so knowledge is a near-term asset — fund additively, don't cannibalise. |
+| **D-WS4-2** (target count) | **Option A — adopt table total** | Kill the stale "1,050" comment; reconciled to **1,210** (the post-boost table sum), not 1,100. |
+
+**Applied (this session, data-only, zero code):** GOAL table rows 150→210 / 100→150; GOAL comment 1,050→1,210 + dated note + ratio ~76/24→~79/21. Table re-verified to sum to 1,210 (behaviour 960 + knowledge 250).
+
+**Launch status:** the ~90h Phase-3 run is now **ungated except for D-WS4-3** (run scheduling — recommendation already on record: Spark A, 07-09 evening post-demo, program plan §2.2). The +8h from Option 2 widens the fleet-quiet window that D-WS4-3 must accommodate.
 
 ---
 
