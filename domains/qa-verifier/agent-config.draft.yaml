@@ -1,0 +1,60 @@
+# DRAFT — qa-verifier seeded-defect generation config (WS2-B11 spec half, 2026-07-07).
+# NOT RUNNABLE: `generation.mode: seeded_defect` and the corpus/teacher seams are the
+# Opus code half (PLAN-qav-phase1-dataset-generation.md §2/§7). Copy to the repo-root
+# agent-config.yaml (the PO-domain convention) once the mode exists.
+#
+# GB10 calendar guardrail: NO generation runs until the program plan clears the box
+# (HSBC demo 07-09 quiet window + the 82h Phase-3 PO run). Teacher rationale is the
+# only GPU stage; bundle regeneration is CPU/pytest-substrate-dominant.
+
+domain: qa-verifier
+
+# Teacher authors <think> rationales AGAINST labels fixed by the injector — it never
+# decides verdicts. Different family from the judged Player (D9 rule; WS4's serving call).
+player:                      # seat reused as the rationale TEACHER in seeded_defect mode
+  provider: local
+  model: gpt-oss-120b
+  endpoint: http://localhost:9000/v1
+  temperature: 0.4
+
+coach:                       # row-quality gate: schema + label-consistency + cue-audit
+  provider: local
+  model: coach-ft-v3         # the deployed judgment Coach; endpoint :9000 (not :8080)
+  endpoint: http://localhost:9000/v1
+  temperature: 0.2
+  max_tokens: 8192
+
+generation:
+  grounded: false
+  mode: seeded_defect        # NEW mode — the one dataset-factory code change (PLAN §2)
+  require_fenced_json: true  # assistant must emit the OUTPUT-CONTRACT §3 verdict object
+  seeded_bundle_cap: 0.25    # max share of seeded rows via bundle mutation (PLAN §2)
+  holdout_fraction: 0.15     # stratified eval_qav slice, frozen by recorded seed (PLAN §6)
+  recipes:                   # PLAN §3 table; weights = GOAL.md reject shares
+    R-DC03-callsite: 0.10
+    R-DC03-producer: 0.10
+    R-DC03-kwargs: 0.10
+    R-DC03-mockseam: 0.10
+    R-DC05-sysmod: 0.075
+    R-DC05-skipguard: 0.075
+    R-DC08-undefstep: 0.075
+    R-DC08-pendmask: 0.075
+    R-DC12-planvisible: 0.05
+    R-DC14-narrative: 0.10
+    R-ABSENT-junit: 0.10
+    # remaining 0.05: seeded-control no-op greens ride a separate approve-side counter
+
+corpus:                      # read-only source repos (venue rule) — scratch worktrees only
+  guardkit: /home/richardwoollcott/Projects/appmilla_github/guardkit
+  study_tutor: /home/richardwoollcott/Projects/appmilla_github/study-tutor
+  forge: /home/richardwoollcott/Projects/appmilla_github/forge
+  bundle_schema_sha: "41a0ebe457"
+
+output:
+  dir: output/qa-verifier
+  manifest: domains/qa-verifier/manifests/qav-phase1-train.manifest.json
+  visibility: private        # DF-008
+
+logging:
+  level: INFO
+  format: json
