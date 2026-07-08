@@ -41,6 +41,23 @@ The **B-min bundle**: `CoachEvidenceBundle.to_dict()` serialized exactly as
 > (The WS4 doc cites the range as `172–420`; at the pinned sha the dataclass ends at line 381 —
 > same object, stale end-line in the WS4 doc.)
 
+> **Dated note (2026-07-08) — code half: bundle filename + GN-3 verbatim survival.** This
+> section says the bundle is "serialized exactly as `coach_turn_N.json` records it." On disk
+> the serialized `CoachEvidenceBundle.to_dict()` is **`coach_evidence_turn_N.json`** —
+> `coach_turn_N.json` is the Coach's *decision* record (keys `decision`/`criteria_verification`/
+> `rationale`), NOT the evidence bundle. The code half (`src/qav/harvest.py`,
+> `gold_negatives.py`) reads `coach_evidence_turn_N.json`; the spec's `coach_turn_N.json`
+> naming is retained above as the pinned words with this correction noted rather than silently
+> edited. **On-disk survival probe (`qav.gold_negatives.probe_survival`, run 2026-07-08):
+> GN-3 (10AC/TASK-QAV-005) survives VERBATIM** as
+> `guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-005/coach_evidence_turn_2.json`
+> (older schema — `behavioural_oracle` present as null, pre-L2/L3 stub_scan/coverage/
+> bdd_authoring_sweep — additively compatible per the bundle-schema drift rule; its
+> `bundle_schema_sha` is stamped `888906f2`, not `41a0ebe457`). GN-1/GN-2 source dirs hold only
+> `progress.log`; GN-4 is a fix commit — those three reconstruct from the SPEC tables. Corpus
+> counts on disk 2026-07-08: guardkit 661 + study-tutor 104 + forge 139 = 904 `coach_turn`
+> records; `coach_evidence_turn_*` bundles are the harvest input.
+
 Complete field set (all serialized; `None` means what the bundle contract says it means —
 read against `gathering_status`):
 
