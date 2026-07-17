@@ -89,8 +89,16 @@ class OpenAICompatibleClient:
     model: str
     temperature: float = 0.4
     max_tokens: int = 4096
+    timeout_seconds: float = 900.0
+    # Overnight-batch resilience (2026-07-17 lesson: a single llama-swap 429 killed the run):
+    # bounded retry with exponential backoff on transient statuses; anything else re-raises.
+    retry_attempts: int = 6
+    retry_base_seconds: float = 10.0
+    _RETRYABLE = (429, 500, 502, 503, 504)
 
     def complete(self, system: str, user: str) -> str:  # pragma: no cover - real network
+        import time as _time
+        import urllib.error
         import urllib.request
 
         payload = json.dumps({
@@ -107,9 +115,26 @@ class OpenAICompatibleClient:
             data=payload,
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req) as resp:
-            body = json.loads(resp.read())
-        return body["choices"][0]["message"]["content"]
+        last_exc: Exception | None = None
+        for attempt in range(self.retry_attempts):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
+                    body = json.loads(resp.read())
+                return body["choices"][0]["message"]["content"]
+            except urllib.error.HTTPError as exc:
+                if exc.code not in self._RETRYABLE:
+                    raise
+                last_exc = exc
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            except (urllib.error.URLError, TimeoutError) as exc:
+                last_exc = exc
+                retry_after = None
+            if attempt < self.retry_attempts - 1:
+                delay = float(retry_after) if retry_after else self.retry_base_seconds * (2 ** attempt)
+                _time.sleep(min(delay, 600.0))
+        raise RuntimeError(
+            f"seat call failed after {self.retry_attempts} attempts (transient errors): {last_exc!r}"
+        ) from last_exc
 
 
 # --------------------------------------------------------------------------------------
