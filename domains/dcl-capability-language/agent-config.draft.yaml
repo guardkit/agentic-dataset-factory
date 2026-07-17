@@ -1,0 +1,69 @@
+# DRAFT — dcl-capability-language generation config (G3 lane, 2026-07-17).
+# NOT RUNNABLE as-is: it names an LLM endpoint. The generation MECHANISM (src/dcl/**) runs
+# fully offline against injected stub clients in tests — ZERO real model calls. A generation
+# run (attended, on a box with the served fleet) copies the relevant keys and injects the
+# real OpenAICompatibleClient (src/dcl/generate.py) for the Player/teacher + a Coach client.
+#
+# The deterministic truth source is the vendored DCL compiler (src/dcl/bin, pin 4f9fbe56),
+# never a model. Labels (author-accepted text, repair-corrected text) are compiler-fixed.
+
+domain: dcl-capability-language
+
+# Player authors capabilities from briefs AND (reused seat) authors <think> rationales for
+# repair rows against labels fixed by the compiler. Different family from any judged model.
+player:
+  provider: local
+  model: gpt-oss-120b
+  endpoint: http://localhost:9000/v1
+  temperature: 0.4
+  max_tokens: 4096
+
+coach:                       # row-quality gate: brief-fidelity + closed-vocabulary discipline
+  provider: local
+  model: gemma4-coach
+  endpoint: http://localhost:9000/v1
+  temperature: 0.2
+  max_tokens: 4096
+
+generation:
+  grounded: false            # ungrounded JSON/text emission (product-owner precedent)
+  mode: both                 # dcl_author | dcl_repair | both
+  require_fenced_dcl: true   # assistant must emit exactly one ```dcl fenced capability
+  limit: 20                  # pilot cap — Phase-1 targets are author 300 / repair 600
+  holdout_fraction: 0.1      # stratified eval_dcl slice, frozen by the recorded seed
+  seed: dcl-phase1
+  max_format_retries: 3      # compile-gate repair retries (diagnostics fed back)
+  coach_max_turns: 2
+  recipes:                   # defect weights for repair-row minting (src/dcl/recipes.py)
+    R-actor-kind: 0.12
+    R-effect-kind: 0.12
+    R-invented-concern: 0.10
+    R-wrong-family: 0.10
+    R-invented-value: 0.10
+    R-lexer-char: 0.08
+    R-undeclared-outcome: 0.10
+    R-undeclared-symbol: 0.10
+    R-missing-lifecycle: 0.08
+    R-retry-no-idempotency: 0.10
+
+corpus:
+  vocab_reference: src/dcl/vocab-reference.md
+  compiler_bin: src/dcl/bin/dcl-check.mjs
+  briefs: domains/dcl-capability-language/briefs.yaml
+  vocab_pin: "4f9fbe56"
+  compiler_pin: "4f9fbe56"
+
+# Hold-out denylist — the four frozen dcl-heldout exam capabilities (stats/version/uptime/
+# GetStats). Enforced in code (src/dcl/contamination.py), not by this pointer.
+denylist:
+  source: fleet-evals/tasks/dcl-held-00{1,2,3,4}
+  enforced_by: src/dcl/contamination.py
+
+output:
+  dir: output/dcl-capability-language
+  manifest: output/dcl-capability-language/manifest.json
+  visibility: private        # DF-008
+
+logging:
+  level: INFO
+  format: json

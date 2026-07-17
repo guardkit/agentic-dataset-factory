@@ -1,0 +1,2082 @@
+# DCL feature-brief seed bank — 50 one-paragraph briefs across diverse business
+# domains for the dcl-capability-language domain (AUTHOR mode inputs + dcl_repair
+# source renders). Each brief names the actor kind, the typed intent shape, the
+# outcomes, the emitted event, one policy family+concern, and a lifecycle. NONE
+# describes the frozen hold-out endpoints (stats/version/uptime/GetStats).
+# Generated + compiler-verified 2026-07-17 (every render compiles clean, pin 4f9fbe56).
+# ids are deterministic brief-001..brief-050.
+briefs:
+- id: brief-001
+  domain: orders
+  title: PlaceOrder (orders)
+  paragraph: 'A a person (actor kind human) initiates a orders capability, PlaceOrder. The intent shape
+    OrderRequest carries id (Uuid) required, amount (Money) required, note (Text). The capability validates
+    the request (ValidOrder: amount above 0) and reports outcome OrderConfirmed on success, or OrderRejected
+    otherwise. It emits a OrderRecorded event carrying id (Uuid) required, recordedAt (DateTime) required,
+    persists through a persistence effect (PersistOrder), and is governed by a reliability policy enforcing
+    idempotency required; timeout 5 seconds. Its lifecycle moves from Started to Completed once OrderConfirmed
+    is reached.'
+  actor_name: Customer
+  actor_kind: human
+  shape_name: OrderRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: OrderRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistOrder
+  effect_kind: persistence
+  policy_name: OrderPolicy
+  policy_family: reliability
+  concerns: &id001
+  - idempotency required
+  - timeout 5 seconds
+  capability_name: PlaceOrder
+  success_outcome: OrderConfirmed
+  failure_outcome: OrderRejected
+  rule_name: ValidOrder
+  rule_expr: amount above 0
+- id: brief-002
+  domain: inventory
+  title: AdjustStock (inventory)
+  paragraph: 'A an upstream system actor (kind system) initiates a inventory capability, AdjustStock.
+    The intent shape StockRequest carries id (Uuid) required, quantity (Number) required, reference (Text).
+    The capability validates the request (ValidStock: quantity above 0) and reports outcome StockConfirmed
+    on success, or StockRejected otherwise. It emits a StockRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistStock), and is governed
+    by a reliability policy enforcing idempotency required; retry { attempts 3 backoff exponential }.
+    Its lifecycle moves from Started to Completed once StockConfirmed is reached.'
+  actor_name: InventoryService
+  actor_kind: system
+  shape_name: StockRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: StockRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistStock
+  effect_kind: notification
+  policy_name: StockPolicy
+  policy_family: reliability
+  concerns: &id002
+  - idempotency required
+  - retry { attempts 3 backoff exponential }
+  capability_name: AdjustStock
+  success_outcome: StockConfirmed
+  failure_outcome: StockRejected
+  rule_name: ValidStock
+  rule_expr: quantity above 0
+- id: brief-003
+  domain: payments
+  title: CapturePayment (payments)
+  paragraph: 'A an autonomous agent (kind agent) initiates a payments capability, CapturePayment. The
+    intent shape PaymentRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidPayment: count above 0) and reports outcome PaymentConfirmed
+    on success, or PaymentRejected otherwise. It emits a PaymentRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a invocation effect (PersistPayment), and is governed
+    by a reliability policy enforcing idempotency allowed. Its lifecycle moves from Started to Completed
+    once PaymentConfirmed is reached.'
+  actor_name: PaymentGateway
+  actor_kind: agent
+  shape_name: PaymentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: PaymentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPayment
+  effect_kind: invocation
+  policy_name: PaymentPolicy
+  policy_family: reliability
+  concerns: &id003
+  - idempotency allowed
+  capability_name: CapturePayment
+  success_outcome: PaymentConfirmed
+  failure_outcome: PaymentRejected
+  rule_name: ValidPayment
+  rule_expr: count above 0
+- id: brief-004
+  domain: bookings
+  title: ReserveSlot (bookings)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a bookings capability, ReserveSlot.
+    The intent shape SlotRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels
+    (List<Text>). The capability validates the request (ValidSlot: contact present) and reports outcome
+    SlotConfirmed on success, or SlotRejected otherwise. It emits a SlotRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a tool effect (PersistSlot), and is governed
+    by a availability policy enforcing dependency_tolerance allowed. Its lifecycle moves from Started
+    to Completed once SlotConfirmed is reached.'
+  actor_name: Guest
+  actor_kind: scheduled_process
+  shape_name: SlotRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: SlotRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistSlot
+  effect_kind: tool
+  policy_name: SlotPolicy
+  policy_family: availability
+  concerns: &id004
+  - dependency_tolerance allowed
+  capability_name: ReserveSlot
+  success_outcome: SlotConfirmed
+  failure_outcome: SlotRejected
+  rule_name: ValidSlot
+  rule_expr: contact present
+- id: brief-005
+  domain: notifications
+  title: SendNotice (notifications)
+  paragraph: 'A a person (actor kind human) initiates a notifications capability, SendNotice. The intent
+    shape NoticeRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number). The
+    capability validates the request (ValidNotice: id present) and reports outcome NoticeConfirmed on
+    success, or NoticeRejected otherwise. It emits a NoticeRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a persistence effect (PersistNotice), and is governed
+    by a availability policy enforcing degradation forbidden. Its lifecycle moves from Started to Completed
+    once NoticeConfirmed is reached.'
+  actor_name: NotifierAgent
+  actor_kind: human
+  shape_name: NoticeRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: NoticeRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistNotice
+  effect_kind: persistence
+  policy_name: NoticePolicy
+  policy_family: availability
+  concerns: &id005
+  - degradation forbidden
+  capability_name: SendNotice
+  success_outcome: NoticeConfirmed
+  failure_outcome: NoticeRejected
+  rule_name: ValidNotice
+  rule_expr: id present
+- id: brief-006
+  domain: documents
+  title: ApproveDocument (documents)
+  paragraph: 'A an upstream system actor (kind system) initiates a documents capability, ApproveDocument.
+    The intent shape DocumentRequest carries id (Uuid) required, amount (Money) required, note (Text).
+    The capability validates the request (ValidDocument: amount above 0) and reports outcome DocumentConfirmed
+    on success, or DocumentRejected otherwise. It emits a DocumentRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistDocument), and is governed
+    by a security policy enforcing authentication required. Its lifecycle moves from Started to Completed
+    once DocumentConfirmed is reached.'
+  actor_name: Reviewer
+  actor_kind: system
+  shape_name: DocumentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: DocumentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistDocument
+  effect_kind: notification
+  policy_name: DocumentPolicy
+  policy_family: security
+  concerns: &id006
+  - authentication required
+  capability_name: ApproveDocument
+  success_outcome: DocumentConfirmed
+  failure_outcome: DocumentRejected
+  rule_name: ValidDocument
+  rule_expr: amount above 0
+- id: brief-007
+  domain: access
+  title: GrantAccess (access)
+  paragraph: 'A an autonomous agent (kind agent) initiates a access capability, GrantAccess. The intent
+    shape AccessRequest carries id (Uuid) required, quantity (Number) required, reference (Text). The
+    capability validates the request (ValidAccess: quantity above 0) and reports outcome AccessConfirmed
+    on success, or AccessRejected otherwise. It emits a AccessRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a invocation effect (PersistAccess), and is governed
+    by a security policy enforcing authorization required; classification confidential. Its lifecycle
+    moves from Started to Completed once AccessConfirmed is reached.'
+  actor_name: SecurityOfficer
+  actor_kind: agent
+  shape_name: AccessRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: AccessRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistAccess
+  effect_kind: invocation
+  policy_name: AccessPolicy
+  policy_family: security
+  concerns: &id007
+  - authorization required
+  - classification confidential
+  capability_name: GrantAccess
+  success_outcome: AccessConfirmed
+  failure_outcome: AccessRejected
+  rule_name: ValidAccess
+  rule_expr: quantity above 0
+- id: brief-008
+  domain: telemetry
+  title: IngestReading (telemetry)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a telemetry capability, IngestReading.
+    The intent shape ReadingRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidReading: count above 0) and reports outcome ReadingConfirmed
+    on success, or ReadingRejected otherwise. It emits a ReadingRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a tool effect (PersistReading), and is governed by
+    a security policy enforcing encryption required. Its lifecycle moves from Started to Completed once
+    ReadingConfirmed is reached.'
+  actor_name: DeviceGateway
+  actor_kind: scheduled_process
+  shape_name: ReadingRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: ReadingRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistReading
+  effect_kind: tool
+  policy_name: ReadingPolicy
+  policy_family: security
+  concerns: &id008
+  - encryption required
+  capability_name: IngestReading
+  success_outcome: ReadingConfirmed
+  failure_outcome: ReadingRejected
+  rule_name: ValidReading
+  rule_expr: count above 0
+- id: brief-009
+  domain: scheduling
+  title: ScheduleJob (scheduling)
+  paragraph: 'A a person (actor kind human) initiates a scheduling capability, ScheduleJob. The intent
+    shape JobRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels (List<Text>).
+    The capability validates the request (ValidJob: contact present) and reports outcome JobConfirmed
+    on success, or JobRejected otherwise. It emits a JobRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a persistence effect (PersistJob), and is governed by a compliance
+    policy enforcing audit required; retention 7 years. Its lifecycle moves from Started to Completed
+    once JobConfirmed is reached.'
+  actor_name: Scheduler
+  actor_kind: human
+  shape_name: JobRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: JobRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistJob
+  effect_kind: persistence
+  policy_name: JobPolicy
+  policy_family: compliance
+  concerns: &id009
+  - audit required
+  - retention 7 years
+  capability_name: ScheduleJob
+  success_outcome: JobConfirmed
+  failure_outcome: JobRejected
+  rule_name: ValidJob
+  rule_expr: contact present
+- id: brief-010
+  domain: support
+  title: OpenTicket (support)
+  paragraph: 'A an upstream system actor (kind system) initiates a support capability, OpenTicket. The
+    intent shape TicketRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number).
+    The capability validates the request (ValidTicket: id present) and reports outcome TicketConfirmed
+    on success, or TicketRejected otherwise. It emits a TicketRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistTicket), and is governed
+    by a compliance policy enforcing approval required. Its lifecycle moves from Started to Completed
+    once TicketConfirmed is reached.'
+  actor_name: SupportClerk
+  actor_kind: system
+  shape_name: TicketRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: TicketRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistTicket
+  effect_kind: notification
+  policy_name: TicketPolicy
+  policy_family: compliance
+  concerns: &id010
+  - approval required
+  capability_name: OpenTicket
+  success_outcome: TicketConfirmed
+  failure_outcome: TicketRejected
+  rule_name: ValidTicket
+  rule_expr: id present
+- id: brief-011
+  domain: shipping
+  title: DispatchShipment (shipping)
+  paragraph: 'A an autonomous agent (kind agent) initiates a shipping capability, DispatchShipment. The
+    intent shape ShipmentRequest carries id (Uuid) required, amount (Money) required, note (Text). The
+    capability validates the request (ValidShipment: amount above 0) and reports outcome ShipmentConfirmed
+    on success, or ShipmentRejected otherwise. It emits a ShipmentRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a invocation effect (PersistShipment), and is governed
+    by a governance policy enforcing approval required; evidence required. Its lifecycle moves from Started
+    to Completed once ShipmentConfirmed is reached.'
+  actor_name: DispatchService
+  actor_kind: agent
+  shape_name: ShipmentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: ShipmentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistShipment
+  effect_kind: invocation
+  policy_name: ShipmentPolicy
+  policy_family: governance
+  concerns: &id011
+  - approval required
+  - evidence required
+  capability_name: DispatchShipment
+  success_outcome: ShipmentConfirmed
+  failure_outcome: ShipmentRejected
+  rule_name: ValidShipment
+  rule_expr: amount above 0
+- id: brief-012
+  domain: returns
+  title: AuthorizeReturn (returns)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a returns capability, AuthorizeReturn.
+    The intent shape ReturnRequest carries id (Uuid) required, quantity (Number) required, reference (Text).
+    The capability validates the request (ValidReturn: quantity above 0) and reports outcome ReturnConfirmed
+    on success, or ReturnRejected otherwise. It emits a ReturnRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a tool effect (PersistReturn), and is governed by
+    a performance policy enforcing latency p95 under 200ms. Its lifecycle moves from Started to Completed
+    once ReturnConfirmed is reached.'
+  actor_name: ReturnsClerk
+  actor_kind: scheduled_process
+  shape_name: ReturnRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: ReturnRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistReturn
+  effect_kind: tool
+  policy_name: ReturnPolicy
+  policy_family: performance
+  concerns: &id012
+  - latency p95 under 200ms
+  capability_name: AuthorizeReturn
+  success_outcome: ReturnConfirmed
+  failure_outcome: ReturnRejected
+  rule_name: ValidReturn
+  rule_expr: quantity above 0
+- id: brief-013
+  domain: subscriptions
+  title: StartSubscription (subscriptions)
+  paragraph: 'A a person (actor kind human) initiates a subscriptions capability, StartSubscription. The
+    intent shape SubscriptionRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidSubscription: count above 0) and reports outcome SubscriptionConfirmed
+    on success, or SubscriptionRejected otherwise. It emits a SubscriptionRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a persistence effect (PersistSubscription),
+    and is governed by a performance policy enforcing throughput above 100 per second. Its lifecycle moves
+    from Started to Completed once SubscriptionConfirmed is reached.'
+  actor_name: Subscriber
+  actor_kind: human
+  shape_name: SubscriptionRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: SubscriptionRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistSubscription
+  effect_kind: persistence
+  policy_name: SubscriptionPolicy
+  policy_family: performance
+  concerns: &id013
+  - throughput above 100 per second
+  capability_name: StartSubscription
+  success_outcome: SubscriptionConfirmed
+  failure_outcome: SubscriptionRejected
+  rule_name: ValidSubscription
+  rule_expr: count above 0
+- id: brief-014
+  domain: invoicing
+  title: IssueInvoice (invoicing)
+  paragraph: 'A an upstream system actor (kind system) initiates a invoicing capability, IssueInvoice.
+    The intent shape InvoiceRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels
+    (List<Text>). The capability validates the request (ValidInvoice: contact present) and reports outcome
+    InvoiceConfirmed on success, or InvoiceRejected otherwise. It emits a InvoiceRecorded event carrying
+    id (Uuid) required, recordedAt (DateTime) required, persists through a notification effect (PersistInvoice),
+    and is governed by a performance policy enforcing budget 500ms. Its lifecycle moves from Started to
+    Completed once InvoiceConfirmed is reached.'
+  actor_name: BillingService
+  actor_kind: system
+  shape_name: InvoiceRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: InvoiceRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistInvoice
+  effect_kind: notification
+  policy_name: InvoicePolicy
+  policy_family: performance
+  concerns: &id014
+  - budget 500ms
+  capability_name: IssueInvoice
+  success_outcome: InvoiceConfirmed
+  failure_outcome: InvoiceRejected
+  rule_name: ValidInvoice
+  rule_expr: contact present
+- id: brief-015
+  domain: onboarding
+  title: OnboardCustomer (onboarding)
+  paragraph: 'A an autonomous agent (kind agent) initiates a onboarding capability, OnboardCustomer. The
+    intent shape EnrollmentRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number).
+    The capability validates the request (ValidEnrollment: id present) and reports outcome EnrollmentConfirmed
+    on success, or EnrollmentRejected otherwise. It emits a EnrollmentRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a invocation effect (PersistEnrollment),
+    and is governed by a scalability policy enforcing concurrency 10. Its lifecycle moves from Started
+    to Completed once EnrollmentConfirmed is reached.'
+  actor_name: OnboardingAgent
+  actor_kind: agent
+  shape_name: EnrollmentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: EnrollmentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistEnrollment
+  effect_kind: invocation
+  policy_name: EnrollmentPolicy
+  policy_family: scalability
+  concerns: &id015
+  - concurrency 10
+  capability_name: OnboardCustomer
+  success_outcome: EnrollmentConfirmed
+  failure_outcome: EnrollmentRejected
+  rule_name: ValidEnrollment
+  rule_expr: id present
+- id: brief-016
+  domain: kyc
+  title: VerifyIdentity (kyc)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a kyc capability, VerifyIdentity.
+    The intent shape IdentityRequest carries id (Uuid) required, amount (Money) required, note (Text).
+    The capability validates the request (ValidIdentity: amount above 0) and reports outcome IdentityConfirmed
+    on success, or IdentityRejected otherwise. It emits a IdentityRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a tool effect (PersistIdentity), and is governed
+    by a scalability policy enforcing rate_limit 100 per minute. Its lifecycle moves from Started to Completed
+    once IdentityConfirmed is reached.'
+  actor_name: ComplianceOfficer
+  actor_kind: scheduled_process
+  shape_name: IdentityRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: IdentityRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistIdentity
+  effect_kind: tool
+  policy_name: IdentityPolicy
+  policy_family: scalability
+  concerns: &id016
+  - rate_limit 100 per minute
+  capability_name: VerifyIdentity
+  success_outcome: IdentityConfirmed
+  failure_outcome: IdentityRejected
+  rule_name: ValidIdentity
+  rule_expr: amount above 0
+- id: brief-017
+  domain: loans
+  title: SubmitLoanApplication (loans)
+  paragraph: 'A a person (actor kind human) initiates a loans capability, SubmitLoanApplication. The intent
+    shape LoanRequest carries id (Uuid) required, quantity (Number) required, reference (Text). The capability
+    validates the request (ValidLoan: quantity above 0) and reports outcome LoanConfirmed on success,
+    or LoanRejected otherwise. It emits a LoanRecorded event carrying id (Uuid) required, recordedAt (DateTime)
+    required, persists through a persistence effect (PersistLoan), and is governed by a scalability policy
+    enforcing queue allowed. Its lifecycle moves from Started to Completed once LoanConfirmed is reached.'
+  actor_name: Applicant
+  actor_kind: human
+  shape_name: LoanRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: LoanRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistLoan
+  effect_kind: persistence
+  policy_name: LoanPolicy
+  policy_family: scalability
+  concerns: &id017
+  - queue allowed
+  capability_name: SubmitLoanApplication
+  success_outcome: LoanConfirmed
+  failure_outcome: LoanRejected
+  rule_name: ValidLoan
+  rule_expr: quantity above 0
+- id: brief-018
+  domain: claims
+  title: FileClaim (claims)
+  paragraph: 'A an upstream system actor (kind system) initiates a claims capability, FileClaim. The intent
+    shape ClaimRequest carries id (Uuid) required, contact (Email) required, active (Boolean). The capability
+    validates the request (ValidClaim: count above 0) and reports outcome ClaimConfirmed on success, or
+    ClaimRejected otherwise. It emits a ClaimRecorded event carrying id (Uuid) required, recordedAt (DateTime)
+    required, persists through a notification effect (PersistClaim), and is governed by a data_protection
+    policy enforcing sensitivity personal. Its lifecycle moves from Started to Completed once ClaimConfirmed
+    is reached.'
+  actor_name: Claimant
+  actor_kind: system
+  shape_name: ClaimRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: ClaimRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistClaim
+  effect_kind: notification
+  policy_name: ClaimPolicy
+  policy_family: data_protection
+  concerns: &id018
+  - sensitivity personal
+  capability_name: FileClaim
+  success_outcome: ClaimConfirmed
+  failure_outcome: ClaimRejected
+  rule_name: ValidClaim
+  rule_expr: count above 0
+- id: brief-019
+  domain: appointments
+  title: BookAppointment (appointments)
+  paragraph: 'A an autonomous agent (kind agent) initiates a appointments capability, BookAppointment.
+    The intent shape AppointmentRequest carries id (Uuid) required, scheduledFor (DateTime) required,
+    labels (List<Text>). The capability validates the request (ValidAppointment: contact present) and
+    reports outcome AppointmentConfirmed on success, or AppointmentRejected otherwise. It emits a AppointmentRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a invocation effect
+    (PersistAppointment), and is governed by a data_protection policy enforcing retention 30 days; minimization
+    required. Its lifecycle moves from Started to Completed once AppointmentConfirmed is reached.'
+  actor_name: Patient
+  actor_kind: agent
+  shape_name: AppointmentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: AppointmentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistAppointment
+  effect_kind: invocation
+  policy_name: AppointmentPolicy
+  policy_family: data_protection
+  concerns: &id019
+  - retention 30 days
+  - minimization required
+  capability_name: BookAppointment
+  success_outcome: AppointmentConfirmed
+  failure_outcome: AppointmentRejected
+  rule_name: ValidAppointment
+  rule_expr: contact present
+- id: brief-020
+  domain: warehouse
+  title: PickOrder (warehouse)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a warehouse capability, PickOrder.
+    The intent shape PickRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number).
+    The capability validates the request (ValidPick: id present) and reports outcome PickConfirmed on
+    success, or PickRejected otherwise. It emits a PickRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a tool effect (PersistPick), and is governed by a data_protection
+    policy enforcing masking required. Its lifecycle moves from Started to Completed once PickConfirmed
+    is reached.'
+  actor_name: Picker
+  actor_kind: scheduled_process
+  shape_name: PickRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: PickRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPick
+  effect_kind: tool
+  policy_name: PickPolicy
+  policy_family: data_protection
+  concerns: &id020
+  - masking required
+  capability_name: PickOrder
+  success_outcome: PickConfirmed
+  failure_outcome: PickRejected
+  rule_name: ValidPick
+  rule_expr: id present
+- id: brief-021
+  domain: refunds
+  title: ProcessRefund (refunds)
+  paragraph: 'A a person (actor kind human) initiates a refunds capability, ProcessRefund. The intent
+    shape RefundRequest carries id (Uuid) required, amount (Money) required, note (Text). The capability
+    validates the request (ValidRefund: amount above 0) and reports outcome RefundConfirmed on success,
+    or RefundRejected otherwise. It emits a RefundRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a persistence effect (PersistRefund), and is governed by a reliability
+    policy enforcing idempotency required; timeout 5 seconds. Its lifecycle moves from Started to Completed
+    once RefundConfirmed is reached.'
+  actor_name: RefundService
+  actor_kind: human
+  shape_name: RefundRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: RefundRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistRefund
+  effect_kind: persistence
+  policy_name: RefundPolicy
+  policy_family: reliability
+  concerns: *id001
+  capability_name: ProcessRefund
+  success_outcome: RefundConfirmed
+  failure_outcome: RefundRejected
+  rule_name: ValidRefund
+  rule_expr: amount above 0
+- id: brief-022
+  domain: payouts
+  title: ReleasePayout (payouts)
+  paragraph: 'A an upstream system actor (kind system) initiates a payouts capability, ReleasePayout.
+    The intent shape PayoutRequest carries id (Uuid) required, quantity (Number) required, reference (Text).
+    The capability validates the request (ValidPayout: quantity above 0) and reports outcome PayoutConfirmed
+    on success, or PayoutRejected otherwise. It emits a PayoutRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistPayout), and is governed
+    by a reliability policy enforcing idempotency required; retry { attempts 3 backoff exponential }.
+    Its lifecycle moves from Started to Completed once PayoutConfirmed is reached.'
+  actor_name: PayoutService
+  actor_kind: system
+  shape_name: PayoutRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: PayoutRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPayout
+  effect_kind: notification
+  policy_name: PayoutPolicy
+  policy_family: reliability
+  concerns: *id002
+  capability_name: ReleasePayout
+  success_outcome: PayoutConfirmed
+  failure_outcome: PayoutRejected
+  rule_name: ValidPayout
+  rule_expr: quantity above 0
+- id: brief-023
+  domain: wallet
+  title: TopUpWallet (wallet)
+  paragraph: 'A an autonomous agent (kind agent) initiates a wallet capability, TopUpWallet. The intent
+    shape TopUpRequest carries id (Uuid) required, contact (Email) required, active (Boolean). The capability
+    validates the request (ValidTopUp: count above 0) and reports outcome TopUpConfirmed on success, or
+    TopUpRejected otherwise. It emits a TopUpRecorded event carrying id (Uuid) required, recordedAt (DateTime)
+    required, persists through a invocation effect (PersistTopUp), and is governed by a reliability policy
+    enforcing idempotency allowed. Its lifecycle moves from Started to Completed once TopUpConfirmed is
+    reached.'
+  actor_name: WalletHolder
+  actor_kind: agent
+  shape_name: TopUpRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: TopUpRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistTopUp
+  effect_kind: invocation
+  policy_name: TopUpPolicy
+  policy_family: reliability
+  concerns: *id003
+  capability_name: TopUpWallet
+  success_outcome: TopUpConfirmed
+  failure_outcome: TopUpRejected
+  rule_name: ValidTopUp
+  rule_expr: count above 0
+- id: brief-024
+  domain: messaging
+  title: DeliverMessage (messaging)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a messaging capability, DeliverMessage.
+    The intent shape MessageRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels
+    (List<Text>). The capability validates the request (ValidMessage: contact present) and reports outcome
+    MessageConfirmed on success, or MessageRejected otherwise. It emits a MessageRecorded event carrying
+    id (Uuid) required, recordedAt (DateTime) required, persists through a tool effect (PersistMessage),
+    and is governed by a availability policy enforcing dependency_tolerance allowed. Its lifecycle moves
+    from Started to Completed once MessageConfirmed is reached.'
+  actor_name: MessageBroker
+  actor_kind: scheduled_process
+  shape_name: MessageRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: MessageRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistMessage
+  effect_kind: tool
+  policy_name: MessagePolicy
+  policy_family: availability
+  concerns: *id004
+  capability_name: DeliverMessage
+  success_outcome: MessageConfirmed
+  failure_outcome: MessageRejected
+  rule_name: ValidMessage
+  rule_expr: contact present
+- id: brief-025
+  domain: alerts
+  title: RaiseAlert (alerts)
+  paragraph: 'A a person (actor kind human) initiates a alerts capability, RaiseAlert. The intent shape
+    AlertRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number). The capability
+    validates the request (ValidAlert: id present) and reports outcome AlertConfirmed on success, or AlertRejected
+    otherwise. It emits a AlertRecorded event carrying id (Uuid) required, recordedAt (DateTime) required,
+    persists through a persistence effect (PersistAlert), and is governed by a availability policy enforcing
+    degradation forbidden. Its lifecycle moves from Started to Completed once AlertConfirmed is reached.'
+  actor_name: MonitorAgent
+  actor_kind: human
+  shape_name: AlertRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: AlertRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistAlert
+  effect_kind: persistence
+  policy_name: AlertPolicy
+  policy_family: availability
+  concerns: *id005
+  capability_name: RaiseAlert
+  success_outcome: AlertConfirmed
+  failure_outcome: AlertRejected
+  rule_name: ValidAlert
+  rule_expr: id present
+- id: brief-026
+  domain: flags
+  title: ToggleFeature (flags)
+  paragraph: 'A an upstream system actor (kind system) initiates a flags capability, ToggleFeature. The
+    intent shape FlagRequest carries id (Uuid) required, amount (Money) required, note (Text). The capability
+    validates the request (ValidFlag: amount above 0) and reports outcome FlagConfirmed on success, or
+    FlagRejected otherwise. It emits a FlagRecorded event carrying id (Uuid) required, recordedAt (DateTime)
+    required, persists through a notification effect (PersistFlag), and is governed by a security policy
+    enforcing authentication required. Its lifecycle moves from Started to Completed once FlagConfirmed
+    is reached.'
+  actor_name: ReleaseManager
+  actor_kind: system
+  shape_name: FlagRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: FlagRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistFlag
+  effect_kind: notification
+  policy_name: FlagPolicy
+  policy_family: security
+  concerns: *id006
+  capability_name: ToggleFeature
+  success_outcome: FlagConfirmed
+  failure_outcome: FlagRejected
+  rule_name: ValidFlag
+  rule_expr: amount above 0
+- id: brief-027
+  domain: consent
+  title: RecordConsent (consent)
+  paragraph: 'A an autonomous agent (kind agent) initiates a consent capability, RecordConsent. The intent
+    shape ConsentRequest carries id (Uuid) required, quantity (Number) required, reference (Text). The
+    capability validates the request (ValidConsent: quantity above 0) and reports outcome ConsentConfirmed
+    on success, or ConsentRejected otherwise. It emits a ConsentRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a invocation effect (PersistConsent), and is governed
+    by a security policy enforcing authorization required; classification confidential. Its lifecycle
+    moves from Started to Completed once ConsentConfirmed is reached.'
+  actor_name: DataSubject
+  actor_kind: agent
+  shape_name: ConsentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: ConsentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistConsent
+  effect_kind: invocation
+  policy_name: ConsentPolicy
+  policy_family: security
+  concerns: *id007
+  capability_name: RecordConsent
+  success_outcome: ConsentConfirmed
+  failure_outcome: ConsentRejected
+  rule_name: ValidConsent
+  rule_expr: quantity above 0
+- id: brief-028
+  domain: export
+  title: ExportData (export)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a export capability, ExportData.
+    The intent shape ExportRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidExport: count above 0) and reports outcome ExportConfirmed
+    on success, or ExportRejected otherwise. It emits a ExportRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a tool effect (PersistExport), and is governed by
+    a security policy enforcing encryption required. Its lifecycle moves from Started to Completed once
+    ExportConfirmed is reached.'
+  actor_name: ExportService
+  actor_kind: scheduled_process
+  shape_name: ExportRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: ExportRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistExport
+  effect_kind: tool
+  policy_name: ExportPolicy
+  policy_family: security
+  concerns: *id008
+  capability_name: ExportData
+  success_outcome: ExportConfirmed
+  failure_outcome: ExportRejected
+  rule_name: ValidExport
+  rule_expr: count above 0
+- id: brief-029
+  domain: accounts
+  title: CloseAccount (accounts)
+  paragraph: 'A a person (actor kind human) initiates a accounts capability, CloseAccount. The intent
+    shape ClosureRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels (List<Text>).
+    The capability validates the request (ValidClosure: contact present) and reports outcome ClosureConfirmed
+    on success, or ClosureRejected otherwise. It emits a ClosureRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a persistence effect (PersistClosure), and is governed
+    by a compliance policy enforcing audit required; retention 7 years. Its lifecycle moves from Started
+    to Completed once ClosureConfirmed is reached.'
+  actor_name: AccountHolder
+  actor_kind: human
+  shape_name: ClosureRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: ClosureRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistClosure
+  effect_kind: persistence
+  policy_name: ClosurePolicy
+  policy_family: compliance
+  concerns: *id009
+  capability_name: CloseAccount
+  success_outcome: ClosureConfirmed
+  failure_outcome: ClosureRejected
+  rule_name: ValidClosure
+  rule_expr: contact present
+- id: brief-030
+  domain: profiles
+  title: UpdateProfile (profiles)
+  paragraph: 'A an upstream system actor (kind system) initiates a profiles capability, UpdateProfile.
+    The intent shape ProfileRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number).
+    The capability validates the request (ValidProfile: id present) and reports outcome ProfileConfirmed
+    on success, or ProfileRejected otherwise. It emits a ProfileRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistProfile), and is governed
+    by a compliance policy enforcing approval required. Its lifecycle moves from Started to Completed
+    once ProfileConfirmed is reached.'
+  actor_name: Member
+  actor_kind: system
+  shape_name: ProfileRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: ProfileRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistProfile
+  effect_kind: notification
+  policy_name: ProfilePolicy
+  policy_family: compliance
+  concerns: *id010
+  capability_name: UpdateProfile
+  success_outcome: ProfileConfirmed
+  failure_outcome: ProfileRejected
+  rule_name: ValidProfile
+  rule_expr: id present
+- id: brief-031
+  domain: checkout
+  title: CompleteCheckout (checkout)
+  paragraph: 'A an autonomous agent (kind agent) initiates a checkout capability, CompleteCheckout. The
+    intent shape CheckoutRequest carries id (Uuid) required, amount (Money) required, note (Text). The
+    capability validates the request (ValidCheckout: amount above 0) and reports outcome CheckoutConfirmed
+    on success, or CheckoutRejected otherwise. It emits a CheckoutRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a invocation effect (PersistCheckout), and is governed
+    by a governance policy enforcing approval required; evidence required. Its lifecycle moves from Started
+    to Completed once CheckoutConfirmed is reached.'
+  actor_name: Shopper
+  actor_kind: agent
+  shape_name: CheckoutRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: CheckoutRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistCheckout
+  effect_kind: invocation
+  policy_name: CheckoutPolicy
+  policy_family: governance
+  concerns: *id011
+  capability_name: CompleteCheckout
+  success_outcome: CheckoutConfirmed
+  failure_outcome: CheckoutRejected
+  rule_name: ValidCheckout
+  rule_expr: amount above 0
+- id: brief-032
+  domain: loyalty
+  title: AwardPoints (loyalty)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a loyalty capability, AwardPoints.
+    The intent shape PointsRequest carries id (Uuid) required, quantity (Number) required, reference (Text).
+    The capability validates the request (ValidPoints: quantity above 0) and reports outcome PointsConfirmed
+    on success, or PointsRejected otherwise. It emits a PointsRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a tool effect (PersistPoints), and is governed by
+    a performance policy enforcing latency p95 under 200ms. Its lifecycle moves from Started to Completed
+    once PointsConfirmed is reached.'
+  actor_name: LoyaltyEngine
+  actor_kind: scheduled_process
+  shape_name: PointsRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: PointsRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPoints
+  effect_kind: tool
+  policy_name: PointsPolicy
+  policy_family: performance
+  concerns: *id012
+  capability_name: AwardPoints
+  success_outcome: PointsConfirmed
+  failure_outcome: PointsRejected
+  rule_name: ValidPoints
+  rule_expr: quantity above 0
+- id: brief-033
+  domain: reviews
+  title: ModerateReview (reviews)
+  paragraph: 'A a person (actor kind human) initiates a reviews capability, ModerateReview. The intent
+    shape ReviewRequest carries id (Uuid) required, contact (Email) required, active (Boolean). The capability
+    validates the request (ValidReview: count above 0) and reports outcome ReviewConfirmed on success,
+    or ReviewRejected otherwise. It emits a ReviewRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a persistence effect (PersistReview), and is governed by a performance
+    policy enforcing throughput above 100 per second. Its lifecycle moves from Started to Completed once
+    ReviewConfirmed is reached.'
+  actor_name: Moderator
+  actor_kind: human
+  shape_name: ReviewRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: ReviewRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistReview
+  effect_kind: persistence
+  policy_name: ReviewPolicy
+  policy_family: performance
+  concerns: *id013
+  capability_name: ModerateReview
+  success_outcome: ReviewConfirmed
+  failure_outcome: ReviewRejected
+  rule_name: ValidReview
+  rule_expr: count above 0
+- id: brief-034
+  domain: publishing
+  title: PublishContent (publishing)
+  paragraph: 'A an upstream system actor (kind system) initiates a publishing capability, PublishContent.
+    The intent shape PublicationRequest carries id (Uuid) required, scheduledFor (DateTime) required,
+    labels (List<Text>). The capability validates the request (ValidPublication: contact present) and
+    reports outcome PublicationConfirmed on success, or PublicationRejected otherwise. It emits a PublicationRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a notification
+    effect (PersistPublication), and is governed by a performance policy enforcing budget 500ms. Its lifecycle
+    moves from Started to Completed once PublicationConfirmed is reached.'
+  actor_name: Editor
+  actor_kind: system
+  shape_name: PublicationRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: PublicationRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPublication
+  effect_kind: notification
+  policy_name: PublicationPolicy
+  policy_family: performance
+  concerns: *id014
+  capability_name: PublishContent
+  success_outcome: PublicationConfirmed
+  failure_outcome: PublicationRejected
+  rule_name: ValidPublication
+  rule_expr: contact present
+- id: brief-035
+  domain: translation
+  title: TranslateDocument (translation)
+  paragraph: 'A an autonomous agent (kind agent) initiates a translation capability, TranslateDocument.
+    The intent shape TranslationRequest carries id (Uuid) required, effectiveDate (Date) required, count
+    (Number). The capability validates the request (ValidTranslation: id present) and reports outcome
+    TranslationConfirmed on success, or TranslationRejected otherwise. It emits a TranslationRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a invocation effect
+    (PersistTranslation), and is governed by a scalability policy enforcing concurrency 10. Its lifecycle
+    moves from Started to Completed once TranslationConfirmed is reached.'
+  actor_name: TranslationAgent
+  actor_kind: agent
+  shape_name: TranslationRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: TranslationRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistTranslation
+  effect_kind: invocation
+  policy_name: TranslationPolicy
+  policy_family: scalability
+  concerns: *id015
+  capability_name: TranslateDocument
+  success_outcome: TranslationConfirmed
+  failure_outcome: TranslationRejected
+  rule_name: ValidTranslation
+  rule_expr: id present
+- id: brief-036
+  domain: imaging
+  title: ProcessImage (imaging)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a imaging capability, ProcessImage.
+    The intent shape ImageRequest carries id (Uuid) required, amount (Money) required, note (Text). The
+    capability validates the request (ValidImage: amount above 0) and reports outcome ImageConfirmed on
+    success, or ImageRejected otherwise. It emits a ImageRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a tool effect (PersistImage), and is governed by a scalability
+    policy enforcing rate_limit 100 per minute. Its lifecycle moves from Started to Completed once ImageConfirmed
+    is reached.'
+  actor_name: ImageWorker
+  actor_kind: scheduled_process
+  shape_name: ImageRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: ImageRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistImage
+  effect_kind: tool
+  policy_name: ImagePolicy
+  policy_family: scalability
+  concerns: *id016
+  capability_name: ProcessImage
+  success_outcome: ImageConfirmed
+  failure_outcome: ImageRejected
+  rule_name: ValidImage
+  rule_expr: amount above 0
+- id: brief-037
+  domain: backups
+  title: RunBackup (backups)
+  paragraph: 'A a person (actor kind human) initiates a backups capability, RunBackup. The intent shape
+    BackupRequest carries id (Uuid) required, quantity (Number) required, reference (Text). The capability
+    validates the request (ValidBackup: quantity above 0) and reports outcome BackupConfirmed on success,
+    or BackupRejected otherwise. It emits a BackupRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a persistence effect (PersistBackup), and is governed by a scalability
+    policy enforcing queue allowed. Its lifecycle moves from Started to Completed once BackupConfirmed
+    is reached.'
+  actor_name: BackupJob
+  actor_kind: human
+  shape_name: BackupRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: BackupRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistBackup
+  effect_kind: persistence
+  policy_name: BackupPolicy
+  policy_family: scalability
+  concerns: *id017
+  capability_name: RunBackup
+  success_outcome: BackupConfirmed
+  failure_outcome: BackupRejected
+  rule_name: ValidBackup
+  rule_expr: quantity above 0
+- id: brief-038
+  domain: provisioning
+  title: ProvisionResource (provisioning)
+  paragraph: 'A an upstream system actor (kind system) initiates a provisioning capability, ProvisionResource.
+    The intent shape ProvisionRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidProvision: count above 0) and reports outcome ProvisionConfirmed
+    on success, or ProvisionRejected otherwise. It emits a ProvisionRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a notification effect (PersistProvision),
+    and is governed by a data_protection policy enforcing sensitivity personal. Its lifecycle moves from
+    Started to Completed once ProvisionConfirmed is reached.'
+  actor_name: ProvisioningService
+  actor_kind: system
+  shape_name: ProvisionRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: ProvisionRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistProvision
+  effect_kind: notification
+  policy_name: ProvisionPolicy
+  policy_family: data_protection
+  concerns: *id018
+  capability_name: ProvisionResource
+  success_outcome: ProvisionConfirmed
+  failure_outcome: ProvisionRejected
+  rule_name: ValidProvision
+  rule_expr: count above 0
+- id: brief-039
+  domain: deprovisioning
+  title: DeprovisionResource (deprovisioning)
+  paragraph: 'A an autonomous agent (kind agent) initiates a deprovisioning capability, DeprovisionResource.
+    The intent shape DeprovisionRequest carries id (Uuid) required, scheduledFor (DateTime) required,
+    labels (List<Text>). The capability validates the request (ValidDeprovision: contact present) and
+    reports outcome DeprovisionConfirmed on success, or DeprovisionRejected otherwise. It emits a DeprovisionRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a invocation effect
+    (PersistDeprovision), and is governed by a data_protection policy enforcing retention 30 days; minimization
+    required. Its lifecycle moves from Started to Completed once DeprovisionConfirmed is reached.'
+  actor_name: ProvisioningService
+  actor_kind: agent
+  shape_name: DeprovisionRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: DeprovisionRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistDeprovision
+  effect_kind: invocation
+  policy_name: DeprovisionPolicy
+  policy_family: data_protection
+  concerns: *id019
+  capability_name: DeprovisionResource
+  success_outcome: DeprovisionConfirmed
+  failure_outcome: DeprovisionRejected
+  rule_name: ValidDeprovision
+  rule_expr: contact present
+- id: brief-040
+  domain: escalation
+  title: EscalateTicket (escalation)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a escalation capability, EscalateTicket.
+    The intent shape EscalationRequest carries id (Uuid) required, effectiveDate (Date) required, count
+    (Number). The capability validates the request (ValidEscalation: id present) and reports outcome EscalationConfirmed
+    on success, or EscalationRejected otherwise. It emits a EscalationRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a tool effect (PersistEscalation), and
+    is governed by a data_protection policy enforcing masking required. Its lifecycle moves from Started
+    to Completed once EscalationConfirmed is reached.'
+  actor_name: EscalationAgent
+  actor_kind: scheduled_process
+  shape_name: EscalationRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: EscalationRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistEscalation
+  effect_kind: tool
+  policy_name: EscalationPolicy
+  policy_family: data_protection
+  concerns: *id020
+  capability_name: EscalateTicket
+  success_outcome: EscalationConfirmed
+  failure_outcome: EscalationRejected
+  rule_name: ValidEscalation
+  rule_expr: id present
+- id: brief-041
+  domain: incidents
+  title: DeclareIncident (incidents)
+  paragraph: 'A a person (actor kind human) initiates a incidents capability, DeclareIncident. The intent
+    shape IncidentRequest carries id (Uuid) required, amount (Money) required, note (Text). The capability
+    validates the request (ValidIncident: amount above 0) and reports outcome IncidentConfirmed on success,
+    or IncidentRejected otherwise. It emits a IncidentRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a persistence effect (PersistIncident), and is governed by a
+    reliability policy enforcing idempotency required; timeout 5 seconds. Its lifecycle moves from Started
+    to Completed once IncidentConfirmed is reached.'
+  actor_name: IncidentCommander
+  actor_kind: human
+  shape_name: IncidentRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: IncidentRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistIncident
+  effect_kind: persistence
+  policy_name: IncidentPolicy
+  policy_family: reliability
+  concerns: *id001
+  capability_name: DeclareIncident
+  success_outcome: IncidentConfirmed
+  failure_outcome: IncidentRejected
+  rule_name: ValidIncident
+  rule_expr: amount above 0
+- id: brief-042
+  domain: paging
+  title: PageOnCall (paging)
+  paragraph: 'A an upstream system actor (kind system) initiates a paging capability, PageOnCall. The
+    intent shape PageRequest carries id (Uuid) required, quantity (Number) required, reference (Text).
+    The capability validates the request (ValidPage: quantity above 0) and reports outcome PageConfirmed
+    on success, or PageRejected otherwise. It emits a PageRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistPage), and is governed
+    by a reliability policy enforcing idempotency required; retry { attempts 3 backoff exponential }.
+    Its lifecycle moves from Started to Completed once PageConfirmed is reached.'
+  actor_name: PagingService
+  actor_kind: system
+  shape_name: PageRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: PageRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPage
+  effect_kind: notification
+  policy_name: PagePolicy
+  policy_family: reliability
+  concerns: *id002
+  capability_name: PageOnCall
+  success_outcome: PageConfirmed
+  failure_outcome: PageRejected
+  rule_name: ValidPage
+  rule_expr: quantity above 0
+- id: brief-043
+  domain: metering
+  title: RecordMeter (metering)
+  paragraph: 'A an autonomous agent (kind agent) initiates a metering capability, RecordMeter. The intent
+    shape MeterReadingRequest carries id (Uuid) required, contact (Email) required, active (Boolean).
+    The capability validates the request (ValidMeterReading: count above 0) and reports outcome MeterReadingConfirmed
+    on success, or MeterReadingRejected otherwise. It emits a MeterReadingRecorded event carrying id (Uuid)
+    required, recordedAt (DateTime) required, persists through a invocation effect (PersistMeterReading),
+    and is governed by a reliability policy enforcing idempotency allowed. Its lifecycle moves from Started
+    to Completed once MeterReadingConfirmed is reached.'
+  actor_name: MeterReader
+  actor_kind: agent
+  shape_name: MeterReadingRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: MeterReadingRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistMeterReading
+  effect_kind: invocation
+  policy_name: MeterReadingPolicy
+  policy_family: reliability
+  concerns: *id003
+  capability_name: RecordMeter
+  success_outcome: MeterReadingConfirmed
+  failure_outcome: MeterReadingRejected
+  rule_name: ValidMeterReading
+  rule_expr: count above 0
+- id: brief-044
+  domain: billing
+  title: RunBillingCycle (billing)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a billing capability, RunBillingCycle.
+    The intent shape BillingCycleRequest carries id (Uuid) required, scheduledFor (DateTime) required,
+    labels (List<Text>). The capability validates the request (ValidBillingCycle: contact present) and
+    reports outcome BillingCycleConfirmed on success, or BillingCycleRejected otherwise. It emits a BillingCycleRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a tool effect
+    (PersistBillingCycle), and is governed by a availability policy enforcing dependency_tolerance allowed.
+    Its lifecycle moves from Started to Completed once BillingCycleConfirmed is reached.'
+  actor_name: BillingRunner
+  actor_kind: scheduled_process
+  shape_name: BillingCycleRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: BillingCycleRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistBillingCycle
+  effect_kind: tool
+  policy_name: BillingCyclePolicy
+  policy_family: availability
+  concerns: *id004
+  capability_name: RunBillingCycle
+  success_outcome: BillingCycleConfirmed
+  failure_outcome: BillingCycleRejected
+  rule_name: ValidBillingCycle
+  rule_expr: contact present
+- id: brief-045
+  domain: dunning
+  title: SendDunningNotice (dunning)
+  paragraph: 'A a person (actor kind human) initiates a dunning capability, SendDunningNotice. The intent
+    shape DunningRequest carries id (Uuid) required, effectiveDate (Date) required, count (Number). The
+    capability validates the request (ValidDunning: id present) and reports outcome DunningConfirmed on
+    success, or DunningRejected otherwise. It emits a DunningRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a persistence effect (PersistDunning), and is governed
+    by a availability policy enforcing degradation forbidden. Its lifecycle moves from Started to Completed
+    once DunningConfirmed is reached.'
+  actor_name: DunningJob
+  actor_kind: human
+  shape_name: DunningRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: DunningRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistDunning
+  effect_kind: persistence
+  policy_name: DunningPolicy
+  policy_family: availability
+  concerns: *id005
+  capability_name: SendDunningNotice
+  success_outcome: DunningConfirmed
+  failure_outcome: DunningRejected
+  rule_name: ValidDunning
+  rule_expr: id present
+- id: brief-046
+  domain: renewals
+  title: RenewContract (renewals)
+  paragraph: 'A an upstream system actor (kind system) initiates a renewals capability, RenewContract.
+    The intent shape RenewalRequest carries id (Uuid) required, amount (Money) required, note (Text).
+    The capability validates the request (ValidRenewal: amount above 0) and reports outcome RenewalConfirmed
+    on success, or RenewalRejected otherwise. It emits a RenewalRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistRenewal), and is governed
+    by a security policy enforcing authentication required. Its lifecycle moves from Started to Completed
+    once RenewalConfirmed is reached.'
+  actor_name: RenewalAgent
+  actor_kind: system
+  shape_name: RenewalRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: amount
+    type: Money
+    required: true
+  - name: note
+    type: Text
+    required: false
+  event_name: RenewalRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistRenewal
+  effect_kind: notification
+  policy_name: RenewalPolicy
+  policy_family: security
+  concerns: *id006
+  capability_name: RenewContract
+  success_outcome: RenewalConfirmed
+  failure_outcome: RenewalRejected
+  rule_name: ValidRenewal
+  rule_expr: amount above 0
+- id: brief-047
+  domain: quoting
+  title: GenerateQuote (quoting)
+  paragraph: 'A an autonomous agent (kind agent) initiates a quoting capability, GenerateQuote. The intent
+    shape QuoteRequest carries id (Uuid) required, quantity (Number) required, reference (Text). The capability
+    validates the request (ValidQuote: quantity above 0) and reports outcome QuoteConfirmed on success,
+    or QuoteRejected otherwise. It emits a QuoteRecorded event carrying id (Uuid) required, recordedAt
+    (DateTime) required, persists through a invocation effect (PersistQuote), and is governed by a security
+    policy enforcing authorization required; classification confidential. Its lifecycle moves from Started
+    to Completed once QuoteConfirmed is reached.'
+  actor_name: QuoteEngine
+  actor_kind: agent
+  shape_name: QuoteRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: quantity
+    type: Number
+    required: true
+  - name: reference
+    type: Text
+    required: false
+  event_name: QuoteRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistQuote
+  effect_kind: invocation
+  policy_name: QuotePolicy
+  policy_family: security
+  concerns: *id007
+  capability_name: GenerateQuote
+  success_outcome: QuoteConfirmed
+  failure_outcome: QuoteRejected
+  rule_name: ValidQuote
+  rule_expr: quantity above 0
+- id: brief-048
+  domain: procurement
+  title: RaisePurchaseOrder (procurement)
+  paragraph: 'A a scheduled process (kind scheduled_process) initiates a procurement capability, RaisePurchaseOrder.
+    The intent shape PurchaseOrderRequest carries id (Uuid) required, contact (Email) required, active
+    (Boolean). The capability validates the request (ValidPurchaseOrder: count above 0) and reports outcome
+    PurchaseOrderConfirmed on success, or PurchaseOrderRejected otherwise. It emits a PurchaseOrderRecorded
+    event carrying id (Uuid) required, recordedAt (DateTime) required, persists through a tool effect
+    (PersistPurchaseOrder), and is governed by a security policy enforcing encryption required. Its lifecycle
+    moves from Started to Completed once PurchaseOrderConfirmed is reached.'
+  actor_name: Buyer
+  actor_kind: scheduled_process
+  shape_name: PurchaseOrderRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: contact
+    type: Email
+    required: true
+  - name: active
+    type: Boolean
+    required: false
+  event_name: PurchaseOrderRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistPurchaseOrder
+  effect_kind: tool
+  policy_name: PurchaseOrderPolicy
+  policy_family: security
+  concerns: *id008
+  capability_name: RaisePurchaseOrder
+  success_outcome: PurchaseOrderConfirmed
+  failure_outcome: PurchaseOrderRejected
+  rule_name: ValidPurchaseOrder
+  rule_expr: count above 0
+- id: brief-049
+  domain: receiving
+  title: ReceiveGoods (receiving)
+  paragraph: 'A a person (actor kind human) initiates a receiving capability, ReceiveGoods. The intent
+    shape ReceiptRequest carries id (Uuid) required, scheduledFor (DateTime) required, labels (List<Text>).
+    The capability validates the request (ValidReceipt: contact present) and reports outcome ReceiptConfirmed
+    on success, or ReceiptRejected otherwise. It emits a ReceiptRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a persistence effect (PersistReceipt), and is governed
+    by a compliance policy enforcing audit required; retention 7 years. Its lifecycle moves from Started
+    to Completed once ReceiptConfirmed is reached.'
+  actor_name: ReceivingClerk
+  actor_kind: human
+  shape_name: ReceiptRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: scheduledFor
+    type: DateTime
+    required: true
+  - name: labels
+    type: List<Text>
+    required: false
+  event_name: ReceiptRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistReceipt
+  effect_kind: persistence
+  policy_name: ReceiptPolicy
+  policy_family: compliance
+  concerns: *id009
+  capability_name: ReceiveGoods
+  success_outcome: ReceiptConfirmed
+  failure_outcome: ReceiptRejected
+  rule_name: ValidReceipt
+  rule_expr: contact present
+- id: brief-050
+  domain: transfers
+  title: TransferStock (transfers)
+  paragraph: 'A an upstream system actor (kind system) initiates a transfers capability, TransferStock.
+    The intent shape TransferRequest carries id (Uuid) required, effectiveDate (Date) required, count
+    (Number). The capability validates the request (ValidTransfer: id present) and reports outcome TransferConfirmed
+    on success, or TransferRejected otherwise. It emits a TransferRecorded event carrying id (Uuid) required,
+    recordedAt (DateTime) required, persists through a notification effect (PersistTransfer), and is governed
+    by a compliance policy enforcing approval required. Its lifecycle moves from Started to Completed
+    once TransferConfirmed is reached.'
+  actor_name: TransferService
+  actor_kind: system
+  shape_name: TransferRequest
+  fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: effectiveDate
+    type: Date
+    required: true
+  - name: count
+    type: Number
+    required: false
+  event_name: TransferRecorded
+  event_fields:
+  - name: id
+    type: Uuid
+    required: true
+  - name: recordedAt
+    type: DateTime
+    required: true
+  effect_name: PersistTransfer
+  effect_kind: notification
+  policy_name: TransferPolicy
+  policy_family: compliance
+  concerns: *id010
+  capability_name: TransferStock
+  success_outcome: TransferConfirmed
+  failure_outcome: TransferRejected
+  rule_name: ValidTransfer
+  rule_expr: id present
