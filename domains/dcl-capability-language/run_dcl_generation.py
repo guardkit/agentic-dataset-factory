@@ -26,6 +26,8 @@ import json
 import logging
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -86,9 +88,25 @@ class HTTPCoachClient:
             self.endpoint.rstrip("/") + "/chat/completions",
             data=payload, headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req) as resp:
-            content = json.loads(resp.read())["choices"][0]["message"]["content"]
-        return self._parse(content)
+        # Bounded retry/backoff on transient statuses (2026-07-17: raw 429s killed three
+        # runs; same treatment as the Player client in src/dcl/generate.py).
+        last_exc = None
+        for attempt in range(6):
+            try:
+                with urllib.request.urlopen(req, timeout=900.0) as resp:
+                    content = json.loads(resp.read())["choices"][0]["message"]["content"]
+                return self._parse(content)
+            except urllib.error.HTTPError as exc:
+                if exc.code not in (429, 500, 502, 503, 504):
+                    raise
+                last_exc = exc
+                retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            except (urllib.error.URLError, TimeoutError) as exc:
+                last_exc = exc
+                retry_after = None
+            if attempt < 5:
+                time.sleep(min(float(retry_after) if retry_after else 10.0 * (2 ** attempt), 600.0))
+        raise RuntimeError(f"coach call failed after 6 attempts (transient): {last_exc!r}") from last_exc
 
     @staticmethod
     def _parse(content: str) -> CoachVerdict:
