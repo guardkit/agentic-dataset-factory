@@ -98,7 +98,14 @@ export OPENAI_API_KEY=local
 sudo systemctl stop llama-swap-keepalive.timer
 systemctl is-active llama-swap-keepalive.timer   # expect: inactive
 
-# 2. Launch inside tmux so the run survives your SSH session dropping:
+# 2. IMPORTANT — lift the pilot cap for the full run. The shipped config carries
+#    `limit: 20` (a pilot safety cap: with it, you get ~20 author rows, NOT the full
+#    brief bank). Delete that line (or comment it out) in your config copy:
+sed -i.bak 's/^  limit: 20/  # limit: 20   # pilot cap — removed for the full run/' \
+    domains/dcl-capability-language/agent-config.draft.yaml
+grep -n "limit" domains/dcl-capability-language/agent-config.draft.yaml   # expect: commented out
+
+# 3. Launch inside tmux so the run survives your SSH session dropping:
 tmux new -s dcl-gen
 source .venv/bin/activate
 export OPENAI_API_KEY=local
@@ -121,9 +128,9 @@ root config, **back up the root `agent-config.yaml` first**: `cp agent-config.ya
 agent-config.yaml.bak`, then restore it after. The `--config` path above avoids all of that.)
 
 **Pilot vs. full.** For a pilot, add `--mode dcl_author --limit 4` (small, author-only). For
-the full run, omit both — the config's `mode: both` and full brief bank take over. (You can
-also raise the config's `limit:` or set it to run everything; a pilot cap of `20` is set in the
-config today.)
+the full run, omit both flags **and remove the config's `limit: 20` line** (step 2 above does
+exactly that) — otherwise the pilot cap silently holds the author pass to ~20 rows instead of
+the full brief bank. Absent `limit`, the run processes everything.
 
 ### `--resume` behaviour (read this — it's different from `agent.py`)
 
