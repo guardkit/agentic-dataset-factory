@@ -1,14 +1,15 @@
 # RUNBOOK — building the DCL capability-language dataset
 
-> **READY-STATE (2026-07-17).** Everything you need is built and proven. The generator, the
-> vendored DCL compiler, the brief bank (50 briefs), and the run driver all exist and pass a
+> **READY-STATE (2026-07-18).** Everything you need is built and proven. The generator, the
+> vendored DCL compiler, the brief bank (**200 briefs**), and the run driver all exist and pass a
 > full mock smoke with **zero real model calls** (`SMOKE-RECEIPT-mock-2026-07-17.md`). What is
-> left is one attended run on the GB10 with the fleet up. A full run of today's 50-brief bank
-> produces roughly **50 author rows + ~450 repair rows (~500 total)**; the corpus grows toward
-> the GOAL's 300 author / 720 repair targets as the brief bank is expanded later. Cost:
-> **roughly 10–20 hours** wall time (sequential model calls at ~1–2 min each, plus a few
-> minutes to load `gpt-oss-120b` the first time). Nothing here needs the internet or any paid
-> API — it all runs on your own box.
+> left is one attended run on the GB10 with the fleet up. A full run of the 200-brief bank
+> produces roughly **200 author rows + ~1,800 repair rows (~2,000 total)** at `author_reps: 1`;
+> raising `author_reps` to K multiplies the author yield (see **Growing the corpus** below).
+> That already clears the GOAL's 300 author / 720 repair targets at modest K. Cost scales with
+> the row count — budget **roughly 1–2 min per model call**, plus a few minutes to load
+> `gpt-oss-120b` the first time. Nothing here needs the internet or any paid API — it all runs
+> on your own box.
 
 ---
 
@@ -145,6 +146,46 @@ complete corpus is preserved as `*.bak`. Because the run is only ~10–20h and c
 this is deliberate simplicity, not a limitation to work around. If you want a natural
 mid-point checkpoint, run `--mode dcl_author` to completion first, copy the output aside, then
 run `--mode dcl_repair` — but the single `mode: both` run is the normal path.
+
+---
+
+## Growing the corpus (brief bank + `author_reps`)
+
+Two dials grow the dataset, both free of any change to the compiler-is-the-boss discipline:
+
+1. **The brief bank** (`domains/dcl-capability-language/briefs.yaml`) — now **200 briefs**
+   (`brief-001..brief-200`) across 30+ business domains, all four actor kinds, all four effect
+   kinds, all nine policy families (including `confidence`), intent shapes of 0–5 fields (mixed
+   types incl. `List<T>`/`Money`/`Email`/`Date`/`DateTime`/`Boolean`), event payloads of 2–5
+   fields, lifecycles of 2–4 states (with `active`/`decision`/`waiting` steps), and multi-outcome
+   capabilities. Every brief renders **compiler-clean and denylist-clean** — proven in
+   `tests/test_dcl_briefs.py` (the real compiler runs over all 200). Append more the same way:
+   add YAML items and the brief-bank tests will refuse anything that fails to compile or trips the
+   frozen-exam denylist.
+
+2. **`author_reps`** (config key under `generation:`, default `1`) — in `dcl_author` mode each
+   brief is authored **K independent times** (fresh Player calls). Use it to harvest the model's
+   *variation* on a fixed brief set:
+
+   ```yaml
+   generation:
+     mode: dcl_author        # or: both
+     author_reps: 4          # author every brief 4× (default 1 = one authoring per brief)
+   ```
+
+   **Volumes.** ~200 briefs × K author rows (before dedupe) + ~1,800 repair rows (repair is
+   unaffected by `author_reps`). So `author_reps: 2` ≈ 400 author + ~1,800 repair; `author_reps: 4`
+   ≈ 800 author, and so on. Repair rows are minted once per (brief-render × recipe) regardless.
+
+   **Dedupe semantics (why K reps never inflate with copies).** The author `row_id` is
+   content-addressed over the **full row (user + assistant)** — brief+vocab AND the fenced
+   completion. So two reps that produce the *same* capability hash to the *same* `row_id` and the
+   writer keeps **one** (the duplicate is counted in `author_deduped`, never written twice); two
+   reps that produce *different* capabilities are *different* rows. You get exactly the distinct
+   authorings the model actually generated — no artificial duplicates, no lost variation. (Repair
+   `row_id` is unchanged: the broken `.dcl` + verbatim diagnostics in its user message already
+   identify it uniquely.) The manifest's embedded contamination check (`train.row_id ∩ eval = ∅`)
+   holds identically under both id semantics.
 
 ---
 

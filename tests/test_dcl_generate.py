@@ -137,6 +137,58 @@ def test_repair_path_mints_reasoning_rows(tmp_path):
         assert row["metadata"]["recipe_id"] in __import__("dcl").RECIPES
 
 
+def _variant_fence(tag):
+    """A distinct-but-still-compiling completion of BRIEF's capability (a `//` comment)."""
+    return "```dcl\n" + render_reference_capability(BRIEF).replace(
+        "language dcl 1.0", f"language dcl 1.0\n// {tag}", 1
+    ) + "\n```"
+
+
+@requires_node
+def test_author_reps_default_one_byte_identical(tmp_path):
+    # author_reps default (1) reproduces today's behaviour: one authoring, one row.
+    player, coach = StubPlayer(), StubCoach("accept")
+    summary = run_generation(_cfg(tmp_path, mode="dcl_author"), player=player, coach=coach,
+                             briefs=[BRIEF], created="2026-07-17", factory_sha="t")
+    assert summary.author_accepted == 1
+    assert summary.author_deduped == 0
+    assert len(player.calls) == 1  # exactly one authoring call for the one brief
+    assert len((tmp_path / "out" / "train.jsonl").read_text().splitlines()) == 1
+
+
+@requires_node
+def test_author_reps_distinct_completions_mint_distinct_rows(tmp_path):
+    # author_reps=3 with three DIFFERENT valid completions -> three distinct rows, distinct row_ids.
+    player = StubPlayer(responses=[_variant_fence("rep a"), _variant_fence("rep b"), _variant_fence("rep c")])
+    coach = StubCoach("accept")
+    summary = run_generation(_cfg(tmp_path, mode="dcl_author", author_reps=3),
+                             player=player, coach=coach, briefs=[BRIEF],
+                             created="2026-07-17", factory_sha="t")
+    assert summary.author_accepted == 3
+    assert summary.author_deduped == 0
+    rows = [json.loads(x) for x in (tmp_path / "out" / "train.jsonl").read_text().splitlines()]
+    assert len(rows) == 3
+    ids = {r["metadata"]["row_id"] for r in rows}
+    assert len(ids) == 3  # distinct completions -> distinct content-addressed row_ids
+    for r in rows:
+        contracts.validate_row(r)
+        assert r["metadata"]["mode"] == "dcl_author"
+
+
+@requires_node
+def test_author_reps_identical_completions_dedupe(tmp_path):
+    # author_reps=3 but the model returns the SAME completion each call -> one row, two deduped.
+    player = StubPlayer()  # default VALID_FENCE every call
+    coach = StubCoach("accept")
+    summary = run_generation(_cfg(tmp_path, mode="dcl_author", author_reps=3),
+                             player=player, coach=coach, briefs=[BRIEF],
+                             created="2026-07-17", factory_sha="t")
+    assert len(player.calls) == 3  # three independent authorings happened
+    assert summary.author_accepted == 1  # only the first distinct row is written/counted
+    assert summary.author_deduped == 2   # the two identical reps deduped
+    assert len((tmp_path / "out" / "train.jsonl").read_text().splitlines()) == 1
+
+
 @requires_node
 def test_write_paths_and_manifest(tmp_path):
     briefs = load_briefs(enforce_denylist=False)[:3]

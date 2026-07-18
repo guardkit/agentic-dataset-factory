@@ -37,6 +37,24 @@ class Field:
     required: bool
 
 
+# Verified step kinds a brief may drive through the deterministic renderer. `recovery`
+# (supervised-only) is deliberately excluded — it is never sensible in a self-contained
+# owned lifecycle (its target must be a contributor capability/effect with a `move … from`).
+LIFECYCLE_STEP_KINDS = frozenset({"active", "decision", "waiting"})
+
+
+@dataclass(frozen=True)
+class LifecycleStep:
+    """An intermediate lifecycle state between ``Started`` and ``Completed``.
+
+    ``kind`` is one of :data:`LIFECYCLE_STEP_KINDS`. A ``decision`` step renders
+    ``requires decision from <actor>``; a ``waiting`` step renders ``waits for event
+    <event>`` (its exit transition is supplied by the chained ``move``)."""
+
+    name: str
+    kind: str = "active"
+
+
 @dataclass(frozen=True)
 class Brief:
     id: str
@@ -59,6 +77,12 @@ class Brief:
     failure_outcome: str
     rule_name: str
     rule_expr: str
+    # Optional diversity knobs (default = the original 2-outcome / 2-state render, so the
+    # existing 50 briefs stay BYTE-IDENTICAL). ``extra_outcome`` adds a third declared
+    # outcome caused by ``<effect> unresolved``; ``lifecycle_steps`` inserts intermediate
+    # states, growing the lifecycle to 3–4 states with active/decision/waiting kinds.
+    extra_outcome: str | None = None
+    lifecycle_steps: tuple[LifecycleStep, ...] = ()
 
     @property
     def brief_text(self) -> str:
@@ -68,6 +92,13 @@ class Brief:
 
 def _field(d: dict[str, Any]) -> Field:
     return Field(name=d["name"], type=d["type"], required=bool(d.get("required", False)))
+
+
+def _lifecycle_step(d: dict[str, Any]) -> LifecycleStep:
+    kind = d.get("kind", "active")
+    if kind not in LIFECYCLE_STEP_KINDS:
+        raise ValueError(f"lifecycle step kind {kind!r} not in {sorted(LIFECYCLE_STEP_KINDS)}")
+    return LifecycleStep(name=d["name"], kind=kind)
 
 
 def _to_brief(d: dict[str, Any]) -> Brief:
@@ -92,6 +123,8 @@ def _to_brief(d: dict[str, Any]) -> Brief:
         failure_outcome=d["failure_outcome"],
         rule_name=d["rule_name"],
         rule_expr=d["rule_expr"],
+        extra_outcome=d.get("extra_outcome"),
+        lifecycle_steps=tuple(_lifecycle_step(s) for s in d.get("lifecycle_steps", ())),
     )
 
 
@@ -117,6 +150,60 @@ def _render_fields(fields: tuple[Field, ...]) -> str:
     for f in fields:
         req = " required" if f.required else ""
         lines.append(f"  {f.name}: {f.type}{req}")
+    return "\n".join(lines)
+
+
+def _render_outcomes(brief: Brief) -> str:
+    lines = [f"    {brief.success_outcome}", f"    {brief.failure_outcome}"]
+    if brief.extra_outcome:
+        lines.append(f"    {brief.extra_outcome}")
+    return "\n".join(lines)
+
+
+def _render_lifecycle(brief: Brief) -> str:
+    """The lifecycle body (inside ``lifecycle {{ … }}``). Default (no steps) is the original
+    2-state Started→Completed block, byte-for-byte. With ``lifecycle_steps`` it chains
+    ``Started → <steps> → Completed`` (moves on the emitted event, the final move on the
+    success outcome — the verified rule)."""
+    if not brief.lifecycle_steps:
+        return (
+            "    begin step Started\n"
+            "    end step Completed\n"
+            "    step Started {\n"
+            "      kind active\n"
+            "    }\n"
+            f"    move Started to Completed on outcome {brief.success_outcome}"
+        )
+    lines = [
+        "    begin step Started",
+        "    end step Completed",
+        "    step Started {",
+        "      kind active",
+        "    }",
+    ]
+    for s in brief.lifecycle_steps:
+        lines.append(f"    step {s.name} {{")
+        lines.append(f"      kind {s.kind}")
+        if s.kind == "decision":
+            lines.append(f"      requires decision from {brief.actor_name}")
+        elif s.kind == "waiting":
+            lines.append(f"      waits for event {brief.event_name}")
+        lines.append("    }")
+    chain = ["Started"] + [s.name for s in brief.lifecycle_steps] + ["Completed"]
+    for a, b in zip(chain, chain[1:]):
+        trigger = (
+            f"outcome {brief.success_outcome}" if b == "Completed"
+            else f"event {brief.event_name}"
+        )
+        lines.append(f"    move {a} to {b} on {trigger}")
+    return "\n".join(lines)
+
+
+def _render_when(brief: Brief) -> str:
+    lines = [f"    {brief.rule_name} violated then {brief.failure_outcome}"]
+    if brief.extra_outcome:
+        lines.append(f"    {brief.effect_name} unresolved then {brief.extra_outcome}")
+    lines.append(f"    otherwise then {brief.success_outcome}")
     return "\n".join(lines)
 
 
@@ -147,8 +234,7 @@ policy {brief.policy_name} {{
 capability {brief.capability_name} {{
   intent {brief.shape_name} from {brief.actor_name}
   outcomes {{
-    {brief.success_outcome}
-    {brief.failure_outcome}
+{_render_outcomes(brief)}
   }}
   rules {{
     {brief.rule_name}: {brief.rule_expr}
@@ -166,16 +252,10 @@ capability {brief.capability_name} {{
     capability duration as {metric}
   }}
   lifecycle {{
-    begin step Started
-    end step Completed
-    step Started {{
-      kind active
-    }}
-    move Started to Completed on outcome {brief.success_outcome}
+{_render_lifecycle(brief)}
   }}
   when {{
-    {brief.rule_name} violated then {brief.failure_outcome}
-    otherwise then {brief.success_outcome}
+{_render_when(brief)}
   }}
 }}
 """

@@ -34,6 +34,9 @@ generation:
   seed: dcl-phase1
   max_format_retries: 3      # compile-gate repair retries (diagnostics fed back)
   coach_max_turns: 2
+  author_reps: 1             # dcl_author: author each brief K× (fresh calls). Default 1 =
+                             # one authoring/brief. K>1 harvests model variation; identical
+                             # completions dedupe by content-addressed row_id (RUNBOOK §Growing).
   recipes:                   # defect weights for repair-row minting (src/dcl/recipes.py)
     R-actor-kind: 0.12
     R-effect-kind: 0.12

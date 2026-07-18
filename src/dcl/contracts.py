@@ -86,7 +86,7 @@ def load_vocab_reference() -> str:
 
 
 # --------------------------------------------------------------------------------------
-# User-message assembly. row_id hashes the user message content (§4).
+# User-message assembly. Author row_id hashes user+assistant; repair hashes the user (§4).
 # --------------------------------------------------------------------------------------
 def build_author_user_message(brief: str, vocab_reference: str) -> str:
     """AUTHOR user message: the feature brief + the closed vocabulary (OUTPUT-CONTRACT §2)."""
@@ -120,9 +120,39 @@ def build_repair_user_message(broken_dcl: str, diagnostics_json: str) -> str:
 
 
 def row_id(user_message_content: str) -> str:
-    """Content-addressed row id — ``dcl-<sha256[:16]>`` of the user message (OUTPUT-CONTRACT §4)."""
+    """Content-addressed row id — ``dcl-<sha256[:16]>`` of the user message (OUTPUT-CONTRACT §4).
+
+    This is the **repair** row_id semantics (unchanged): a repair row's user message already
+    carries the broken ``.dcl`` + the verbatim diagnostics, so the user message alone uniquely
+    identifies the row."""
     digest = hashlib.sha256(user_message_content.encode("utf-8")).hexdigest()
     return f"dcl-{digest[:16]}"
+
+
+# Separator that cannot appear in a fenced ```dcl block or the vocab reference, so the
+# concatenation is unambiguous (no user/assistant boundary collision).
+_ROW_ID_SEP = "\x00"
+
+
+def author_row_id(user_message_content: str, assistant_content: str) -> str:
+    """Content-addressed **author** row id over the FULL row (user + assistant).
+
+    Author user messages are the brief + the shared vocabulary reference, so two DIFFERENT
+    completions of the SAME brief share a user message and would COLLIDE under the user-only
+    hash. Hashing user+assistant lets ``author_reps`` distinct completions coexist as distinct
+    rows, while byte-identical duplicate rows still hash equal and dedupe (OUTPUT-CONTRACT §4)."""
+    digest = hashlib.sha256(
+        (user_message_content + _ROW_ID_SEP + assistant_content).encode("utf-8")
+    ).hexdigest()
+    return f"dcl-{digest[:16]}"
+
+
+def expected_row_id(mode: str, user_message_content: str, assistant_content: str) -> str:
+    """The row_id a row must carry for its ``mode`` — author hashes user+assistant, repair
+    hashes the user message alone. The single source of truth for id computation + validation."""
+    if mode == "dcl_author":
+        return author_row_id(user_message_content, assistant_content)
+    return row_id(user_message_content)
 
 
 # --------------------------------------------------------------------------------------
@@ -192,6 +222,7 @@ def build_provenance(
 def build_metadata(
     *,
     user_msg: str,
+    assistant_msg: str,
     mode: str,
     type_: str,
     split: str,
@@ -213,7 +244,7 @@ def build_metadata(
             f"for source {provenance['source']!r}"
         )
     return {
-        "row_id": row_id(user_msg),
+        "row_id": expected_row_id(mode, user_msg, assistant_msg),
         "domain": DOMAIN,
         "layer": "behaviour",
         "type": type_,
@@ -240,15 +271,17 @@ def build_author_row(
     byte-identical). Harvested real briefs pass a ``harvested`` provenance built via
     :func:`build_provenance` with repo/feature/run."""
     user_msg = build_author_user_message(brief, vocab_reference)
+    assistant_msg = author_assistant_content(dcl_text)
     prov = provenance if provenance is not None else build_provenance("synthetic-brief")
     row = {
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
-            {"role": "assistant", "content": author_assistant_content(dcl_text)},
+            {"role": "assistant", "content": assistant_msg},
         ],
         "metadata": build_metadata(
             user_msg=user_msg,
+            assistant_msg=assistant_msg,
             mode="dcl_author",
             type_="direct",
             split=split,
@@ -273,14 +306,16 @@ def build_repair_row(
 ) -> dict[str, Any]:
     """Assemble + validate a REPAIR row (broken + diagnostics -> corrected capability)."""
     user_msg = build_repair_user_message(broken_dcl, diagnostics_json)
+    assistant_msg = repair_assistant_content(think, corrected_dcl)
     row = {
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_msg},
-            {"role": "assistant", "content": repair_assistant_content(think, corrected_dcl)},
+            {"role": "assistant", "content": assistant_msg},
         ],
         "metadata": build_metadata(
             user_msg=user_msg,
+            assistant_msg=assistant_msg,
             mode="dcl_repair",
             type_="reasoning",
             split=split,
@@ -337,8 +372,11 @@ def validate_row(row: dict[str, Any]) -> None:
         )
     if meta["provenance"]["vocab_pin"] != VOCAB_PIN or meta["provenance"]["compiler_pin"] != COMPILER_PIN_SHORT:
         raise RowValidationError(f"provenance pins must be {VOCAB_PIN!r}")
-    if meta["row_id"] != row_id(user_message(row)):
-        raise RowValidationError("row_id is not content-addressed on the user message")
+    if meta["row_id"] != expected_row_id(meta["mode"], user_message(row), msgs[2]["content"]):
+        raise RowValidationError(
+            "row_id is not content-addressed as its mode requires "
+            "(author: user+assistant; repair: user message)"
+        )
 
     assistant = msgs[2]["content"]
     has_think = "<think>" in assistant

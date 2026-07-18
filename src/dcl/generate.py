@@ -148,6 +148,11 @@ class GenerateConfig:
     holdout_fraction: float = 0.1
     max_format_retries: int = 3
     coach_max_turns: int = 2
+    # Corpus-growth knob: in dcl_author mode each brief is authored ``author_reps`` times
+    # (K independent, fresh Player calls). Default 1 = today's behaviour byte-for-byte.
+    # Distinct completions mint distinct rows (author row_id hashes user+assistant); a rep
+    # that reproduces a completion already written dedupes (same row_id) and is not double-counted.
+    author_reps: int = 1
     recipes: dict[str, float] = field(default_factory=lambda: {r: 1.0 for r in RECIPES})
     output_dir: str = "output/dcl-capability-language"
     seed: str = "dcl-phase1"
@@ -168,6 +173,7 @@ class GenerateConfig:
             holdout_fraction=gen.get("holdout_fraction", 0.1),
             max_format_retries=gen.get("max_format_retries", 3),
             coach_max_turns=gen.get("coach_max_turns", 2),
+            author_reps=gen.get("author_reps", 1),
             recipes=gen.get("recipes") or {r: 1.0 for r in RECIPES},
             output_dir=out.get("dir", "output/dcl-capability-language"),
             seed=gen.get("seed", "dcl-phase1"),
@@ -193,6 +199,10 @@ class OutputWriter:
         self.dir = Path(output_dir)
         self.counts = {"train": 0, "eval_dcl": 0, "rejected": 0}
         self._fh: dict[str, Any] = {}
+        # Content-addressed dedupe: a row_id already written is a byte-identical duplicate
+        # (author reps that reproduced a completion) — skipped, never double-written.
+        self._seen_row_ids: set[str] = set()
+        self.duplicates_skipped = 0
 
     @staticmethod
     def _backup(path: Path) -> None:
@@ -210,13 +220,21 @@ class OutputWriter:
         self.eval_rows: list[dict[str, Any]] = []
         return self
 
-    def write_row(self, row: dict[str, Any]) -> None:
+    def write_row(self, row: dict[str, Any]) -> bool:
+        """Write a row, returning True if written or False if it was a byte-identical
+        duplicate (same content-addressed row_id) and skipped."""
         validate_row(row)  # mirrors write_output's schema/think/type gate
+        rid = row["metadata"]["row_id"]
+        if rid in self._seen_row_ids:
+            self.duplicates_skipped += 1
+            return False
+        self._seen_row_ids.add(rid)
         split = row["metadata"]["split"]
         self._fh[split].write(json.dumps(row, ensure_ascii=False) + "\n")
         self._fh[split].flush()
         self.counts[split] += 1
         (self.train_rows if split == "train" else self.eval_rows).append(row)
+        return True
 
     def write_rejected(self, record: dict[str, Any]) -> None:
         self._fh["rejected"].write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -302,6 +320,7 @@ def _weighted_recipe_ids(config: GenerateConfig) -> list[str]:
 class GenerationSummary:
     author_accepted: int = 0
     author_rejected: int = 0
+    author_deduped: int = 0  # author_reps completions that reproduced an already-written row
     repair_written: int = 0
     repair_skipped_anchor: int = 0
     train: int = 0
@@ -347,32 +366,41 @@ def run_generation(
 
     with OutputWriter(config.output_dir) as writer:
         if config.mode in ("dcl_author", "both"):
+            reps = max(1, config.author_reps)
             for brief in briefs:
                 if limit is not None and writer.counts["train"] + writer.counts["eval_dcl"] >= limit:
                     break
-                status, payload = _author_one(brief, player, coach, vocab, config)
-                if status == "accepted":
-                    split = contamination.assign_split(
-                        _author_row_id(brief.brief_text, vocab),
-                        holdout_fraction=config.holdout_fraction,
-                        seed=config.seed,
+                if getattr(brief, "harvested", False):
+                    provenance = build_provenance(
+                        "harvested", repo=brief.repo,
+                        feature=brief.feature_id, run=brief.correlation_id,
                     )
-                    if getattr(brief, "harvested", False):
-                        provenance = build_provenance(
-                            "harvested", repo=brief.repo,
-                            feature=brief.feature_id, run=brief.correlation_id,
-                        )
-                    else:
-                        provenance = None  # synthetic default (byte-identical path)
-                    row = build_author_row(
-                        brief=brief.brief_text, dcl_text=payload["dcl"],
-                        vocab_reference=vocab, split=split, provenance=provenance,
-                    )
-                    writer.write_row(row)
-                    summary.author_accepted += 1
                 else:
-                    writer.write_rejected({"mode": "dcl_author", **payload})
-                    summary.author_rejected += 1
+                    provenance = None  # synthetic default (byte-identical path)
+                # author_reps: K independent, fresh authorings per brief. Distinct completions
+                # -> distinct rows (author row_id hashes user+assistant); a completion already
+                # written dedupes in write_row (same row_id) and is not double-counted.
+                for _ in range(reps):
+                    if limit is not None and writer.counts["train"] + writer.counts["eval_dcl"] >= limit:
+                        break
+                    status, payload = _author_one(brief, player, coach, vocab, config)
+                    if status == "accepted":
+                        split = contamination.assign_split(
+                            _author_row_id(brief.brief_text, vocab, payload["dcl"]),
+                            holdout_fraction=config.holdout_fraction,
+                            seed=config.seed,
+                        )
+                        row = build_author_row(
+                            brief=brief.brief_text, dcl_text=payload["dcl"],
+                            vocab_reference=vocab, split=split, provenance=provenance,
+                        )
+                        if writer.write_row(row):
+                            summary.author_accepted += 1
+                        else:
+                            summary.author_deduped += 1
+                    else:
+                        writer.write_rejected({"mode": "dcl_author", **payload})
+                        summary.author_rejected += 1
 
         if config.mode in ("dcl_repair", "both"):
             recipe_ids = _weighted_recipe_ids(config)
@@ -454,9 +482,11 @@ def run_generation(
     return summary
 
 
-def _author_row_id(brief_text: str, vocab: str) -> str:
-    from dcl.contracts import row_id
-    return row_id(build_author_user_message(brief_text, vocab))
+def _author_row_id(brief_text: str, vocab: str, dcl_text: str) -> str:
+    from dcl.contracts import author_assistant_content, author_row_id
+    return author_row_id(
+        build_author_user_message(brief_text, vocab), author_assistant_content(dcl_text)
+    )
 
 
 def _repair_row_id(user_msg: str) -> str:

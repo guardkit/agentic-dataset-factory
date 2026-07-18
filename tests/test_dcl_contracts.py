@@ -79,6 +79,50 @@ def test_system_prompt_matches_goal_md():
     assert norm(cfg.system_prompt) == norm(contracts.SYSTEM_PROMPT)
 
 
+def test_author_row_id_hashes_user_and_assistant():
+    # Same brief (same user message), DIFFERENT completions -> DIFFERENT author row_ids,
+    # so author_reps completions coexist instead of colliding.
+    cap_a = CAP
+    cap_b = CAP.replace("language dcl 1.0", "language dcl 1.0\n// variant b")
+    row_a = build_author_row(brief="Place an order.", dcl_text=cap_a, vocab_reference=VOCAB, split="train")
+    row_b = build_author_row(brief="Place an order.", dcl_text=cap_b, vocab_reference=VOCAB, split="train")
+    assert row_a["metadata"]["row_id"] != row_b["metadata"]["row_id"]
+    # Same brief + same completion -> SAME row_id (byte-identical duplicate dedupes).
+    row_a2 = build_author_row(brief="Place an order.", dcl_text=cap_a, vocab_reference=VOCAB, split="eval_dcl")
+    assert row_a2["metadata"]["row_id"] == row_a["metadata"]["row_id"]
+    # The id is content-addressed over user + assistant, per the mode-aware helper.
+    assert row_a["metadata"]["row_id"] == contracts.author_row_id(
+        contracts.user_message(row_a), row_a["messages"][2]["content"]
+    )
+
+
+def test_repair_row_id_semantics_unchanged():
+    # REGRESSION: repair row_id stays content-addressed on the USER message ALONE (unchanged),
+    # independent of the <think> rationale or corrected text.
+    row = build_repair_row(broken_dcl=BROKEN, diagnostics_json=DIAG, think="rationale one",
+                           corrected_dcl=CAP, recipe_id="R-actor-kind", split="train")
+    assert row["metadata"]["row_id"] == row_id(contracts.user_message(row))
+    # A different rationale (assistant content) but the same broken+diagnostics -> SAME row_id.
+    row2 = build_repair_row(broken_dcl=BROKEN, diagnostics_json=DIAG, think="a completely different rationale",
+                            corrected_dcl=CAP, recipe_id="R-actor-kind", split="train")
+    assert row2["metadata"]["row_id"] == row["metadata"]["row_id"]
+    # And it does NOT fold in the assistant content the way author rows do.
+    assert row["metadata"]["row_id"] != contracts.author_row_id(
+        contracts.user_message(row), row["messages"][2]["content"]
+    )
+
+
+def test_validate_rejects_tampered_author_completion():
+    # Tampering the author assistant content without recomputing the row_id must be caught,
+    # because the author row_id now covers user+assistant.
+    row = build_author_row(brief="Place an order.", dcl_text=CAP, vocab_reference=VOCAB, split="train")
+    row["messages"][2]["content"] = contracts.author_assistant_content(
+        CAP.replace("language dcl 1.0", "language dcl 1.0\n// tampered")
+    )
+    with pytest.raises(RowValidationError):
+        validate_row(row)
+
+
 def test_validate_rejects_author_with_think():
     row = build_author_row(brief="Place an order.", dcl_text=CAP, vocab_reference=VOCAB, split="train")
     row["messages"][2]["content"] = "<think>sneaky</think>\n\n" + row["messages"][2]["content"]

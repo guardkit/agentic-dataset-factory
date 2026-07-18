@@ -72,7 +72,7 @@ This capability fails to compile. Diagnose the cause … changing only what the 
 
 ```json
 {
-  "row_id": "dcl-<sha256[:16] of the user message content>",
+  "row_id": "dcl-<sha256[:16]; author: of user+assistant · repair: of the user message>",
   "domain": "dcl-capability-language",
   "layer": "behaviour",
   "type": "direct" | "reasoning",
@@ -84,7 +84,18 @@ This capability fails to compile. Diagnose the cause … changing only what the 
 }
 ```
 
-`row_id` is content-addressed on the user message — what the contamination check hashes.
+`row_id` is content-addressed, **mode-aware**:
+
+- **author rows** hash `user + assistant` (the brief+vocab message AND the fenced ```` ```dcl ````
+  completion). Author user messages are the brief + the shared vocabulary reference, so two
+  *different* completions of the *same* brief share a user message; folding in the assistant lets
+  `author_reps` distinct completions coexist as distinct rows, while a byte-identical duplicate row
+  hashes equal and dedupes.
+- **repair rows** hash the **user message alone** (unchanged) — a repair user message already
+  carries the broken `.dcl` + the verbatim diagnostics, so it uniquely identifies the row.
+
+The contamination check and split assignment operate on the stored `row_id` (whichever semantics
+minted it), so `train.row_id ∩ eval.row_id = ∅` holds identically for both modes.
 `split: eval_dcl` rows are named at creation and NEVER enter a training manifest. `recipe_id`
 names the defect recipe (`src/dcl/recipes.py`) a repair row was minted from. `compile_verified`
 is always `true` — a row whose label the compiler did not verify is not admissible.
