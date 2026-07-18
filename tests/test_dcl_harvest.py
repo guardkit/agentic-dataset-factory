@@ -306,3 +306,23 @@ def test_loader_accepts_kindless_forge_writer_row(tmp_path):
     briefs, rejects = load_harvested_briefs(p)
     assert len(briefs) == 1 and rejects == []
     assert briefs[0].brief_text.startswith("Let customers accrue loyalty points")
+
+
+def test_schema_header_stripped_before_scan(tmp_path):
+    """The pass-bar seed's ``format_version:`` header must not trip M-22.
+
+    Live-caught 2026-07-18: every real harvested brief opens its criteria with
+    the F-format schema header, whose key tokenizes to the denylisted word
+    "version" — 2/2 real briefs refused before this strip. Real version-related
+    CONTENT elsewhere in the criteria must still refuse.
+    """
+    ok_row = {k: v for k, v in CLEAN.items() if k != "kind"}
+    ok_row["machine_criteria"] = 'format_version: "1.0"\ncriteria:\n- the order total is recalculated'
+    bad_row = dict(ok_row)
+    bad_row["feature_id"] = "versionish"
+    bad_row["machine_criteria"] = 'format_version: "1.0"\ncriteria:\n- mirrors the /version endpoint body'
+    p = tmp_path / "queue.jsonl"
+    p.write_text(json.dumps(ok_row) + "\n" + json.dumps(bad_row) + "\n", encoding="utf-8")
+    briefs, rejects = load_harvested_briefs(p)
+    assert len(briefs) == 1 and "format_version" not in briefs[0].brief_text
+    assert len(rejects) == 1 and rejects[0]["reason"] == "contaminated"

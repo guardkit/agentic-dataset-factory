@@ -27,6 +27,7 @@ author-row minting but NOT repair minting (``render_reference_capability`` needs
 from __future__ import annotations
 
 import json
+import re
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +40,20 @@ logger = logging.getLogger(__name__)
 # The brief harvest ignores every non-brief queue kind (compile_shadow shares the queue).
 BRIEF_KIND = "brief"
 _REQUIRED_BRIEF_FIELDS = ("correlation_id", "feature_id", "request_text")
+
+_SCHEMA_HEADER_RE = re.compile(r"(?m)^\s*format_version\s*:.*\n?")
+
+
+def _strip_schema_header(criteria: str) -> str:
+    """Drop the F-format envelope's ``format_version:`` header line(s).
+
+    Every pass-bar seed opens with the schema header, whose KEY tokenizes to
+    the frozen-exam denylist word "version" — without this strip, M-22 refuses
+    EVERY harvested brief (live-caught 2026-07-18: 2/2 real briefs refused on
+    ``format_version`` alone). The header carries no brief semantics; real
+    version-RELATED content anywhere else in the criteria still refuses.
+    """
+    return _SCHEMA_HEADER_RE.sub("", criteria)
 
 
 @dataclass(frozen=True)
@@ -129,7 +144,7 @@ def load_harvested_briefs(
         correlation_id = str(obj["correlation_id"])
         feature_id = str(obj["feature_id"])
         request_text = str(obj["request_text"])
-        machine_criteria = str(obj.get("machine_criteria") or "")
+        machine_criteria = _strip_schema_header(str(obj.get("machine_criteria") or ""))
         repo = str(obj.get("repo") or "")
         task_id = obj.get("task_id")
 
