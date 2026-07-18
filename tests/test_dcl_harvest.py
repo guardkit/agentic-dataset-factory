@@ -291,3 +291,18 @@ def test_config_from_yaml_reads_briefs_source_and_queue(tmp_path):
     d = GenerateConfig.from_yaml(empty)
     assert d.briefs_source == "synthetic"
     assert d.harvest_queue is None
+
+
+def test_loader_accepts_kindless_forge_writer_row(tmp_path):
+    """forge's plan-commit harvest writer stamps ``source`` but no ``kind``.
+
+    The first REAL harvested row (2026-07-18, FEAT-B9AE) had exactly this
+    shape; the loader must accept it by the source discriminator.
+    """
+    forge_row = {k: v for k, v in CLEAN.items() if k != "kind"}
+    assert "kind" not in forge_row and forge_row["source"] == "plan-commit-harvest"
+    p = tmp_path / "queue.jsonl"
+    p.write_text(json.dumps(forge_row) + "\n", encoding="utf-8")
+    briefs, rejects = load_harvested_briefs(p)
+    assert len(briefs) == 1 and rejects == []
+    assert briefs[0].brief_text.startswith("Let customers accrue loyalty points")

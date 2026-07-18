@@ -107,7 +107,15 @@ def load_harvested_briefs(
             logger.warning("harvest queue %s line %d is not a JSON object (skipped)", path, lineno)
             rejects.append({"reason": "malformed", "line": lineno, "error": "not a JSON object"})
             continue
-        if obj.get("kind") != BRIEF_KIND:
+        kind = obj.get("kind")
+        is_brief = kind == BRIEF_KIND or (
+            # forge's plan-commit harvest writer stamps ``source`` but no
+            # ``kind`` (first real row 2026-07-18, FEAT-B9AE); accept its
+            # rows by the source discriminator so both writers' schemas load.
+            kind is None
+            and obj.get("source") == "plan-commit-harvest"
+        )
+        if not is_brief:
             # compile_shadow + any other kind share the queue but are not the brief harvest.
             continue
         missing = [f for f in _REQUIRED_BRIEF_FIELDS if obj.get(f) in (None, "")]
