@@ -79,7 +79,7 @@ This capability fails to compile. Diagnose the cause … changing only what the 
   "mode": "dcl_author" | "dcl_repair",
   "split": "train" | "eval_dcl",
   "recipe_id": "<defect recipe id, repair rows only; null on author rows>",
-  "provenance": {"source": "synthetic-brief" | "derived", "vocab_pin": "4f9fbe56", "compiler_pin": "4f9fbe56"},
+  "provenance": {"source": "synthetic-brief" | "derived" | "harvested", "vocab_pin": "4f9fbe56", "compiler_pin": "4f9fbe56"},
   "compile_verified": true
 }
 ```
@@ -101,6 +101,34 @@ The four frozen `dcl-heldout` exam capabilities are the eval and are NEVER train
   capability text (NOT the vocabulary boilerplate, which legitimately contains "version").
 - **Split disjointness:** `train.row_id ∩ eval.row_id = ∅`, with a stratified `eval_dcl` slice
   frozen at creation by a recorded seed + `holdout_fraction`.
+
+## 5a. Harvested real briefs (W2c — `provenance.source == "harvested"`)
+
+Beyond the synthetic brief bank, the corpus generator can draw **real feature briefs** from a
+factory run's plan-commit capture queue (`.guardkit/dcl-capture/queue.jsonl`, `kind == "brief"`
+rows). Enabled via config: `generation.briefs_source: harvested` + `corpus.harvest_queue: <path>`
+(default `synthetic` leaves the pipeline byte-identical). Loading is `src/dcl/harvest.py`.
+
+- **AUTHOR-ONLY.** A harvested brief carries the natural-language request + machine criteria but
+  NO structured synthetic fields, so it mints AUTHOR rows only — it can never drive repair
+  minting (`render_reference_capability` needs those fields). The generator skips it for repair
+  and notes the skip in the manifest `harvest` block.
+- **M-22 gate, per brief.** Before a harvested brief becomes a row, the frozen-exam denylist
+  (§5) scans its request + criteria; any hit REFUSES that brief loudly (recorded, never yielded,
+  zero rows) without aborting the batch. Malformed queue lines are counted + logged, never fatal.
+- **Provenance shape.** Harvested rows extend the pinned triple with three REQUIRED keys naming
+  where the brief came from (FORBIDDEN on every other source):
+
+  ```json
+  {"source": "harvested", "vocab_pin": "4f9fbe56", "compiler_pin": "4f9fbe56",
+   "repo": "<org/name or path>", "feature": "<feature id>", "run": "<correlation id>"}
+  ```
+
+  A harvested row is still `mode: dcl_author`, `type: direct`, compiler-verified — the label is
+  compiler-fixed exactly as for synthetic author rows.
+- **Manifest.** A harvested run embeds a `harvest` block (`scanned` / `refused` / `malformed` /
+  `author_rows_from_harvest` / `repair_skipped_author_only` + the author-only note) and counts
+  `by_provenance_source` per split. Synthetic-only runs omit the `harvest` block entirely.
 
 ## 6. Handover manifest
 

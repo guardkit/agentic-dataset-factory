@@ -34,8 +34,14 @@ MODES = frozenset({"dcl_author", "dcl_repair"})
 SPLITS = frozenset({"train", "eval_dcl"})
 TYPES = frozenset({"direct", "reasoning"})
 LAYERS = frozenset({"behaviour"})
-PROVENANCE_SOURCES = frozenset({"synthetic-brief", "derived"})
+PROVENANCE_SOURCES = frozenset({"synthetic-brief", "derived", "harvested"})
 PROVENANCE_KEYS = ("source", "vocab_pin", "compiler_pin")
+# W2c: harvested rows (real plan-commit briefs) carry three extra provenance keys naming
+# WHERE the brief came from — REQUIRED when source=="harvested", FORBIDDEN otherwise.
+HARVESTED_PROVENANCE_EXTRA_KEYS = ("repo", "feature", "run")
+HARVESTED_PROVENANCE_KEYS = PROVENANCE_KEYS + HARVESTED_PROVENANCE_EXTRA_KEYS
+# Author-mode rows may originate from the synthetic brief bank OR a harvested real brief.
+AUTHOR_PROVENANCE_SOURCES = frozenset({"synthetic-brief", "harvested"})
 
 _VOCAB_PATH = Path(__file__).resolve().parent / "vocab-reference.md"
 
@@ -153,10 +159,34 @@ def user_message(row: dict[str, Any]) -> str:
 # --------------------------------------------------------------------------------------
 # Metadata + row assembly — OUTPUT-CONTRACT §4, §1.
 # --------------------------------------------------------------------------------------
-def build_provenance(source: str) -> dict[str, str]:
+def _expected_provenance_keys(source: str) -> set[str]:
+    """The exact provenance key set for a source — harvested rows carry three extra keys."""
+    return set(HARVESTED_PROVENANCE_KEYS) if source == "harvested" else set(PROVENANCE_KEYS)
+
+
+def build_provenance(
+    source: str,
+    *,
+    repo: str | None = None,
+    feature: str | None = None,
+    run: str | None = None,
+) -> dict[str, str]:
+    """Provenance block. ``source=="harvested"`` REQUIRES repo/feature/run; every other
+    source FORBIDS them (the additive W2c contract — synthetic/derived stay byte-identical)."""
     if source not in PROVENANCE_SOURCES:
         raise RowValidationError(f"provenance source {source!r} not in {sorted(PROVENANCE_SOURCES)}")
-    return {"source": source, "vocab_pin": VOCAB_PIN, "compiler_pin": COMPILER_PIN_SHORT}
+    prov = {"source": source, "vocab_pin": VOCAB_PIN, "compiler_pin": COMPILER_PIN_SHORT}
+    if source == "harvested":
+        if repo is None or feature is None or run is None:
+            raise RowValidationError(
+                "harvested provenance requires repo, feature and run (the {repo, feature, run} keys)"
+            )
+        prov["repo"], prov["feature"], prov["run"] = repo, feature, run
+    elif any(v is not None for v in (repo, feature, run)):
+        raise RowValidationError(
+            "repo/feature/run are only permitted when provenance.source == 'harvested'"
+        )
+    return prov
 
 
 def build_metadata(
@@ -175,10 +205,13 @@ def build_metadata(
         raise RowValidationError(f"type {type_!r} not in {sorted(TYPES)}")
     if split not in SPLITS:
         raise RowValidationError(f"split {split!r} not in {sorted(SPLITS)}")
-    if set(provenance) != set(PROVENANCE_KEYS):
-        raise RowValidationError(f"provenance must be exactly {list(PROVENANCE_KEYS)}")
-    if provenance["source"] not in PROVENANCE_SOURCES:
+    if provenance.get("source") not in PROVENANCE_SOURCES:
         raise RowValidationError("provenance.source invalid")
+    if set(provenance) != _expected_provenance_keys(provenance["source"]):
+        raise RowValidationError(
+            f"provenance keys must be {sorted(_expected_provenance_keys(provenance['source']))} "
+            f"for source {provenance['source']!r}"
+        )
     return {
         "row_id": row_id(user_msg),
         "domain": DOMAIN,
@@ -198,10 +231,16 @@ def build_author_row(
     dcl_text: str,
     vocab_reference: str,
     split: str,
+    provenance: dict[str, str] | None = None,
     compile_verified: bool = True,
 ) -> dict[str, Any]:
-    """Assemble + validate an AUTHOR row (brief -> compiler-clean capability)."""
+    """Assemble + validate an AUTHOR row (brief -> compiler-clean capability).
+
+    ``provenance`` defaults to a ``synthetic-brief`` block (the synthetic path stays
+    byte-identical). Harvested real briefs pass a ``harvested`` provenance built via
+    :func:`build_provenance` with repo/feature/run."""
     user_msg = build_author_user_message(brief, vocab_reference)
+    prov = provenance if provenance is not None else build_provenance("synthetic-brief")
     row = {
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
@@ -213,7 +252,7 @@ def build_author_row(
             mode="dcl_author",
             type_="direct",
             split=split,
-            provenance=build_provenance("synthetic-brief"),
+            provenance=prov,
             recipe_id=None,
             compile_verified=compile_verified,
         ),
@@ -288,8 +327,14 @@ def validate_row(row: dict[str, Any]) -> None:
         raise RowValidationError(f"split {meta['split']!r} invalid")
     if meta["compile_verified"] is not True:
         raise RowValidationError("compile_verified must be True — every row's label is compiler-checked")
-    if set(meta["provenance"]) != set(PROVENANCE_KEYS):
-        raise RowValidationError("provenance must be the pinned triple {source, vocab_pin, compiler_pin}")
+    prov_source = meta["provenance"].get("source")
+    if prov_source not in PROVENANCE_SOURCES:
+        raise RowValidationError(f"provenance.source {prov_source!r} not in {sorted(PROVENANCE_SOURCES)}")
+    if set(meta["provenance"]) != _expected_provenance_keys(prov_source):
+        raise RowValidationError(
+            "provenance must be the pinned keys for its source "
+            f"({sorted(_expected_provenance_keys(prov_source))})"
+        )
     if meta["provenance"]["vocab_pin"] != VOCAB_PIN or meta["provenance"]["compiler_pin"] != COMPILER_PIN_SHORT:
         raise RowValidationError(f"provenance pins must be {VOCAB_PIN!r}")
     if meta["row_id"] != row_id(user_message(row)):
@@ -310,8 +355,10 @@ def validate_row(row: dict[str, Any]) -> None:
             raise RowValidationError("dcl_author rows must NOT carry a <think> block (direct)")
         if meta["recipe_id"] is not None:
             raise RowValidationError("dcl_author rows carry no recipe_id")
-        if meta["provenance"]["source"] != "synthetic-brief":
-            raise RowValidationError("dcl_author provenance.source must be synthetic-brief")
+        if meta["provenance"]["source"] not in AUTHOR_PROVENANCE_SOURCES:
+            raise RowValidationError(
+                "dcl_author provenance.source must be synthetic-brief or harvested"
+            )
     else:  # dcl_repair
         if meta["type"] != "reasoning":
             raise RowValidationError("dcl_repair rows are type=reasoning")

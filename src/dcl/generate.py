@@ -37,6 +37,7 @@ from dcl.contracts import (
     SYSTEM_PROMPT,
     build_author_row,
     build_author_user_message,
+    build_provenance,
     build_repair_row,
     build_repair_user_message,
     load_vocab_reference,
@@ -150,12 +151,17 @@ class GenerateConfig:
     recipes: dict[str, float] = field(default_factory=lambda: {r: 1.0 for r in RECIPES})
     output_dir: str = "output/dcl-capability-language"
     seed: str = "dcl-phase1"
+    # W2c: brief source. "synthetic" (default) uses the seed bank (load_briefs); "harvested"
+    # reads real plan-commit briefs from corpus.harvest_queue and runs AUTHOR-only.
+    briefs_source: str = "synthetic"
+    harvest_queue: str | None = None
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "GenerateConfig":
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         gen = data.get("generation", {})
         out = data.get("output", {})
+        corpus = data.get("corpus", {}) or {}
         return cls(
             mode=gen.get("mode", "both"),
             limit=gen.get("limit"),
@@ -165,6 +171,8 @@ class GenerateConfig:
             recipes=gen.get("recipes") or {r: 1.0 for r in RECIPES},
             output_dir=out.get("dir", "output/dcl-capability-language"),
             seed=gen.get("seed", "dcl-phase1"),
+            briefs_source=gen.get("briefs_source", "synthetic"),
+            harvest_queue=corpus.get("harvest_queue"),
         )
 
 
@@ -298,6 +306,11 @@ class GenerationSummary:
     repair_skipped_anchor: int = 0
     train: int = 0
     eval_dcl: int = 0
+    # W2c harvested-brief accounting (all zero on the synthetic default path).
+    harvested_scanned: int = 0        # harvested briefs that reached the M-22 scan (accepted + refused)
+    harvested_refused: int = 0        # refused by the contamination denylist (from the rejects list)
+    harvested_malformed: int = 0      # malformed queue lines counted (from the rejects list)
+    harvested_repair_skipped: int = 0  # harvested briefs excluded from repair minting (author-only)
 
 
 def run_generation(
@@ -307,17 +320,30 @@ def run_generation(
     coach: CoachClient,
     teacher: ModelClient | None = None,
     briefs: list[Brief] | None = None,
+    harvest_rejects: list[dict[str, Any]] | None = None,
     write_manifest: bool = True,
     created: str = "unset",
     factory_sha: str = "unset",
 ) -> GenerationSummary:
     """Run the offline generation. ``player``/``coach``/``teacher`` are injected (stubs in
-    tests). ``teacher`` defaults to ``player`` (the reused rationale seat)."""
+    tests). ``teacher`` defaults to ``player`` (the reused rationale seat).
+
+    W2c: ``briefs`` may contain harvested real briefs (``brief.harvested is True``). Those
+    author rows carry ``harvested`` provenance ({repo, feature, run}); harvested briefs are
+    AUTHOR-ONLY and are excluded from repair minting (``render_reference_capability`` needs the
+    structured synthetic fields they lack). ``harvest_rejects`` folds the loader's contamination
+    refusals + malformed-line counts into the summary + manifest."""
     teacher = teacher or player
     briefs = briefs if briefs is not None else load_briefs()
     vocab = load_vocab_reference()
     summary = GenerationSummary()
     limit = config.limit
+
+    harvested_briefs = [b for b in briefs if getattr(b, "harvested", False)]
+    harvest_rejects = harvest_rejects or []
+    summary.harvested_refused = sum(1 for r in harvest_rejects if r.get("reason") == "contaminated")
+    summary.harvested_malformed = sum(1 for r in harvest_rejects if r.get("reason") == "malformed")
+    summary.harvested_scanned = len(harvested_briefs) + summary.harvested_refused
 
     with OutputWriter(config.output_dir) as writer:
         if config.mode in ("dcl_author", "both"):
@@ -331,9 +357,16 @@ def run_generation(
                         holdout_fraction=config.holdout_fraction,
                         seed=config.seed,
                     )
+                    if getattr(brief, "harvested", False):
+                        provenance = build_provenance(
+                            "harvested", repo=brief.repo,
+                            feature=brief.feature_id, run=brief.correlation_id,
+                        )
+                    else:
+                        provenance = None  # synthetic default (byte-identical path)
                     row = build_author_row(
                         brief=brief.brief_text, dcl_text=payload["dcl"],
-                        vocab_reference=vocab, split=split,
+                        vocab_reference=vocab, split=split, provenance=provenance,
                     )
                     writer.write_row(row)
                     summary.author_accepted += 1
@@ -343,10 +376,20 @@ def run_generation(
 
         if config.mode in ("dcl_repair", "both"):
             recipe_ids = _weighted_recipe_ids(config)
+            # Harvested briefs are AUTHOR-ONLY: they lack the structured fields
+            # render_reference_capability needs, so they NEVER mint repair rows (noted loudly).
+            repair_briefs = [b for b in briefs if not getattr(b, "harvested", False)]
+            summary.harvested_repair_skipped = len(harvested_briefs)
+            if harvested_briefs:
+                logger.info(
+                    "repair minting SKIPPED for %d harvested brief(s) — author-only "
+                    "(no structured fields for render_reference_capability)",
+                    len(harvested_briefs),
+                )
             # Sources: the compiling brief renders (offline, no model) + any accepted author rows.
             sources = [
                 (b.id, render_reference_capability(b))
-                for b in briefs
+                for b in repair_briefs
             ]
             for src_id, source in sources:
                 contamination.assert_clean(source, what=f"repair source {src_id}")
@@ -383,10 +426,25 @@ def run_generation(
         summary.eval_dcl = writer.counts["eval_dcl"]
 
         if write_manifest:
+            harvest_block = None
+            if harvested_briefs or harvest_rejects:
+                harvest_block = {
+                    "scanned": summary.harvested_scanned,
+                    "refused": summary.harvested_refused,
+                    "malformed": summary.harvested_malformed,
+                    "author_rows_from_harvest": len(harvested_briefs),
+                    "repair_skipped_author_only": summary.harvested_repair_skipped,
+                    "note": (
+                        "harvested real briefs are AUTHOR-ONLY — they carry no structured "
+                        "fields for repair minting; M-22 + the frozen-exam denylist gated "
+                        "every brief before any row was minted."
+                    ),
+                }
             manifest = build_manifest(
                 writer.train_rows, writer.eval_rows,
                 dataset_id="dcl-phase1-train-v1",
                 created=created, factory_sha=factory_sha,
+                harvest=harvest_block,
             )
             validate_manifest(manifest)
             (Path(config.output_dir) / "manifest.json").write_text(

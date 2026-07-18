@@ -14,7 +14,7 @@ import json
 from typing import Any
 
 from dcl.contamination import ContaminationResult, check_contamination
-from dcl.contracts import MODES, RowValidationError, SPLITS, TYPES
+from dcl.contracts import MODES, PROVENANCE_SOURCES, RowValidationError, SPLITS, TYPES
 from dcl.recipes import RECIPES
 
 MANIFEST_VERSION = 1
@@ -30,6 +30,7 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
     by_type = {t: 0 for t in sorted(TYPES)}
     by_split = {s: 0 for s in sorted(SPLITS)}
     by_recipe = {rid: 0 for rid in sorted(RECIPES)}
+    by_provenance_source = {s: 0 for s in sorted(PROVENANCE_SOURCES)}
     compile_verified = 0
     for r in rows:
         meta = r["metadata"]
@@ -39,6 +40,9 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
         rid = meta.get("recipe_id")
         if rid in by_recipe:
             by_recipe[rid] += 1
+        src = meta.get("provenance", {}).get("source")
+        if src in by_provenance_source:
+            by_provenance_source[src] += 1
         if meta.get("compile_verified") is True:
             compile_verified += 1
     return {
@@ -46,6 +50,7 @@ def _counts(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "by_type": by_type,
         "by_split": by_split,
         "by_recipe": by_recipe,
+        "by_provenance_source": by_provenance_source,
         "compile_verified": compile_verified,
         "total": len(rows),
     }
@@ -60,16 +65,19 @@ def build_manifest(
     factory_sha: str,
     train_file_path: str = "output/dcl-capability-language/train.jsonl",
     eval_file_path: str = "output/dcl-capability-language/eval_dcl.jsonl",
+    harvest: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble the train manifest, embedding the contamination check over train vs eval.
 
     ``created`` / ``factory_sha`` are passed in (no wall-clock dependency) so manifests are
-    reproducible and testable — mirroring the QAV manifest builder.
+    reproducible and testable — mirroring the QAV manifest builder. ``harvest`` (W2c) embeds
+    the harvested-brief accounting (scanned / refused / malformed + the author-only note) when
+    a run drew any rows from a plan-commit capture queue; omitted entirely on synthetic runs.
     """
     contamination: ContaminationResult = check_contamination(train_rows, eval_rows)
     train_bytes = _jsonl_bytes(train_rows)
     eval_bytes = _jsonl_bytes(eval_rows)
-    return {
+    manifest: dict[str, Any] = {
         "manifest_version": MANIFEST_VERSION,
         "dataset_id": dataset_id,
         "domain": "dcl-capability-language",
@@ -99,6 +107,9 @@ def build_manifest(
         "visibility": "private (DF-008)",
         "consumer": "WS4 training pipeline (G3 architect/dcl fine-tune lane)",
     }
+    if harvest is not None:
+        manifest["harvest"] = harvest
+    return manifest
 
 
 _REQUIRED_MANIFEST_KEYS = {

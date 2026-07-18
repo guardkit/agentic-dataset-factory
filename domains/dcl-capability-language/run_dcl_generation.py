@@ -164,8 +164,29 @@ def main(argv: list[str] | None = None) -> int:
         cfg.limit = args.limit
 
     player, coach = build_clients(config_path)
-    logger.info("DCL run: mode=%s limit=%s out=%s player=%s coach endpoint set",
-                cfg.mode, cfg.limit, cfg.output_dir, getattr(player, "model", "?"))
+    logger.info("DCL run: mode=%s limit=%s out=%s briefs_source=%s player=%s coach endpoint set",
+                cfg.mode, cfg.limit, cfg.output_dir, cfg.briefs_source, getattr(player, "model", "?"))
+
+    # W2c: branch on the brief source. Default "synthetic" leaves the driver byte-identical
+    # (no briefs kwarg -> run_generation falls back to load_briefs()).
+    briefs = None
+    harvest_rejects = None
+    if cfg.briefs_source == "harvested":
+        from dcl.harvest import load_harvested_briefs
+
+        if not cfg.harvest_queue:
+            logger.error("briefs_source: harvested requires corpus.harvest_queue in the config")
+            return 2
+        briefs, harvest_rejects = load_harvested_briefs(Path(cfg.harvest_queue))
+        logger.info(
+            "harvest: %d brief(s) accepted, %d refused (contamination), %d malformed",
+            len(briefs),
+            sum(1 for r in harvest_rejects if r.get("reason") == "contaminated"),
+            sum(1 for r in harvest_rejects if r.get("reason") == "malformed"),
+        )
+    elif cfg.briefs_source != "synthetic":
+        logger.error("unknown generation.briefs_source %r (expected synthetic|harvested)", cfg.briefs_source)
+        return 2
 
     import subprocess
     try:
@@ -176,12 +197,15 @@ def main(argv: list[str] | None = None) -> int:
 
     summary = run_generation(
         cfg, player=player, coach=coach, teacher=player,
+        briefs=briefs, harvest_rejects=harvest_rejects,
         write_manifest=True, created=date.today().isoformat(), factory_sha=sha,
     )
     logger.info(
-        "DONE author_accepted=%s author_rejected=%s repair_written=%s train=%s eval_dcl=%s",
+        "DONE author_accepted=%s author_rejected=%s repair_written=%s train=%s eval_dcl=%s "
+        "harvested_scanned=%s harvested_refused=%s harvested_malformed=%s",
         summary.author_accepted, summary.author_rejected, summary.repair_written,
         summary.train, summary.eval_dcl,
+        summary.harvested_scanned, summary.harvested_refused, summary.harvested_malformed,
     )
     print(json.dumps(summary.__dict__, indent=2))
     return 0
