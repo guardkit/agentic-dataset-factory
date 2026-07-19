@@ -541,5 +541,20 @@ new `[G6]` aborts if any rendered target contains `<think>`.
 **Process rule this bakes in:** Phase 5's merged-16bit generation sanity is **mandatory before
 any GGUF/serve step** — the first run skipped it and burned a probe cycle on a broken model.
 
-*Document version: 1.1 | 2026-07-19 | v1.0 companion note unchanged: `../coach-agent/RUNBOOK-coach-fine-tune.md`
+**Catch 3 (v2 A/B, same day) — train the target format the serving contract demands.** The
+frozen exam's pinned serving prompt is *"Output ONLY the DCL source. No prose, no explanation,
+no markdown fences."* — and grades `response.dcl` verbatim by design. The v2 model, trained on
+528/528 ```` ```dcl ````-fenced targets, re-fenced EVERYWHERE (even inside the §10 repair leg,
+whose prompt repeats the no-fence instruction), so all 18 author reps failed at the lexer on
+the backticks — and the bounded repair was wasted on phantom fence diagnostics instead of real
+content errors. Fence-stripped diagnostic of the v2 artifacts: zero-shot content 0/9 (6–14
+real errors), protocol content 3/9 (vs stock 2/9 graded). **Fix:** `prepare_dcl_sft.py` now
+unwraps targets to BARE DCL source by default (`--keep-fence` restores; the post-think law
+picks the correct fence; banked rows keep their fences on disk — the row contract is
+unchanged, this is a staging transform). `[G6]` extended to abort on fenced targets. The
+general law: **staged targets must byte-match what the serving contract asks the model to
+emit** — think blocks (catch 2) and markdown fences (catch 3) were both training-side format
+artifacts the serve side never wanted.
+
+*Document version: 1.2 | 2026-07-19 | v1.0 companion note unchanged: `../coach-agent/RUNBOOK-coach-fine-tune.md`
 (the QLoRA shape) and `../architect-agent/RUNBOOK-architect-fine-tune.md` (the phase skeleton).*

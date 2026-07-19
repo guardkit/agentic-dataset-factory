@@ -312,18 +312,24 @@ def main():
                  "and NO gemma tokens. Either the native template did not apply or a gemma "
                  "template leaked in — train==serve alignment would break.\n")
 
-    # [G6] think-token gate (live-catch 2026-07-19): <think>/</think> are near-untrained
-    # added tokens in this non-thinking base; LoRA leaves lm_head frozen, so targets on
-    # them collapse onto the confusable <tool_call> row at generation (the first pilot run
-    # emitted deterministic <tool_call> spam). With strip-think staging (default) and the
-    # stock template forced above, NO rendered row may contain <think>.
-    think_rows = sum(1 for r in train_dataset if "<think>" in r["text"])
-    print(f"[G6] think-token gate: {think_rows}/{len(train_dataset)} rendered train rows "
-          f"contain <think> (expect 0 — strip-think staging + stock template)")
-    if think_rows and not args.allow_think_targets:
-        sys.exit(f"\nABORT [G6]: {think_rows} rendered rows contain <think>. Either staging "
-                 f"ran with --keep-think or a thinking template survived. Re-stage with the "
-                 f"default strip-think, or pass --allow-think-targets if you truly mean it.\n")
+    # [G6] target-format gate (live-catches 2026-07-19): the TRAINED span (after the last
+    # assistant marker) must contain neither <think> (near-untrained added tokens — the v1
+    # run collapsed onto <tool_call> spam) nor ``` fences (the frozen exam's pinned serving
+    # prompt demands bare DCL source — the v2 run failed every author rep at the lexer on
+    # the backticks). User turns legitimately contain fenced examples; only the target
+    # span is gated.
+    def _target_span(text):
+        return text.rsplit("<|im_start|>assistant\n", 1)[-1]
+    think_rows = sum(1 for r in train_dataset if "<think>" in _target_span(r["text"]))
+    fenced_rows = sum(1 for r in train_dataset if "```" in _target_span(r["text"]))
+    print(f"[G6] target-format gate: think={think_rows}/{len(train_dataset)} "
+          f"fenced={fenced_rows}/{len(train_dataset)} rendered targets "
+          f"(expect 0/0 — strip-think + strip-fence staging, stock template)")
+    if (think_rows or fenced_rows) and not args.allow_think_targets:
+        sys.exit(f"\nABORT [G6]: {think_rows} think / {fenced_rows} fenced targets. Staging "
+                 f"ran with --keep-think/--keep-fence, or a thinking template survived. "
+                 f"Re-stage with the defaults, or pass --allow-think-targets if you truly "
+                 f"mean it.\n")
 
     # 4. Trainer -------------------------------------------------------------------------
     use_bf16 = torch.cuda.is_bf16_supported()

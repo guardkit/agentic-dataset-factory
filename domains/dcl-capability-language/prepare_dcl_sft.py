@@ -115,6 +115,27 @@ def strip_think_prefix(content: str) -> str:
     return _THINK_BLOCK_RE.sub("", content, count=1)
 
 
+def unwrap_dcl_fence(content: str) -> str | None:
+    """Unwrap a ```dcl fenced target to BARE DCL source (live-catch #3, 2026-07-19).
+    The frozen exam's pinned serving prompt is 'Output ONLY the DCL source. No prose, no
+    explanation, no markdown fences.' — fenced targets taught the v2 model to override
+    that instruction and every author rep failed at the lexer on the backticks (with the
+    §10 repair leg wasted on phantom fence diagnostics). Returns None if no fence found."""
+    think_end = _THINK_END_RE.search(content)
+    m = _DCL_FENCE_RE.search(content, think_end.end() if think_end else 0)
+    if not m:
+        return None
+    inner = m.group(0)
+    inner = inner[inner.index("\n") + 1: inner.rindex("\n```")]
+    bare = inner.strip("\n") + "\n"
+    if think_end:
+        # --keep-think staging: preserve the think block, swap only the fenced fix
+        # for its bare source (the post-think law picks THIS fence, never the broken
+        # capability quoted inside <think>).
+        return content[:think_end.end()] + "\n" + bare
+    return bare
+
+
 # --------------------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------------------
@@ -142,6 +163,14 @@ def parse_args(argv=None):
                         "in-container real-tokenizer audit is ground truth)")
     p.add_argument("--date", default=None,
                    help="Manifest created date (YYYY-MM-DD). Default: max source-file mtime.")
+    p.add_argument("--keep-fence", action="store_true",
+                   help="Keep the ```dcl markdown fence around STAGED assistant targets. "
+                        "DEFAULT IS TO UNWRAP to bare DCL source (live-catch #3, "
+                        "2026-07-19: the frozen exam's pinned serving prompt demands "
+                        "'ONLY the DCL source... no markdown fences'; fenced targets "
+                        "taught the v2 model to re-fence even inside the §10 repair leg — "
+                        "every author rep failed at the lexer on the backticks). Banked "
+                        "rows keep their fences on disk; verification runs pre-strip.")
     p.add_argument("--keep-think", action="store_true",
                    help="Keep the repair rows' leading <think>...</think> block in the STAGED "
                         "assistant targets. DEFAULT IS TO STRIP IT (live-catch 2026-07-19: "
@@ -413,32 +442,6 @@ def main(argv=None) -> int:
         verify_fails.append(f"duplicate row_id across merged set: {dupes[:10]}"
                             + (" ..." if len(dupes) > 10 else ""))
 
-    # ---- 3b. Strip think prefix from repair targets (live-catch 2026-07-19) ------------
-    # Banked rows were just verified under the post-think law (step 3, on ORIGINAL
-    # content). Staged targets drop the <think> block by default: think tokens are
-    # near-untrained in the non-thinking base and training on them collapsed generation
-    # onto <tool_call> spam in the first pilot run. Sources on disk are untouched.
-    strip_think = not args.keep_think
-    if strip_think and verify_fails:
-        # Verification already failed on the banked rows — report through the normal gate
-        # table (hard_ok=False, nothing written) instead of aborting mid-strip.
-        pass
-    elif strip_think:
-        stripped_count = 0
-        for r in repairs_train + repairs_eval:
-            content = assistant_content(r)
-            new = strip_think_prefix(content)
-            if new != content:
-                if not _DCL_FENCE_RE.search(new):
-                    sys.exit(f"ERROR: strip-think left row {row_id(r)} without a ```dcl "
-                             f"fence — refusing to stage a broken target.")
-                r["messages"][-1]["content"] = new
-                stripped_count += 1
-        if stripped_count != len(repairs_train) + len(repairs_eval):
-            sys.exit(f"ERROR: strip-think changed {stripped_count} repair rows, expected "
-                     f"{len(repairs_train) + len(repairs_eval)} — a repair row lacked its "
-                     f"<think> block. Investigate before staging.")
-
     # ---- 4. Template-token leak gate --------------------------------------------------
     leak_hits: list[dict] = []
     for split, rows in (("train", train_kept), ("eval", eval_kept)):
@@ -455,6 +458,53 @@ def main(argv=None) -> int:
     # ---- 5b. Frozen-exam cross-check --------------------------------------------------
     briefs = load_exam_briefs(fleet_evals_dir)
     exam_check = frozen_exam_crosscheck(train_kept, briefs)
+
+    # ---- 5c. Staging transforms (live-catches 2026-07-19): strip think, unwrap fence ---
+    # Applied AFTER the banked-contract gates (verification, leak, contamination, exam
+    # cross-check all ran on the ORIGINAL rows — dcl.contracts requires the fence) and
+    # BEFORE the write. Sources on disk are never modified.
+    #
+    # strip-think (catch #2): think tokens are near-untrained in the non-thinking base;
+    # LoRA leaves lm_head frozen, so targets on them collapsed onto <tool_call> spam (v1).
+    # strip-fence (catch #3): the frozen exam's pinned serving prompt demands bare DCL
+    # source with no markdown fences; fenced targets made the v2 model re-fence everywhere
+    # and every author rep failed at the lexer on the backticks.
+    strip_think = not args.keep_think
+    strip_fence = not args.keep_fence
+    if not verify_fails:
+        if strip_think:
+            stripped_count = 0
+            for r in repairs_train + repairs_eval:
+                content = assistant_content(r)
+                new = strip_think_prefix(content)
+                if new != content:
+                    if not _DCL_FENCE_RE.search(new):
+                        sys.exit(f"ERROR: strip-think left row {row_id(r)} without a "
+                                 f"```dcl fence — refusing to stage a broken target.")
+                    r["messages"][-1]["content"] = new
+                    stripped_count += 1
+            if stripped_count != len(repairs_train) + len(repairs_eval):
+                sys.exit(f"ERROR: strip-think changed {stripped_count} repair rows, "
+                         f"expected {len(repairs_train) + len(repairs_eval)} — a repair "
+                         f"row lacked its <think> block. Investigate before staging.")
+        if strip_fence:
+            unfenced_count = 0
+            for r in train_kept + eval_kept:
+                content = assistant_content(r)
+                bare = unwrap_dcl_fence(content)
+                if bare is None:
+                    sys.exit(f"ERROR: strip-fence found no ```dcl fence in row "
+                             f"{row_id(r)} — the row contract requires one.")
+                tail_think = _THINK_END_RE.search(bare)
+                check_region = bare[tail_think.end():] if tail_think else bare
+                if "```" in check_region or not check_region.strip():
+                    sys.exit(f"ERROR: strip-fence left backticks or emptiness in row "
+                             f"{row_id(r)} — refusing to stage a malformed target.")
+                r["messages"][-1]["content"] = bare
+                unfenced_count += 1
+            if unfenced_count != len(train_kept) + len(eval_kept):
+                sys.exit(f"ERROR: strip-fence transformed {unfenced_count} rows, expected "
+                         f"{len(train_kept) + len(eval_kept)}.")
 
     # ---- think-block coverage by mode -------------------------------------------------
     think_cov = {"author": {"with_think": 0, "total": 0},
@@ -556,6 +606,16 @@ def main(argv=None) -> int:
                 "note": (f"{len(merged)} unique rows is BELOW the architect runbook's "
                          f"{ARCHITECT_MIN_ACCEPTED} MIN_ACCEPTED — deliberate, Rich-approved "
                          f"pilot floor. Recorded honestly, not hidden."),
+            },
+            "strip_fence": {
+                "enabled": strip_fence,
+                "rationale": (
+                    "Live-catch #3 2026-07-19 (v2 A/B): the frozen exam's pinned serving "
+                    "prompt demands bare DCL source with no markdown fences; fenced targets "
+                    "taught the v2 model to re-fence even inside the §10 repair leg — all 18 "
+                    "author reps failed at the lexer on the backticks (fence-stripped "
+                    "content: zero-shot 0/9, protocol 3/9). Targets are staged as bare DCL "
+                    "source; banked rows keep their fences on disk."),
             },
             "strip_think": {
                 "enabled": strip_think,

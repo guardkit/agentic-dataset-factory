@@ -256,13 +256,60 @@ def test_strip_think_default_strips_repair_targets(tmp_path, monkeypatch):
               for l in (out / p).read_text().splitlines() if l]
     for r in staged:
         assert "<think>" not in r["messages"][-1]["content"], "staged targets are think-free"
-        assert "```dcl" in r["messages"][-1]["content"], "the verified fix survives the strip"
+        assert "language dcl 1.0" in r["messages"][-1]["content"], \
+            "the verified fix survives the strip (bare source — fence also stripped)"
     manifest = json.loads((out / "dcl-staging-manifest.json").read_text())
     assert manifest["strip_think"]["enabled"] is True
     assert manifest["think_coverage_by_mode"]["repair"]["with_think"] == 0
     # sources on disk untouched (banked rows keep their think blocks)
     src = [json.loads(l) for l in (rdir / "train.jsonl").read_text().splitlines() if l]
     assert all("<think>" in r["messages"][-1]["content"] for r in src)
+
+
+def test_unwrap_dcl_fence_unit():
+    # live-catch #3 2026-07-19: staged targets are BARE DCL source (the exam's pinned
+    # serving prompt bans markdown fences).
+    bare = prep.unwrap_dcl_fence(CLEAN_DCL)
+    assert bare is not None and "```" not in bare
+    assert bare.startswith("language dcl 1.0")
+    assert prep.unwrap_dcl_fence("no fence here") is None
+
+
+def test_strip_fence_default_stages_bare_targets(tmp_path, monkeypatch):
+    monkeypatch.setattr(prep, "EXPECTED",
+                        {"authors_train": 1, "authors_eval": 1,
+                         "repairs_train": 1, "repairs_eval": 1})
+    adir, rdir = make_sources(
+        tmp_path, authors_train=[author_row("dcl-a1")], authors_eval=[author_row("dcl-ae1")],
+        repairs_train=[repair_row("dcl-r1")], repairs_eval=[repair_row("dcl-re1")])
+    rc, out = run_main(tmp_path, adir, rdir, monkeypatch)
+    assert rc == 0
+    staged = [json.loads(l) for p in ("train-dcl.jsonl", "eval-dcl.jsonl")
+              for l in (out / p).read_text().splitlines() if l]
+    for r in staged:
+        target = r["messages"][-1]["content"]
+        assert "```" not in target, "staged targets are bare DCL source (no fence)"
+        assert target.startswith("language dcl 1.0")
+    manifest = json.loads((out / "dcl-staging-manifest.json").read_text())
+    assert manifest["strip_fence"]["enabled"] is True
+    # banked sources untouched (still fenced)
+    src = [json.loads(l) for l in (adir / "train.jsonl").read_text().splitlines() if l]
+    assert all("```dcl" in r["messages"][-1]["content"] for r in src)
+
+
+def test_keep_fence_preserves_fenced_targets(tmp_path, monkeypatch):
+    monkeypatch.setattr(prep, "EXPECTED",
+                        {"authors_train": 1, "authors_eval": 1,
+                         "repairs_train": 1, "repairs_eval": 1})
+    adir, rdir = make_sources(
+        tmp_path, authors_train=[author_row("dcl-a1")], authors_eval=[author_row("dcl-ae1")],
+        repairs_train=[repair_row("dcl-r1")], repairs_eval=[repair_row("dcl-re1")])
+    rc, out = run_main(tmp_path, adir, rdir, monkeypatch, extra=["--keep-fence"])
+    assert rc == 0
+    train = [json.loads(l) for l in (out / "train-dcl.jsonl").read_text().splitlines() if l]
+    assert all("```dcl" in r["messages"][-1]["content"] for r in train)
+    manifest = json.loads((out / "dcl-staging-manifest.json").read_text())
+    assert manifest["strip_fence"]["enabled"] is False
 
 
 def test_keep_think_preserves_repair_targets(tmp_path, monkeypatch):
