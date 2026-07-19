@@ -232,6 +232,55 @@ def test_in_think_only_repair_fails_verification(tmp_path, monkeypatch):
     assert not (out / "train-dcl.jsonl").exists()
 
 
+def test_strip_think_prefix_unit():
+    # live-catch 2026-07-19: the staged repair target drops the <think> block, keeps the fix.
+    content = ("<think>\nquoting the broken ```dcl\nactor X is machine\n``` here\n</think>\n"
+               + CLEAN_DCL)
+    stripped = prep.strip_think_prefix(content)
+    assert "<think>" not in stripped and "</think>" not in stripped
+    assert stripped.startswith("```dcl"), "the verified post-think fix is kept verbatim"
+    assert prep.strip_think_prefix(CLEAN_DCL) == CLEAN_DCL, "author rows pass through"
+
+
+def test_strip_think_default_strips_repair_targets(tmp_path, monkeypatch):
+    monkeypatch.setattr(prep, "EXPECTED",
+                        {"authors_train": 1, "authors_eval": 1,
+                         "repairs_train": 2, "repairs_eval": 1})
+    adir, rdir = make_sources(
+        tmp_path, authors_train=[author_row("dcl-a1")], authors_eval=[author_row("dcl-ae1")],
+        repairs_train=[repair_row("dcl-r1"), repair_row("dcl-r2")],
+        repairs_eval=[repair_row("dcl-re1")])
+    rc, out = run_main(tmp_path, adir, rdir, monkeypatch)
+    assert rc == 0
+    staged = [json.loads(l) for p in ("train-dcl.jsonl", "eval-dcl.jsonl")
+              for l in (out / p).read_text().splitlines() if l]
+    for r in staged:
+        assert "<think>" not in r["messages"][-1]["content"], "staged targets are think-free"
+        assert "```dcl" in r["messages"][-1]["content"], "the verified fix survives the strip"
+    manifest = json.loads((out / "dcl-staging-manifest.json").read_text())
+    assert manifest["strip_think"]["enabled"] is True
+    assert manifest["think_coverage_by_mode"]["repair"]["with_think"] == 0
+    # sources on disk untouched (banked rows keep their think blocks)
+    src = [json.loads(l) for l in (rdir / "train.jsonl").read_text().splitlines() if l]
+    assert all("<think>" in r["messages"][-1]["content"] for r in src)
+
+
+def test_keep_think_preserves_repair_targets(tmp_path, monkeypatch):
+    monkeypatch.setattr(prep, "EXPECTED",
+                        {"authors_train": 1, "authors_eval": 1,
+                         "repairs_train": 1, "repairs_eval": 1})
+    adir, rdir = make_sources(
+        tmp_path, authors_train=[author_row("dcl-a1")], authors_eval=[author_row("dcl-ae1")],
+        repairs_train=[repair_row("dcl-r1")], repairs_eval=[repair_row("dcl-re1")])
+    rc, out = run_main(tmp_path, adir, rdir, monkeypatch, extra=["--keep-think"])
+    assert rc == 0
+    train = [json.loads(l) for l in (out / "train-dcl.jsonl").read_text().splitlines() if l]
+    repair = next(r for r in train if r["metadata"]["mode"] == "dcl_repair")
+    assert "<think>" in repair["messages"][-1]["content"]
+    manifest = json.loads((out / "dcl-staging-manifest.json").read_text())
+    assert manifest["strip_think"]["enabled"] is False
+
+
 def test_duplicate_row_id_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(prep, "EXPECTED",
                         {"authors_train": 2, "authors_eval": 1,

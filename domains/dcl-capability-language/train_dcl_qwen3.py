@@ -137,6 +137,17 @@ def parse_args(argv=None):
     p.add_argument("--resume", action="store_true")
     p.add_argument("--skip-export", action="store_true",
                    help="Skip merged-16bit + GGUF export (smoke runs)")
+    p.add_argument("--chat-template-file", default="/workspace/scripts/qwen3-2507-stock.jinja",
+                   help="Jinja file with the STOCK Qwen3-2507 chat template, applied to the "
+                        "tokenizer after load (live-catch 2026-07-19: Unsloth silently "
+                        "overrides the tokenizer with the hybrid-THINKING Qwen3 template, "
+                        "which injects <think> pairs into assistant turns and breaks under "
+                        "llama.cpp's minja at serve). REQUIRED to exist — no silent fallback.")
+    p.add_argument("--allow-think-targets", action="store_true",
+                   help="Permit <think> in rendered training targets (live-catch 2026-07-19: "
+                        "think tokens are near-untrained in this base and training on them "
+                        "collapsed generation onto <tool_call> spam; only set this if you "
+                        "know why staging kept them)")
     return p.parse_args(argv)
 
 
@@ -225,6 +236,22 @@ def main():
         full_finetuning=False,
     )
 
+    # Force the STOCK Qwen3-2507 chat template (live-catch 2026-07-19): Unsloth overrides
+    # the tokenizer with the hybrid-thinking template (injects <think> pairs, breaks under
+    # llama.cpp minja). Train == serve on the stock template, no exceptions.
+    if not os.path.isfile(args.chat_template_file):
+        sys.exit(f"\nABORT: --chat-template-file {args.chat_template_file} not found. The "
+                 f"stock Qwen3-2507 template is REQUIRED (ships beside this script as "
+                 f"qwen3-2507-stock.jinja; the launch step copies it into scripts/).\n")
+    stock_template = open(args.chat_template_file, encoding="utf-8").read()
+    if "reasoning_content" in stock_template or "[::-1]" in stock_template:
+        sys.exit("\nABORT: the supplied chat-template file looks like the hybrid-THINKING "
+                 "template (reasoning_content / reverse-slice present) — that is the exact "
+                 "template the live-catch bans. Supply the stock 2507 instruct template.\n")
+    tokenizer.chat_template = stock_template
+    print(f"[template] stock Qwen3-2507 template applied from {args.chat_template_file} "
+          f"({len(stock_template)} chars; unsloth hybrid override discarded)")
+
     # [G3] attention implementation
     impl = getattr(getattr(model, "config", None), "_attn_implementation", "unknown")
     print(f"[G3] attention implementation: {impl}")
@@ -285,10 +312,18 @@ def main():
                  "and NO gemma tokens. Either the native template did not apply or a gemma "
                  "template leaked in — train==serve alignment would break.\n")
 
-    # think-token sanity: only repair rows should carry a <think> block in the target.
+    # [G6] think-token gate (live-catch 2026-07-19): <think>/</think> are near-untrained
+    # added tokens in this non-thinking base; LoRA leaves lm_head frozen, so targets on
+    # them collapse onto the confusable <tool_call> row at generation (the first pilot run
+    # emitted deterministic <tool_call> spam). With strip-think staging (default) and the
+    # stock template forced above, NO rendered row may contain <think>.
     think_rows = sum(1 for r in train_dataset if "<think>" in r["text"])
-    print(f"[think] {think_rows}/{len(train_dataset)} staged train rows contain <think> "
-          f"(informational — expect = the repair rows only; author rows are direct)")
+    print(f"[G6] think-token gate: {think_rows}/{len(train_dataset)} rendered train rows "
+          f"contain <think> (expect 0 — strip-think staging + stock template)")
+    if think_rows and not args.allow_think_targets:
+        sys.exit(f"\nABORT [G6]: {think_rows} rendered rows contain <think>. Either staging "
+                 f"ran with --keep-think or a thinking template survived. Re-stage with the "
+                 f"default strip-think, or pass --allow-think-targets if you truly mean it.\n")
 
     # 4. Trainer -------------------------------------------------------------------------
     use_bf16 = torch.cuda.is_bf16_supported()

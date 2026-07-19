@@ -105,6 +105,14 @@ EXPECTED_ROLES = ("system", "user", "assistant")
 _DCL_FENCE_RE = re.compile(r"```dcl\s*\n.*?\n```", re.S)
 _THINK_END_RE = re.compile(r"</think>", re.I)
 _NORM_RE = re.compile(r"[^a-z0-9]+")
+_THINK_BLOCK_RE = re.compile(r"^\s*<think>.*?</think>\s*", re.S | re.I)
+
+
+def strip_think_prefix(content: str) -> str:
+    """Remove the leading <think>...</think> block from a repair target (live-catch
+    2026-07-19). The verified fix sits AFTER </think> (the post-think law), so stripping
+    keeps exactly the compiler-verified answer."""
+    return _THINK_BLOCK_RE.sub("", content, count=1)
 
 
 # --------------------------------------------------------------------------------------
@@ -134,6 +142,16 @@ def parse_args(argv=None):
                         "in-container real-tokenizer audit is ground truth)")
     p.add_argument("--date", default=None,
                    help="Manifest created date (YYYY-MM-DD). Default: max source-file mtime.")
+    p.add_argument("--keep-think", action="store_true",
+                   help="Keep the repair rows' leading <think>...</think> block in the STAGED "
+                        "assistant targets. DEFAULT IS TO STRIP IT (live-catch 2026-07-19: "
+                        "<think>/</think> are near-untrained added tokens in the non-thinking "
+                        "Qwen3-4B-Instruct-2507 base; LoRA never touches lm_head, so training "
+                        "targets on them collapse onto the confusable <tool_call> row at "
+                        "generation — the first pilot run emitted <tool_call> spam. The stock "
+                        "base already holds repair 3/3 WITHOUT emitting think, so think-free "
+                        "targets are serve-faithful). Banked rows are verified under the "
+                        "post-think law BEFORE stripping; sources on disk are never modified.")
     return p.parse_args(argv)
 
 
@@ -395,6 +413,32 @@ def main(argv=None) -> int:
         verify_fails.append(f"duplicate row_id across merged set: {dupes[:10]}"
                             + (" ..." if len(dupes) > 10 else ""))
 
+    # ---- 3b. Strip think prefix from repair targets (live-catch 2026-07-19) ------------
+    # Banked rows were just verified under the post-think law (step 3, on ORIGINAL
+    # content). Staged targets drop the <think> block by default: think tokens are
+    # near-untrained in the non-thinking base and training on them collapsed generation
+    # onto <tool_call> spam in the first pilot run. Sources on disk are untouched.
+    strip_think = not args.keep_think
+    if strip_think and verify_fails:
+        # Verification already failed on the banked rows — report through the normal gate
+        # table (hard_ok=False, nothing written) instead of aborting mid-strip.
+        pass
+    elif strip_think:
+        stripped_count = 0
+        for r in repairs_train + repairs_eval:
+            content = assistant_content(r)
+            new = strip_think_prefix(content)
+            if new != content:
+                if not _DCL_FENCE_RE.search(new):
+                    sys.exit(f"ERROR: strip-think left row {row_id(r)} without a ```dcl "
+                             f"fence — refusing to stage a broken target.")
+                r["messages"][-1]["content"] = new
+                stripped_count += 1
+        if stripped_count != len(repairs_train) + len(repairs_eval):
+            sys.exit(f"ERROR: strip-think changed {stripped_count} repair rows, expected "
+                     f"{len(repairs_train) + len(repairs_eval)} — a repair row lacked its "
+                     f"<think> block. Investigate before staging.")
+
     # ---- 4. Template-token leak gate --------------------------------------------------
     leak_hits: list[dict] = []
     for split, rows in (("train", train_kept), ("eval", eval_kept)):
@@ -513,6 +557,17 @@ def main(argv=None) -> int:
                          f"{ARCHITECT_MIN_ACCEPTED} MIN_ACCEPTED — deliberate, Rich-approved "
                          f"pilot floor. Recorded honestly, not hidden."),
             },
+            "strip_think": {
+                "enabled": strip_think,
+                "rationale": (
+                    "Live-catch 2026-07-19 (first pilot run): <think>/</think> are "
+                    "near-untrained added tokens in the non-thinking Qwen3-4B-Instruct-2507 "
+                    "base; LoRA leaves lm_head frozen, so targets on them collapsed onto the "
+                    "confusable <tool_call> row at generation (deterministic spam). The stock "
+                    "base holds repair 3/3 WITHOUT emitting think, so think-free targets are "
+                    "serve-faithful. Banked rows verified under the post-think law BEFORE "
+                    "stripping; sources untouched."),
+            },
             "think_coverage_by_mode": think_cov,
             "staged_files": {
                 "train": {"path": str(train_path),
@@ -543,7 +598,7 @@ def main(argv=None) -> int:
         exam_check=exam_check, think_cov=think_cov, seq=seq,
         author_reps=args.author_reps, staged_train=staged_train, staged_eval=staged_eval,
         hard_ok=hard_ok, train_path=train_path, eval_path=eval_path,
-        manifest_path=manifest_path, briefs=briefs,
+        manifest_path=manifest_path, briefs=briefs, keep_think=args.keep_think,
     )
 
     return 0 if hard_ok else 1
@@ -568,7 +623,7 @@ def _print_gates(*, merged, train_kept, eval_kept, authors_train, authors_eval,
                  repairs_train, repairs_eval, retired_train, retired_eval,
                  verify_fails, leak_hits, contam, exam_check, think_cov, seq,
                  author_reps, staged_train, staged_eval, hard_ok,
-                 train_path, eval_path, manifest_path, briefs):
+                 train_path, eval_path, manifest_path, briefs, keep_think=False):
     bar = "=" * 72
     print(f"\n{bar}")
     print("DCL PILOT FINE-TUNE — PHASE-0 STAGING GATES")
@@ -610,13 +665,15 @@ def _print_gates(*, merged, train_kept, eval_kept, authors_train, authors_eval,
           f"{exam_check['exam_shingles_total']} {SHINGLE_N}-gram shingles from "
           f"{len(briefs)} exams {exam_check['exams_compared']}; hits={len(exam_check['hits'])}")
 
-    # think coverage (record, not a gate)
+    # think coverage (record, not a gate). With strip-think (default) staged targets must
+    # be think-free; with --keep-think repairs carry their banked <think> block.
     a, rp = think_cov["author"], think_cov["repair"]
     a_pct = 100 * a["with_think"] / max(a["total"], 1)
     r_pct = 100 * rp["with_think"] / max(rp["total"], 1)
+    r_expect = "~100%" if keep_think else "0% (stripped — live-catch 2026-07-19)"
     print(f"{'think coverage by mode':<34}{'RECORD':<8}"
           f"authors {a['with_think']}/{a['total']} ({a_pct:.0f}%, expect 0%); "
-          f"repairs {rp['with_think']}/{rp['total']} ({r_pct:.0f}%, expect ~100%)")
+          f"repairs {rp['with_think']}/{rp['total']} ({r_pct:.0f}%, expect {r_expect})")
 
     # seq recommendation
     ex = seq["exceed"]

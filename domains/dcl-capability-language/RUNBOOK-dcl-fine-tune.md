@@ -504,10 +504,42 @@ promise). Package for that: a small model a non-specialist can `ollama run` and 
 | File | Purpose |
 |---|---|
 | `prepare_dcl_sft.py` | stage authors87 + corpus468 → ShareGPT train/eval + oversample + all Phase-0 gates → `~/fine-tuning/data/` + manifest (host-runnable, no ML deps) |
-| `train_dcl_qwen3.py` | the fine-tune (Qwen3-4B dense QLoRA defaults + baked-in `[G1]`–`[G5]` guards; native Qwen3 template; merge + GGUF export) |
+| `train_dcl_qwen3.py` | the fine-tune (Qwen3-4B dense QLoRA defaults + baked-in `[G1]`–`[G6]` guards; STOCK Qwen3-2507 template forced; merge + GGUF export) |
+| `qwen3-2507-stock.jinja` | the stock Qwen3-2507 chat template (train == serve; forced via `--chat-template-file`, see Amendment 2026-07-19) |
 | `RUNBOOK-dcl-fine-tune.md` | this runbook (stage → train → merge/GGUF → A/B → gift) |
 | `OUTPUT-CONTRACT.md` | the row envelope + metadata contract (note: names `gemma-4`; superseded to Qwen3 native template on 2026-07-19 probe evidence — see the deviation note above) |
 | `COMPARISON-2026-07-19.md` (`fleet-evals/calibration/dcl-candidate-probes/`) | the probe evidence the base choice rests on (stock 0/9 · 2/9 · 3/3) |
 
-*Document version: 1.0 | 2026-07-19 | Companion to `../coach-agent/RUNBOOK-coach-fine-tune.md`
+---
+
+## Amendment 2026-07-19 — two live catches from the first pilot run (both fixed in code)
+
+The first end-to-end run trained clean (loss 0.42→0.017, eval 0.033, guards green) but the
+served model emitted deterministic `<tool_call>` spam on every prompt. Diagnosis receipts:
+template ruled out at serve (stock jinja, same spam) · tokenizer maps identical stock-vs-tuned ·
+merged-16bit spams under plain transformers · base+adapter via peft spams identically · raw
+base healthy · **prefill "```dcl\n" continues into perfect DCL** (the knowledge was intact —
+only the first-token distribution was corrupt).
+
+**Catch 1 — Unsloth silently replaces the tokenizer's chat template.** On load it swaps in the
+hybrid-THINKING Qwen3 template (`reasoning_content`, `messages[::-1]`), which (a) injects an
+empty `<think>\n\n</think>` pair into every author target at render, and (b) does not run under
+llama.cpp's minja at serve. **Fix:** `train_dcl_qwen3.py --chat-template-file` (required)
+forces the stock 2507 template from `qwen3-2507-stock.jinja` before any rendering; `[G2]`
+unchanged; a hard error rejects any thinking-template file.
+
+**Catch 2 — never train targets on near-untrained added tokens.** `<think>`/`</think>` are
+quasi-dead vocabulary rows in the non-thinking 2507 base; LoRA leaves `lm_head`/embeddings
+frozen, so cross-entropy cannot separate them from their dead neighbours (`<tool_call>` sits
+10 ids away) — teacher-forced loss looks perfect while free generation collapses onto the
+confusable token. **Fix:** `prepare_dcl_sft.py` now STRIPS the repair rows' `<think>…</think>`
+prefix from staged targets by default (`--keep-think` restores; banked rows still verified
+under the post-think law BEFORE stripping; sources untouched). The stock base already holds
+repair 3/3 *without* emitting think, so think-free targets are serve-faithful. The trainer's
+new `[G6]` aborts if any rendered target contains `<think>`.
+
+**Process rule this bakes in:** Phase 5's merged-16bit generation sanity is **mandatory before
+any GGUF/serve step** — the first run skipped it and burned a probe cycle on a broken model.
+
+*Document version: 1.1 | 2026-07-19 | v1.0 companion note unchanged: `../coach-agent/RUNBOOK-coach-fine-tune.md`
 (the QLoRA shape) and `../architect-agent/RUNBOOK-architect-fine-tune.md` (the phase skeleton).*
