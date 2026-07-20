@@ -155,3 +155,128 @@ fix-forward. Everything else is green: corpus artifacts rich and verified (one P
 overstatement: FEAT-SMP-001 has no run record), both seats configured and reachable,
 keepalive posture safe. Re-run THIS spike unchanged once the wiring lane lands; the
 projection arithmetic in §3 is ready to receive the measured row-time.
+
+---
+
+# ROUND 2 (post-wiring) — 2026-07-20 (GPU freed by Rich)
+
+> **VERDICT: HONEST WALL AGAIN — the spike still did not produce a row, on a NEW (third) wall.**
+> The wiring lane (HEAD `f75a147`) cleared round 1's wall 1: source-task **discovery is now real**
+> (13 included / 71 excluded, the approved-sha honesty law firing exactly as designed). But every
+> one of the 13 included tasks is then **SKIPPED** with `scoped file map empty … (nothing to
+> inject)` → **zero seeded rows, zero teacher leg, zero regenerate leg, zero GPU engagement.**
+> Root cause pinned to a **one-line path-resolution bug** in the new file-map provider (below), not
+> a missing feature. **Still not pilot-ready.** The coordinator's next move is that one-line fix +
+> re-run, after which the regenerator interpreter bridge (round 1's wall 2, still never reached)
+> gets its first real exercise.
+
+- Operator: SPIKE operator (Fable), round 2, authorized seat use (Rich freed the GPU).
+- Repo HEAD at spike: `f75a147` (the three walls' wiring — record-driven discovery + worktree
+  file-map + interpreter-bridged regenerator).
+- Log: `run_logs/qav_spike_r2_20260720-172833.log` (uncommitted, run_logs convention).
+- Launched via `nohup … ./.venv/bin/python …` into `run_logs/`, polled short.
+
+## R2.1 What ran
+
+Exactly the RUNBOOK's SPIKE command (`--limit 1`, `PYTHONPATH=src`, `OPENAI_API_KEY=local`):
+
+```
+PYTHONPATH=src python domains/qa-verifier/run_qav_generation.py \
+    --config domains/qa-verifier/agent-config.yaml --limit 1
+```
+
+Driver banner: `mode=seeded_defect limit=1 out=output/qa-verifier teacher=gpt-oss-120b
+corpus=['forge', 'guardkit', 'study_tutor']`. The run completed (rc=0), wrote a manifest, and
+did **not** refuse — but produced **no seeded/model-touching row.**
+
+Discovery (round 1's wall 1) is now wired and correct:
+`DISCOVERY: 13 source task(s) included, 71 excluded`. The exclusion law logs every turn-away;
+round 1's prediction held — `study_tutor/FEAT-SMP-001` is excluded as spec-only (no
+`merge_summary.json`), and `FEAT-PO-002`'s tasks are excluded for *no approved-sha key* in their
+merge summary. Then, immediately behind it, the new wall:
+
+```
+WARNING DISCOVERY SKIP guardkit/TASK-QAWE-001 — scoped file map empty at 799cefd0 (nothing to inject)
+… (all 13 included tasks skipped identically) …
+INFO DONE seeded_code=0 control=0 seeded_bundle=0 harvest=0 gold=4 … train=0 eval_qav=4
+```
+
+## R2.2 Root cause — a factory-relative worktree path handed to git running in the corpus repo
+
+Pinned by direct reproduction. In `src/qav/discover.py`:
+
+- `discover_source_tasks` (L360–397) calls `checkout_scoped_file_map(corpus_root, sha, worktree)`
+  with a **factory-relative** `worktree = scratch_dir/_src/<repo>/<task>`.
+- `checkout_scoped_file_map` (L341–354) runs `git worktree add --detach --force <worktree> <sha>`
+  via `_run_git`, which executes git with **`cwd = corpus_repo_root`** (L320–328).
+- git therefore resolves the *relative* worktree path **against its own cwd (the corpus repo)** —
+  it creates the worktree at `<corpus_repo>/output/qa-verifier/_scratch/_src/<repo>/<task>`, NOT
+  in the factory tree. `_run_git` sees rc=0 and does not raise. Then `scope_file_map(worktree)`
+  reads the factory-relative path, **which does not exist**, and returns `{}` → SKIP.
+
+Proof (this session): `scope_file_map` on a *live absolute-path* checkout of guardkit@`799cefd0`
+returns **7920** files; `checkout_scoped_file_map` with the **relative** path returns **0**, and
+instrumenting it shows `after add: exists=False` (the worktree landed inside the corpus repo).
+**Fix = absolutize `worktree_path` before the git call** (or set git `cwd` independent of the
+worktree location). One line. **NOT applied** — `src/qav/**` is do-not-edit per the RUNBOOK; this
+is the wiring lane's call.
+
+### Side effect this bug caused — the read-only VENUE RULE was breached
+
+Because the worktree lands *inside* the corpus repo, the spike wrote
+`output/qa-verifier/_scratch/…` **into the guardkit and study-tutor working trees** (forge had no
+included task reach checkout). `git worktree remove` (also cwd=corpus, so it found them) cleaned
+the checked-out files, but left empty dir skeletons behind; `output/` is **not** gitignored in
+those repos, so this is real pollution of a read-only venue. **Operator cleaned it** — the
+`output/` trees were removed and both repos verified restored as-found; the 7 guardkit + 1
+study-tutor pre-existing `autobuild/FEAT-*` worktrees were untouched. The one-line fix also closes
+this venue breach.
+
+## R2.3 Measured wall-times
+
+| Leg | Measured |
+|---|---|
+| Total wall | **~8 s** (start `2026-07-20T17:28:33+01:00` epoch 1784564913 → `DONE` 17:28:41, rc=0) |
+| discovery — record scan (refs) | ~2.3 s (17:28:33.79 → 17:28:36.06; 13 included / 71 excluded) |
+| discovery — 13 worktree checkouts (all SKIP) | ~5.4 s (17:28:36.06 → 17:28:41.46) |
+| regenerate leg (guardkit `gather_evidence`) | **never reached** — no task survived discovery |
+| teacher leg (gpt-oss-120b) | **never reached** — no GPU load (seats unchanged: `embed`, `parakeet`, `qwen3-tts` only, before **and** after) |
+| coach leg (coach-ft-v3) | **never reached** |
+
+## R2.4 What was produced + validation
+
+- `output/qa-verifier/eval_qav.jsonl` — **4 gold negatives** (assembled offline, no model legs —
+  the cheap path proven in round 1). `train.jsonl`, `rejected.jsonl` = empty. Manifest written to
+  both `output/qa-verifier/manifest.json` and `domains/qa-verifier/manifests/…`.
+- **Row validation (`qav.contracts.validate_row`, run live):** swept 4 rows → **4 valid, 0
+  failures** (`CORPUS OK`). All 4 are `generation_mode=gold_negative`.
+- **Contamination embed:** `manifest.contamination_check.status = "pass"` — but **trivially**
+  (0 train rows, only the 4 eval-side gold negatives; `by_generation_mode.seeded_code = 0`). Not
+  evidence the seeded pipe works.
+
+## R2.5 Projection — STILL NOT MEASURABLE
+
+No model-touching row completed, so there is still **no measured row-time and no honest full-run
+projection.** The pre-laid arithmetic in §3 (measured-row-time × ~500–800 model-touching rows over
+the GOAL.md Phase-1 targets) stands ready and unchanged, awaiting the first real seeded row.
+
+## R2.6 Keepalive receipts (found-state discipline honored)
+
+- **Before:** `systemctl is-active llama-swap-keepalive.timer` → **`inactive`** (exit 3) — the
+  parker's pre-existing state, confirmed still live this afternoon. **Not re-armed** — that is the
+  parker's call, not this spike's (per the task instruction and the RUNBOOK's standing footnote).
+- **After:** re-verified → **`inactive`** (exit 3). This spike changed nothing about serving
+  posture; the GPU was never touched (running seats identical before and after).
+
+## R2.7 Recommendation to the coordinator
+
+**WALL — do not schedule the pilot or the full run.** But this is the smallest wall yet: a
+**one-line path-resolution fix** in `checkout_scoped_file_map` (absolutize the worktree path so git
+— which runs with `cwd=corpus_repo` — places it in the factory scratch, not inside the read-only
+corpus repo). That single fix (a) lets all 13 discovered tasks yield a real file map instead of
+skipping, and (b) closes the venue-rule breach it currently causes. After it lands, re-run THIS
+spike: the **regenerator interpreter bridge** (`SubprocessBridgeRegenerator` → `qav_regenerate_bridge.py`
+under `interpreters.guardkit`) gets its first real exercise — it was round 1's wall 2 and has still
+never been reached — and only then do the teacher + coach GPU legs light up and the §3 projection
+becomes measurable. Everything upstream is green: discovery + the exclusion law are correct and
+fast, both seats reachable, keepalive posture safe, the 4 gold negatives validate clean.
