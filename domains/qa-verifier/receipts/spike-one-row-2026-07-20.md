@@ -405,3 +405,143 @@ into train (this run proved teacher+coach both wave it through). Decide the serv
 (batched legs vs co-resident matrix set) before the full run, else ~15–24 h is the floor. Then
 re-run THIS spike: expect a real (slower) regen leg and the first training-grade row, and
 re-feed §3/R3.4 with the warm numbers.
+
+---
+
+# ROUND 4 (spike + pilot) — 2026-07-20 (GPU freed by Rich)
+
+> **VERDICT: THE FIRST TRAINING-GRADE ROW LANDED (spike) AND THE PILOT RAN THE ENTIRE
+> ADDRESSABLE CORPUS — machinery is fully GREEN, but the corpus+recipe state cannot fill the
+> Phase-1 targets.** The round-3 poison-path fix (`ee1147e` — materialize the HEAD autobuild
+> run-record into each worktree + an evidence-empty pre-gate) cleared round 3's degenerate-row
+> wall: the spike's row now carries a **real evidence-bearing bundle** (`gathering_status =
+> partial_gate_abort`, `gathering_error = null`, real `tests`/`quality_gates`/`honesty`/
+> `coverage_details`/`plan_audit`), the teacher reasons over those real fields, and it is
+> contract-valid + contamination-pass. The pilot (`--limit 10`) then exposed the **binding
+> constraint, and it is NOT GPU time — it is corpus addressability**: of 13 discovered tasks
+> only **3 are processable** (10 SKIP'd — no materializable HEAD run-record), and across those 3
+> the **anchor hit-rate is 0/33 (0%)** — every reject recipe anchor-skips, so **zero seeded-reject
+> rows are producible from this corpus.** All output is approve-side green controls. **Machinery
+> proven training-grade; the full run is NOT recommended until the anchor/recipe + HEAD-record
+> lanes land.**
+
+- Operator: SPIKE+PILOT operator (Fable), round 4, authorized seat use (Rich).
+- Repo HEAD: `ee1147e` (round-3 poison-path fix: HEAD run-record materialization + evidence-empty
+  pre-gate).
+- Logs (uncommitted, run_logs convention): spike `run_logs/qav_spike_r4_20260720-180938.log`;
+  pilot `run_logs/qav_pilot_r4_20260720-181416.log`. Per-leg GPU durations cross-read from
+  `/opt/llama-swap/logs/llama-swap.log`.
+
+## R4.1 SPIKE (`--limit 1`) — training-grade at last
+
+Verbatim RUNBOOK command (`PYTHONPATH=src`, `OPENAI_API_KEY=local`, factory `.venv`, nohup +
+active poll). Clean completion rc=0: `DONE seeded_code=0 control=1 … evidence_empty_rejected=0
+train=1 eval_qav=4 · anchor_skipped=11`. Same **shape** as round 3 (guardkit/TASK-QAWE-001, all
+11 reject recipes anchor-skip, the R-CONTROL-noop green rides through), but the **substance is
+now real**:
+
+- **Bundle is EVIDENCE-BEARING, not degenerate.** `gathering_status = "partial_gate_abort"`
+  (an evidence-**bearing** early stop per the RUNBOOK — NOT round-3's evidence-empty
+  `partial_exception`), `gathering_error = null`. Populated real fields: `tests`
+  (tests_failed=0, tests_passed=true), `quality_gates` (9 flags), `honesty` (score 1.0 with
+  real `resolved_paths` → `tasks/completed/TASK-QAWE-001-…md`), `coverage_details` (6),
+  `plan_audit` (12), `advisory_issues` (2). The HEAD-record materialization fix worked.
+- **Teacher rationale reasons over the real bundle** — cites the honesty score, reads the
+  `partial_gate_abort` nulls as *absent evidence not failures*, notes the only issues are
+  advisory/substrate-level (not the Player's code) → verdict `approve`, findings `[]`. `<think>`
+  present, 4595 B response.
+- **Contract + contamination:** train 1/1 valid, eval 4/4 valid, `CORPUS OK`; manifest
+  `contamination_check.status = pass`; standalone gate `VERDICT: PASS`.
+
+**Spike per-leg (cold-thrash regime, `llama-swap`-measured):** total wall **112.3 s**
+(18:09:38.8 → 18:11:31.1) · discovery 2.2 s · regen bridge (real gather_evidence, guardkit venv)
+**~1.9 s** · teacher gpt-oss-120b **82.28 s** cold (evict=[coach-ft-v3]) · coach coach-ft-v3
+**23.92 s** cold (evict=[gpt-oss-120b]) · ~2 s finalize.
+
+## R4.2 PILOT (`--limit 10`) — ran the WHOLE addressable corpus (cap never binding)
+
+Clean completion rc=0: `DONE seeded_code=0 control=3 … teacher_refused=0 coach_rejected=0
+cue_rejected=0 evidence_empty_rejected=0 schema_rejected=0 anchor_skipped=33 train=2
+eval_qav=5`. The `--limit 10` cap was **never reached** — the run **exhausted the processable
+corpus at 3 tasks**, so this is the full-corpus census for the green side, not a capped sample.
+
+**Task census (13 discovered → 3 processable):**
+
+- **10 SKIP'd** at HEAD-record materialization — no `task_work_results.json` under
+  `.guardkit/autobuild` or `.guardkit/archive/<feature>` at the corpus HEAD, so authentic
+  evidence cannot be reconstructed (excluded, never fabricated): guardkit TASK-BDDW-002,
+  TASK-QAWE-003, TASK-QAWE-004; study_tutor TASK-PRV-001…007.
+- **3 processable** (all guardkit): TASK-QAWE-001, TASK-QAWE-002, TASK-BDDW-001.
+
+**Anchor hit-rate = 0/33 (0.0%).** On every one of the 3 processable tasks all 11 reject recipes
+anchor-skipped (11×3 = 33). Round 3's 0/11 was **not a one-task fluke — it is systemic**: with
+the current recipe/anchor set, **no seeded-reject row is producible from this corpus.** Every
+emitted row is an approve-side R-CONTROL-noop green.
+
+**Row census / training-grade (all contract-valid, 7/7):** 3 control rows produced (2→train,
+1→eval holdout by the 0.15 split), all **EVIDENCE-BEARING + training-grade** (`partial_gate_abort`,
+real fields, teacher `<think>` present); 4 gold negatives → eval. `rejected.jsonl` empty. **0
+degenerate, 0 coach-rejected, 0 evidence-empty-rejected.** Manifest: `by_verdict` approve 2 /
+reject 0, all `seeded_code`, `approve_share` 1.0, contamination **pass**, `visibility =
+private (DF-008)`, `factory_sha = ee1147e`.
+
+**Pilot per-row walls** (REGEN-bridge timestamps): QAWE-001 101 s · QAWE-002 111 s · BDDW-001
+105 s → **avg ~105.7 s/model-touching row.** Total pilot wall **~5.5 min** (18:14:16 → 18:19:45).
+**Per-leg (all COLD — swap-thrash held every row, no warm legs):** teacher 75.2 / 87.0 / 81.7 s
+(avg **81.3 s**) · coach 23.7 / 21.9 / 21.4 s (avg **22.3 s**) · regen ~2 s. The teacher↔coach
+mutual eviction (each load evicts the other) fires on every row exactly as round 3 predicted.
+
+## R4.3 REVISED PROJECTION — the corpus, not the clock, is the wall
+
+**Measured row-rate** (cold-thrash regime, unchanged from round 3): ~106 s/model-touching row.
+Against the GOAL.md Phase-1 model-touching volume (~500–800 rows) this is the **same 15–24 h
+floor** (500×106 s ≈ 14.7 h; 800×106 s ≈ 23.6 h; harvest + gold excluded — no model legs).
+*Serving-posture caveat (unchanged, and load-bearing):* ~103 s of each 106 s is the two cold
+loads; batching the legs (all teacher, then all coach) or a co-resident matrix set would remove
+them, plausibly cutting to a few hours — but warm-leg cost was **never observed** (the driver
+still alternates, both seats cold every row). This remains a serving decision, not measured.
+
+**BUT the row-rate projection is moot, because the corpus cannot fill those volumes.** The pilot
+ran the entire addressable corpus and the honest full-run yield at today's state is:
+
+- **Seeded-reject rows: ~0.** Anchor hit-rate 0/33 → the 500-row reject target (DC-03 200 +
+  DC-05/08/14 75 each + other 75) is **UNREACHABLE** with the current recipes/anchors.
+- **Seeded-approve (green control) rows: ~3.** Only 3 of 13 discovered tasks materialize a HEAD
+  record; each yields one control green.
+- So a **full run today ≈ 3 seeded rows (approve-only) + 4 gold + harvest (if wired)** —
+  ~two orders of magnitude below the ~1000-row Phase-1 target. **The binding constraint is corpus
+  addressability (anchors miss 100 % + 77 % of tasks lack a HEAD record), not GPU time.**
+
+## R4.4 Venue watch + keepalive (found-state discipline held)
+
+- **Corpus repos CLEAN — no breach.** guardkit 8 worktrees / no `output/` dir / status
+  unchanged; study-tutor 2 / none / unchanged; forge 1 / none / unchanged (baselines captured
+  pre-spike, re-verified post-pilot). Factory `output/qa-verifier/_scratch` empty (per-row
+  cleanup held). Scratch worktrees landed factory-side (gitignored), not inside the corpus repos.
+- **Keepalive `inactive` before AND after** (exit 3) — the parker's found-state, preserved,
+  **not re-armed** (the parker's call; RUNBOOK footnote — re-read the keepalive probe list and
+  the coach-ft-v3 allowlist before re-enabling — transfers unchanged). GPU touched only for the
+  spike+pilot legs; post-run residents `coach-ft-v3, parakeet, qwen3-tts` (gpt-oss auto-evicted),
+  llama-swap auto-heals `embed` on next request.
+
+## R4.5 Recommendation to the coordinator
+
+**Machinery GREEN + training-grade PROVEN — do NOT launch the full run yet.** The spike produced
+the first training-grade row and the pilot cleared every quality gate (contract 7/7, contamination
+pass, zero degenerate/rejected, clean venue). But a full run against today's corpus reproduces
+only ~3 approve-side green rows — it cannot build the Phase-1 dataset. **Two build lanes gate a
+useful full run, and both are corpus/recipe work, not engine work:**
+
+1. **ANCHOR / RECIPE lane (the harder, higher-value one).** All 11 reject recipes anchor-miss
+   100 % on the 3 processable guardkit tasks. Either the recipe anchors must be rewritten to match
+   the source shapes these repos actually contain, or discovery must reach a much broader,
+   anchor-compatible task set. Without reject rows there is **no reject side to the dataset** —
+   the whole point of the seeded-defect corpus.
+2. **HEAD-RECORD COVERAGE lane.** 10 of 13 discovered tasks (all study_tutor PRV-00x + several
+   guardkit) are SKIP'd because no `task_work_results.json` exists at HEAD to reconstruct from.
+   Either archive those records into the corpus repos or widen the discovery record search.
+
+Decide the **serving posture** (batched legs vs co-resident matrix) before any eventual full run
+so the ~15–24 h cold-thrash floor doesn't bind — but that is downstream of the two corpus lanes.
+Re-run THIS spike+pilot after each lane lands to re-measure the anchor hit-rate and the reject/
+approve census; the R4.3 arithmetic is ready to receive them.
