@@ -1,0 +1,74 @@
+# qa-verifier seeded-defect generation config (finalized from agent-config.draft.yaml).
+# RUNNABLE via domains/qa-verifier/run_qav_generation.py once (a) the served fleet is up on
+# :9000, (b) guardkit is importable against each corpus repo's pytest substrate (see
+# `interpreters:` below — the SIBTESTENV01 per-repo lesson, config not hardcode), and (c) the
+# GB10 program-plan calendar has cleared the box (teacher rationale is the only GPU stage;
+# bundle regeneration is CPU/pytest-substrate-dominant).
+#
+# The draft (agent-config.draft.yaml) is the byte-untouched spec-half sketch; this is its
+# finalized, runnable sibling. Deltas: mode is now runnable, scratch_dir + interpreters +
+# dataset_id added, output.manifest kept.
+
+domain: qa-verifier
+
+# Teacher authors <think> rationales AGAINST labels fixed by the injector — it never decides
+# verdicts. Different family from the judged Player (D9 rule; WS4's serving call).
+player:                      # seat reused as the rationale TEACHER in seeded_defect mode
+  provider: local
+  model: gpt-oss-120b
+  endpoint: http://localhost:9000/v1
+  temperature: 0.4
+  max_tokens: 4096
+
+coach:                       # row-quality gate: schema + label-consistency + cue-audit
+  provider: local
+  model: coach-ft-v3         # the deployed judgment Coach; endpoint :9000 (not :8080)
+  endpoint: http://localhost:9000/v1
+  temperature: 0.2
+  max_tokens: 8192
+
+generation:
+  grounded: false
+  mode: seeded_defect        # seeded_defect | harvest | both
+  require_fenced_json: true  # assistant must emit the OUTPUT-CONTRACT §3 verdict object
+  seeded_bundle_cap: 0.25    # max share of seeded rows via bundle mutation (PLAN §2)
+  holdout_fraction: 0.15     # eval_qav slice, frozen by the recorded seed (PLAN §6)
+  seed: qav-phase1           # split RNG seed (recorded so the split is reproducible)
+  scratch_dir: output/qa-verifier/_scratch   # per-recipe worktrees; cleaned up per row
+  dataset_id: qav-phase1-train-v1
+  # limit: 4                 # PILOT CAP — uncomment for a spike; remove for the full run
+  recipes:                   # PLAN §3 table; weights = GOAL.md reject shares
+    R-DC03-callsite: 0.10
+    R-DC03-producer: 0.10
+    R-DC03-kwargs: 0.10
+    R-DC03-mockseam: 0.10
+    R-DC05-sysmod: 0.075
+    R-DC05-skipguard: 0.075
+    R-DC08-undefstep: 0.075
+    R-DC08-pendmask: 0.075
+    R-DC12-planvisible: 0.05
+    R-DC14-narrative: 0.10
+    R-ABSENT-junit: 0.10
+    # remaining 0.05: seeded-control no-op greens ride a separate approve-side counter
+
+corpus:                      # read-only source repos (venue rule) — scratch worktrees only
+  guardkit: /home/richardwoollcott/Projects/appmilla_github/guardkit
+  study_tutor: /home/richardwoollcott/Projects/appmilla_github/study-tutor
+  forge: /home/richardwoollcott/Projects/appmilla_github/forge
+  bundle_schema_sha: "41a0ebe457"
+
+# Per-repo interpreter/venv resolution for the regenerator's pytest substrate (SIBTESTENV01:
+# config, not hardcode). Threaded at worktree/regeneration setup time in the attended run.
+interpreters:
+  guardkit: /home/richardwoollcott/Projects/appmilla_github/guardkit/.venv/bin/python
+  study_tutor: /home/richardwoollcott/Projects/appmilla_github/study-tutor/.venv/bin/python
+  forge: /home/richardwoollcott/Projects/appmilla_github/forge/.venv/bin/python
+
+output:
+  dir: output/qa-verifier
+  manifest: domains/qa-verifier/manifests/qav-phase1-train.manifest.json
+  visibility: private        # DF-008
+
+logging:
+  level: INFO
+  format: json
