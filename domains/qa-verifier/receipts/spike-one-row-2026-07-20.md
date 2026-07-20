@@ -280,3 +280,128 @@ under `interpreters.guardkit`) gets its first real exercise — it was round 1's
 never been reached — and only then do the teacher + coach GPU legs light up and the §3 projection
 becomes measurable. Everything upstream is green: discovery + the exclusion law are correct and
 fast, both seats reachable, keepalive posture safe, the 4 gold negatives validate clean.
+
+---
+
+# ROUND 3 (post path-fix) — 2026-07-20 (GPU freed by Rich)
+
+> **VERDICT: THE FIRST MODEL-ERA ROW LANDED — machinery GREEN end to end, but the row is
+> evidentially DEGENERATE.** The path fix (`14a3190`) cleared round 2's wall: a discovered
+> task survived to injection, the regenerator interpreter bridge (round 1's wall 2) ran for
+> real under guardkit's venv, **both GPU legs fired** (gpt-oss-120b loaded+generated, then
+> coach-ft-v3 loaded+accepted), and 1 train row was written, schema-valid, contamination-pass,
+> with zero venue debris. Total wall **113.6 s**. BUT the bundle inside that row is nearly
+> all-null: `gathering_status="partial_exception"`, `gathering_error="missing_results: Task-work
+> results not found at …/R-CONTROL-noop/.guardkit/autobuild/TASK-QAWE-001/task_work_r…"` — the
+> approved sha `799cefd0` has **no `.guardkit/archive/` at all** and no QAWE run evidence in-tree
+> (verified by `git ls-tree`); the artifact gather_evidence wants exists only at guardkit HEAD
+> (`.guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001/task_work_results.json`). The
+> teacher approved and the coach accepted an evidence-empty green bundle. **Machinery proven;
+> row not training-grade. Not pilot-ready — one more scoped wiring item (below).**
+
+- Operator: SPIKE operator (Fable), round 3, authorized seat use (Rich freed the GPU).
+- Repo HEAD at spike: `14a3190` (the wiring `f75a147` + the coordinator's worktree-path
+  absolutization fix; suite 2394 green).
+- Log: `run_logs/qav_spike_r3_20260720-173720.log` (uncommitted, run_logs convention).
+- Single attempt, verbatim RUNBOOK command (`--limit 1`, `PYTHONPATH=src`,
+  `OPENAI_API_KEY=local`, factory `.venv` python), nohup into `run_logs/`, actively polled.
+
+## R3.1 What ran and what it produced
+
+Driver banner: `mode=seeded_defect limit=1 out=output/qa-verifier teacher=gpt-oss-120b
+corpus=['forge', 'guardkit', 'study_tutor']`. Clean completion (`DONE` + summary JSON;
+process exit observed 17:39:18).
+
+`DONE seeded_code=0 control=1 seeded_bundle=0 harvest=0 gold=4 teacher_refused=0
+coach_rejected=0 cue_rejected=0 train=1 eval_qav=4` · `anchor_skipped=11`.
+
+Shape explained: on the first discovered task (guardkit/FEAT-C332/TASK-QAWE-001@`799cefd0`)
+**all 11 weighted reject-recipes anchor-skipped** (`AnchorNotFound` against its file map), then
+the seeded-control no-op ran the identical machinery — worktree materialize → regen bridge →
+teacher → coach — wrote the approve row, and `--limit 1` returned. The emitted row:
+`generation_mode=seeded_code`, `injection_recipe=R-CONTROL-noop`, label
+`{"verdict": "approve", "findings": [], "ground_truth_source": "seeded"}`.
+
+## R3.2 Measured wall-times — per leg, cross-checked
+
+| Leg | Measured |
+|---|---|
+| **Total wall** | **113.6 s** (17:37:20.68 → `DONE` 17:39:14.32) |
+| discovery (record scan) | 2.2 s (→17:37:22.89; 13 included / 71 excluded) |
+| injection sweep (11 anchor-skips) + file-map + control worktree materialize | ~2.4 s (→17:37:25.31) |
+| **regenerate leg** (bridge subprocess, guardkit venv) | **~0.9 s** (17:37:25.31 → ~17:37:26.2; corroborated by the scratch-dir cleanup mtime 17:37:26.23) — **degenerate**: missing_results short-circuit, no real pytest work (see R3.3) |
+| **teacher leg** (gpt-oss-120b) | **82.30 s** — llama-swap-measured request duration (`POST /v1/chat/completions 200`, 2968 B), **including the cold load** (matrix `evict=[embed]`, health check :5810 passed) |
+| **coach leg** (coach-ft-v3) | **22.52 s** — llama-swap-measured (`POST 200`, 1245 B), **including its cold load** (matrix `evict=[gpt-oss-120b]`, health :5801 passed) |
+| row write → final writes | train.jsonl 17:39:11.06; gold re-emit + both manifests + `DONE` by 17:39:14.32 (~3.3 s) |
+
+Cross-check: regen-end ~17:37:26.2 + 82.30 + 22.52 = 17:39:11.0 ≈ train.jsonl mtime
+17:39:11.06 — the three legs tile the span to ~0.1 s.
+
+**Serving-posture finding (load-bearing for the full run):** the llama-swap matrix sets make
+the two seats mutually evicting — the teacher load evicted `embed`, then **the coach load
+evicted the teacher**. The driver alternates teacher→coach per row, so at volume every row
+pays BOTH cold loads (the measured 82.3/22.5 are this thrash regime, not warm generation).
+Post-spike residents: `coach-ft-v3, parakeet, qwen3-tts` (`embed` swapped out; llama-swap
+auto-heals it on next request). Batch the legs (all teacher calls, then all coach) or give the
+two seats a co-resident matrix set, or the projection below is the floor.
+
+## R3.3 The row — validation PASS, evidence DEGENERATE
+
+- **Contracts (`qav.contracts` validate_row + extract_bundle + extract_label, run live):**
+  train.jsonl **1/1 valid** · eval_qav.jsonl **4/4 valid** · rejected.jsonl empty. Layout per
+  contract: train/eval/rejected + `.bak` churn (round-2 originals preserved) + manifest at both
+  paths (byte-identical, sha `8d283fdb…`); eval_qav.jsonl **byte-identical to round 2**
+  (deterministic gold rebuild).
+- **Manifest contamination embed:** `status="pass"`, real method recorded (row_id intersection
+  + sibling-variant split-straddle + gold-negative source exclusion), intersection 0;
+  `factory_sha="14a3190"`; counts correct (`seeded_code=1`, approve share 1.0).
+- **BUT the bundle is evidence-empty:** `gathering_status="partial_exception"`,
+  `gathering_error="missing_results: …"`; tests/coverage/quality_gates/wiring/stub_scan etc.
+  all null; only honesty (score 1.0 over zero resolved paths), profile_name, task_type carry
+  values. Root cause verified in guardkit: at `799cefd0` there is **no `.guardkit/archive/`**
+  and `.guardkit/autobuild/` holds only unrelated TASK-REV-HMIG files; TASK-QAWE-001 exists at
+  that sha only as `tasks/completed/…md`. The run record gather_evidence needs lives at HEAD:
+  `.guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001/task_work_results.json`. A verdict
+  model must never learn "missing evidence → approve"; this row is not training-grade.
+
+## R3.4 Projection — first honest numbers, with named caveats
+
+Measured model-touching row time (as-measured regime): regen 0.9 + teacher 82.3 + coach 22.5
++ ~2.5 s row overhead ≈ **108 s ≈ 1.8 min/row**. Against GOAL.md Phase-1 volumes (§3 above,
+~500–800 model-touching rows):
+
+- **500 rows × 108 s ≈ 15.0 h** · **800 rows × 108 s ≈ 24.0 h** (harvest + gold excluded — no
+  model legs, proven cheap).
+
+Caveats that move this number: (a) it is the **swap-thrash regime** — warm-leg cost is
+unknowable from one sample (the 82.3 s bundles load+generation); batching/co-residency cuts it,
+re-measure at pilot; (b) regen 0.9 s is the **degenerate short-circuit** — real evidence
+regeneration after the archive-materialize fix will cost more (round 1's "pytest-dominant"
+prediction may yet return); (c) **anchor hit-rate**: 11/11 recipes skipped on this task — if
+that generalizes across the 13 tasks, the seeded reject-side volume (500) is unreachable from
+this corpus without recipe/anchor work; the pilot must log the rate per task.
+
+## R3.5 Venue watch + keepalive (found-state discipline held)
+
+- **Corpus repos CLEAN** — round 2's breach class did not recur: no `output/` dir in guardkit,
+  study-tutor, or forge; worktree counts at baseline (8/2/1); `git status` unchanged from
+  pre-spike (pre-existing unrelated dirt only). The scratch worktrees landed inside the factory
+  (`output/qa-verifier/_scratch/…`, gitignored) and were removed after regen; only empty dir
+  skeletons remain factory-side.
+- **Keepalive:** `systemctl is-active llama-swap-keepalive.timer` → **`inactive`** (exit 3)
+  before AND after — found-state preserved, **not re-armed** (the parker's call; RUNBOOK
+  footnote transfers unchanged).
+
+## R3.6 Recommendation to the coordinator
+
+**Machinery GREEN, data RED — do not schedule the pilot on this row shape.** The spike's three
+original walls are all cleared and the whole chain is proven live (discovery → injection →
+bridge → teacher GPU → coach GPU → validated row → contamination-pass manifest → clean venue).
+The remaining scoped wiring item: **materialize the archived run record (guardkit-HEAD
+`.guardkit/archive/<feature>/…/task_work_results.json` and siblings) into the scratch worktree's
+`.guardkit/autobuild/<task>/` before gather_evidence**, and add a loudness law — a bundle with
+`gathering_error`/`partial_exception` must be rejected or quarantined, never silently approved
+into train (this run proved teacher+coach both wave it through). Decide the serving posture
+(batched legs vs co-resident matrix set) before the full run, else ~15–24 h is the floor. Then
+re-run THIS spike: expect a real (slower) regen leg and the first training-grade row, and
+re-feed §3/R3.4 with the warm numbers.
