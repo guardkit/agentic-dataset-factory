@@ -343,7 +343,9 @@ def checkout_scoped_file_map(repo_root: Path, sha: str, worktree_path: Path) -> 
     file map, and remove the worktree. Read-only-source: the corpus repo's live tree is never
     touched. Raises loudly if the git checkout fails."""
     repo_root = Path(repo_root)
-    worktree_path = Path(worktree_path)
+    # Absolute, or git (cwd=repo_root) plants the worktree INSIDE the corpus repo while the
+    # factory reads the factory-relative path — the spike round-2 empty-file-map wall.
+    worktree_path = Path(worktree_path).resolve()
     if worktree_path.exists():
         _remove_worktree(repo_root, worktree_path)
     worktree_path.parent.mkdir(parents=True, exist_ok=True)

@@ -253,3 +253,23 @@ def test_checkout_raises_on_bad_sha(tmp_path):
     _init_repo(repo, {"src/a.py": "x = 1\n"})
     with pytest.raises(RuntimeError):
         checkout_scoped_file_map(repo, "deadbeefdeadbeef", tmp_path / "scratch" / "r" / "t")
+
+
+def test_checkout_with_relative_worktree_path_never_plants_inside_corpus(tmp_path, monkeypatch):
+    # The spike round-2 wall: a factory-RELATIVE worktree path is resolved by git against the
+    # CORPUS repo (its cwd), planting the worktree inside the corpus tree while the factory
+    # reads the nonexistent factory-relative path -> empty file map, silent skip.
+    repo = tmp_path / "corpus" / "repo"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n", "tests/test_a.py": "def test(): assert True\n"})
+    factory_cwd = tmp_path / "factory"
+    factory_cwd.mkdir()
+    monkeypatch.chdir(factory_cwd)
+    fm = checkout_scoped_file_map(repo, sha, Path("scratch/repo/TASK-REL"))
+    assert set(fm) == {"src/a.py", "tests/test_a.py"}  # round 2 read {} here
+    # nothing planted inside the corpus repo, scratch cleaned from the factory side
+    assert not (repo / "scratch").exists()
+    assert not (factory_cwd / "scratch" / "repo" / "TASK-REL").exists()
+    listing = subprocess.run(
+        ["git", "worktree", "list"], cwd=str(repo), capture_output=True, text=True
+    ).stdout
+    assert "TASK-REL" not in listing
