@@ -190,6 +190,12 @@ class SourceTask:
     sha: str
     files: dict[str, str]
     run: str = "seeded"
+    # The corpus-HEAD directory holding this task's original autobuild run record. Materialized
+    # into each per-recipe scratch worktree at .guardkit/autobuild/<task>/ before regeneration so
+    # guardkit gather_evidence reads the authentic record instead of short-circuiting to an
+    # evidence-empty ``missing_results`` bundle (the round-3 poison). ``None`` in tiny test
+    # fixtures (the stub regenerator ignores the worktree contents).
+    record_dir: str | None = None
 
 
 @dataclass
@@ -306,6 +312,54 @@ _CUE_SENTINELS = (
 )
 
 
+# --------------------------------------------------------------------------------------
+# Evidence-empty pre-gate — THE LOUDNESS LAW (round-3 poison-path closure).
+#
+# guardkit gather_evidence returns ``gathering_status="partial_exception"`` (with a
+# ``gathering_error`` like ``missing_results: …``) when the gathering pipeline could not run:
+# invalid task type, missing task_work_results record, missing profile, or an unexpected helper
+# exception. Those bundles are near-all-null — no tests/coverage/gates/wiring signal — yet the
+# round-3 spike proved teacher + coach BOTH wave such a bundle through into train.jsonl as an
+# approve row. That is the exact false-green class QAV exists to catch: a verdict model must never
+# learn "missing evidence -> approve". This gate rejects them DETERMINISTICALLY before any teacher
+# call (no wasted GPU) and before any row is built (never train).
+#
+# ``"complete"`` is guardkit's healthy value (coach_validator.py:3221/3742). The evidence-BEARING
+# early stops ``partial_gate_abort`` (gates failed) and ``partial_honesty_abort`` (honesty
+# discrepancies) are NOT rejected here: they carry populated quality_gates / honesty evidence and
+# are legitimate reject-side signal (a verdict model SHOULD learn from failed gates). Only the
+# ``partial_exception`` crash class and any bundle carrying a ``missing_results`` error are
+# evidence-empty. (OPEN POINT: the tension with a literal "reject anything != complete" reading is
+# recorded in the RUNBOOK — over-rejecting would discard genuine reject rows.)
+# --------------------------------------------------------------------------------------
+HEALTHY_GATHERING_STATUS = "complete"
+EVIDENCE_BEARING_ABORTS: frozenset[str] = frozenset(
+    {"partial_gate_abort", "partial_honesty_abort"}
+)
+
+
+def evidence_empty_reason(bundle: dict[str, Any]) -> str | None:
+    """Return a loud reason string when ``bundle`` is an evidence-empty regeneration that must be
+    rejected before the teacher stage, or ``None`` when it carries usable evidence.
+
+    Deterministic. Triggers on guardkit's ``partial_exception`` crash class (or any absent/unknown
+    status) and on any bundle carrying a ``missing_results`` gathering_error — the round-3 shape."""
+    status = bundle.get("gathering_status")
+    error = str(bundle.get("gathering_error") or "")
+    if "missing_results" in error:
+        return (
+            f"gathering_status={status!r} with missing_results — the task-work record was not "
+            f"materialized into the worktree; gathering_error={error!r}"
+        )
+    if status == HEALTHY_GATHERING_STATUS or status in EVIDENCE_BEARING_ABORTS:
+        return None
+    detail = f" (gathering_error={error!r})" if error else ""
+    return (
+        f"gathering_status={status!r} is not {HEALTHY_GATHERING_STATUS!r} and carries no "
+        f"evidence-bearing abort — the regeneration gathered no usable evidence{detail}"
+    )
+
+
 def cue_audit(bundle: dict[str, Any]) -> list[str]:
     """Deterministic surface-cue scan (reusing ``coach-agent/audit_cue_leakage.py``
     conventions) — the ``seeded_bundle`` gate and a cheap check on every seeded row.
@@ -388,10 +442,23 @@ class OutputWriter:
 # Worktree materialisation — write a mutated file map to a fresh scratch worktree.
 # --------------------------------------------------------------------------------------
 def _materialize_worktree(
-    scratch_dir: Path, repo: str, task: str, recipe_id: str, files: dict[str, str]
+    scratch_dir: Path,
+    repo: str,
+    task: str,
+    recipe_id: str,
+    files: dict[str, str],
+    *,
+    record_dir: str | None = None,
 ) -> Path:
     """Write ``files`` (the mutated tree) into a fresh per-recipe scratch worktree and return
-    its path. The regenerator runs guardkit ``gather_evidence`` over this tree."""
+    its path. The regenerator runs guardkit ``gather_evidence`` over this tree.
+
+    When ``record_dir`` is set (a real run — discovery resolved the task's HEAD run record), the
+    authentic run-record artifacts are ALSO materialized into ``.guardkit/autobuild/<task>/`` — the
+    exact path guardkit gather_evidence reads (``TaskArtifactPaths.TASK_WORK_RESULTS``). Without
+    this, ``.guardkit`` (gitignored in the corpus) is absent from the checkout and gather_evidence
+    short-circuits to the evidence-empty ``missing_results`` bundle the round-3 spike proved poison.
+    Reconstruction of the authentic record, never fabrication (see ``qav.discover`` module note)."""
     worktree = scratch_dir / repo / task / recipe_id
     if worktree.exists():
         shutil.rmtree(worktree)
@@ -400,6 +467,10 @@ def _materialize_worktree(
         dest = worktree / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(text, encoding="utf-8")
+    if record_dir is not None:
+        from qav.discover import materialize_run_record
+
+        materialize_run_record(Path(record_dir), worktree, task)  # pragma: no cover - generation run
     return worktree
 
 
@@ -448,6 +519,7 @@ class GenerationSummary:
     teacher_refused: int = 0
     coach_rejected: int = 0
     cue_rejected: int = 0
+    evidence_empty_rejected: int = 0  # regenerated bundle had no usable evidence (loudness law)
     schema_rejected: int = 0
     anchor_skipped: int = 0  # recipe anchor absent from a source task (loud, not silent)
     gold_source_skipped: int = 0  # source tasks excluded as gold-negative sources
@@ -481,6 +553,17 @@ def _gate_and_build(
         "repo": provenance["repo"], "task": provenance["task"],
         "generation_mode": generation_mode, "injection_recipe": injection_recipe,
     }
+    # evidence-empty pre-gate (deterministic) — THE LOUDNESS LAW. A partial_exception /
+    # missing_results regeneration gathered no usable evidence; it must never reach the teacher
+    # (no wasted GPU) and never train (round-3 poison-path closure). Runs FIRST, before any
+    # teacher call, so an evidence-empty bundle costs zero model legs.
+    empty = evidence_empty_reason(bundle)
+    if empty:
+        summary.evidence_empty_rejected += 1
+        return "rejected", None, {
+            **reject_base, "reason": "evidence_empty_bundle", "detail": empty,
+            "gathering_status": bundle.get("gathering_status"),
+        }
     # cue-audit (deterministic) — the seeded_bundle gate, cheap on every seeded row.
     cue = cue_audit(bundle)
     if cue:
@@ -681,7 +764,8 @@ def _seeded_row_from_injection(
     """Materialise the mutated worktree, regenerate the REAL bundle, gate + write. Returns True
     iff a fresh (non-duplicate) row was written."""
     worktree = _materialize_worktree(
-        scratch_dir, src.repo, src.task, result.recipe_id, result.mutated_files
+        scratch_dir, src.repo, src.task, result.recipe_id, result.mutated_files,
+        record_dir=src.record_dir,
     )
     try:
         bundle = regenerator.regenerate(worktree)
@@ -814,7 +898,8 @@ def _discover_source_tasks(config: GenerateConfig) -> list[SourceTask]:  # pragm
     resolved = _discover(config, limit=config.limit)
     return [
         SourceTask(
-            repo=r.repo, feature=r.feature, task=r.task, sha=r.sha, files=r.files, run="seeded"
+            repo=r.repo, feature=r.feature, task=r.task, sha=r.sha, files=r.files, run="seeded",
+            record_dir=r.record_dir,
         )
         for r in resolved
     ]

@@ -25,6 +25,7 @@ from qav.generate import (
     SourceTask,
     assign_split,
     cue_audit,
+    evidence_empty_reason,
     run_generation,
 )
 
@@ -273,6 +274,87 @@ def test_cue_audit_flags_recipe_id_and_sentinels():
     assert cue_audit({"honesty": {}, "task_type": "__seeded__"})
     assert cue_audit({"honesty": {}, "gathering_error": "..."})  # truncated-shape sentinel
     assert cue_audit(_GREEN) == []
+
+
+# --------------------------------------------------------------------------------------
+# THE LOUDNESS LAW — the round-3 poison path (evidence-empty bundle) is closed.
+#
+# Round-3 (receipts/spike-one-row-2026-07-20.md §R3.3) proved an evidence-empty regeneration —
+# gathering_status="partial_exception", gathering_error="missing_results: …", every
+# tests/coverage/gates field null — sails through teacher + coach INTO train.jsonl as an approve
+# row. That is the false-green class QAV exists to catch. The deterministic pre-gate must reject it
+# BEFORE any teacher call (no wasted GPU) and it must never train.
+# --------------------------------------------------------------------------------------
+# The round-3 shape, replayed byte-for-byte from the receipt (only pinned bundle fields).
+_ROUND3_POISON = {
+    "gathering_status": "partial_exception",
+    "gathering_error": (
+        "missing_results: Task-work results not found at "
+        "output/qa-verifier/_scratch/guardkit/TASK-QAWE-001/R-CONTROL-noop/"
+        ".guardkit/autobuild/TASK-QAWE-001/task_work_results.json"
+    ),
+    "honesty": {"verified": True, "discrepancies": [], "score": 1.0},
+    "profile_name": "python_backend",
+    "task_type": "code",
+    "quality_gates": None,
+    "coverage_details": None,
+    "tests": None,
+    "wiring": None,
+    "stub_scan": None,
+}
+
+
+class PoisonRegenerator:
+    """Returns the round-3 evidence-empty ``partial_exception`` bundle for every worktree."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def regenerate(self, worktree: Path) -> dict:
+        self.calls += 1
+        return dict(_ROUND3_POISON)
+
+
+def test_round3_evidence_empty_bundle_is_rejected_before_teacher(tmp_path):
+    cfg = _cfg(tmp_path)
+    teacher = StubTeacher()
+    coach = StubCoach()
+    summary = _run(
+        cfg, [_producer_task()], teacher=teacher, coach=coach,
+        regen=PoisonRegenerator(), emit_gold_negatives=False,
+    )
+    # every candidate row (the anchoring reject recipe + the control) is turned away as evidence-empty
+    assert summary.evidence_empty_rejected >= 1
+    assert summary.seeded_code_written == 0 and summary.seeded_control_written == 0
+    # ZERO teacher calls (no wasted GPU) and ZERO coach calls — the pre-gate runs first.
+    assert teacher.calls == 0
+    assert coach.calls == 0
+    # never train: train.jsonl absent/empty.
+    train = tmp_path / "out" / "train.jsonl"
+    assert not train.exists() or train.read_text().strip() == ""
+    # routed to rejected.jsonl with the exact reason + the diagnostic status.
+    rej = [json.loads(line) for line in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+    assert rej and all(r["reason"] == "evidence_empty_bundle" for r in rej)
+    assert all(r["gathering_status"] == "partial_exception" for r in rej)
+    assert any("missing_results" in r["detail"] for r in rej)
+
+
+def test_evidence_empty_reason_taxonomy():
+    # partial_exception + missing_results -> rejected (the round-3 poison).
+    assert evidence_empty_reason(_ROUND3_POISON) is not None
+    # any partial_exception (even without missing_results) -> rejected (evidence-empty crash class).
+    assert evidence_empty_reason({"honesty": {}, "gathering_status": "partial_exception",
+                                  "gathering_error": "honesty_exception: boom"}) is not None
+    # healthy 'complete' -> allowed.
+    assert evidence_empty_reason(_GREEN) is None
+    # the evidence-BEARING early stops are NOT evidence-empty: they carry real reject-side signal.
+    assert evidence_empty_reason({"honesty": {}, "gathering_status": "partial_gate_abort"}) is None
+    assert evidence_empty_reason({"honesty": {}, "gathering_status": "partial_honesty_abort"}) is None
+    # a bundle with a missing_results error but a tampered 'complete' status is STILL rejected.
+    assert evidence_empty_reason(
+        {"honesty": {}, "gathering_status": "complete",
+         "gathering_error": "missing_results: gone"}
+    ) is not None
 
 
 # --------------------------------------------------------------------------------------

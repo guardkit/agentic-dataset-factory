@@ -147,6 +147,25 @@ Coach clients to `:9000` and the interpreter-bridged `SubprocessBridgeRegenerato
 harvest if outcomes are wired) into `output/qa-verifier/`, and writes `manifest.json` at the end —
 **refusing to finish** if the embedded contamination check does not pass.
 
+### Serving posture — decide BEFORE the full run (it dominates row time)
+
+**Projection caveat, measured in round 3:** the teacher (`gpt-oss-120b`) and Coach (`coach-ft-v3`)
+were **mutually evicting** on the box — the teacher load evicted `embed`, then the Coach load
+**evicted the teacher**. The driver alternates teacher→Coach per row, so in that regime **every row
+paid BOTH cold loads** (the measured 82.3 s teacher + 22.5 s Coach were cold-load-inclusive, not
+warm generation). That thrash regime is the ~15–24 h full-run **floor** (500–800 model-touching
+rows × ~108 s), and it is a serving-posture artefact, not an engine cost.
+
+Before the full run, the coordinator decides the fork (either is fine — just decide and record it):
+
+- **Batched legs** — run all teacher calls, then all Coach calls, so each seat cold-loads once for
+  the whole run instead of once per row; or
+- **Co-residency** — give the two seats a llama-swap matrix set that lets them stay resident
+  together (no mutual eviction), so both legs run warm.
+
+Re-measure warm row-time at the pilot and re-feed the projection. This is a serving decision (which
+llama-swap matrix / call ordering), **not** an engine change.
+
 ### `--resume` behaviour (read this — it's different from `agent.py`)
 
 This generator is **fresh-start, not checkpoint-resumable.** There is no `--resume`. Each run backs
@@ -232,8 +251,10 @@ complete corpus is preserved as `*.bak`.
 | The run hangs or errors on the first teacher call | The model server/seat isn't ready. Check `curl -s http://localhost:9000/v1/models` lists `gpt-oss-120b` and `coach-ft-v3`. `gpt-oss-120b` can take a few minutes to load on the first call — give it time. |
 | Out of memory (OOM), box thrashing | Almost always the keepalive timer revived the fleet on top of `gpt-oss-120b`. Stop the run, `sudo systemctl stop llama-swap-keepalive.timer`, confirm `inactive`, start over. |
 | `contamination_check.status: fail` / the run raises at finalize | A hold-out capability or a train/eval overlap slipped in. The run refuses to write an invalid manifest. Capture the `intersection_row_ids` / `sibling_variant_violations` and raise it; this should not happen (it's enforced in code + guaranteed by same-split-for-siblings assignment). |
-| Lots of rows in `rejected.jsonl` | Read the `reason` field: `coach_rejected` (rationale inconsistent with the fixed label), `teacher_refusal` (empty teacher output — a RESULT, not retried), `cue_leakage` (a surface artefact in the bundle), `schema_invalid`. A high reject rate is a quality signal to note, not a crash. |
-| Fewer source tasks than you expected / a task you wanted is missing | Discovery is **wired** (`qav.discover`) and logs every turn-away as `DISCOVERY EXCLUDE <repo>/<feature> task=… — <reason>`. Read those lines: a task is excluded when its approved sha cannot be resolved from a record (no `merge_summary.json`, no recognised commit key, or a sha that does not resolve in git), when it is a spec-only feature (e.g. `FEAT-SMP-001`), when its decision is not approved/completed, or when it is a gold-negative source task. This is the approved-sha honesty law — an unresolvable sha is **never** guessed or defaulted to HEAD. |
+| Lots of rows in `rejected.jsonl` | Read the `reason` field: `coach_rejected` (rationale inconsistent with the fixed label), `teacher_refusal` (empty teacher output — a RESULT, not retried), `cue_leakage` (a surface artefact in the bundle), `evidence_empty_bundle` (see the next row), `schema_invalid`. A high reject rate is a quality signal to note, not a crash. |
+| Rows rejected with `reason: evidence_empty_bundle` (and `gathering_status: partial_exception`) | **The loudness law firing — this is the round-3 poison-path guard working.** guardkit `gather_evidence` returned an evidence-empty bundle (`partial_exception`, usually `missing_results: …`): it could not gather real evidence over the worktree, so every tests/coverage/gates field is null. Such a bundle is rejected **deterministically before any teacher call** (no wasted GPU) and never reaches `train.jsonl` — a verdict model must never learn "missing evidence → approve." If you see many of these, the run-record materialization is not landing: check discovery is finding each task's HEAD record (next row). NOTE the evidence-**bearing** early stops `partial_gate_abort` (gates failed) and `partial_honesty_abort` (honesty discrepancies) are **not** rejected here — they carry real reject-side signal. |
+| `DISCOVERY SKIP <repo>/<task> — no autobuild run record at HEAD` / near-empty `partial_exception` bundles at scale | `gather_evidence` reads the Player's record from `<worktree>/.guardkit/autobuild/<task>/task_work_results.json`, but `.guardkit` is **gitignored** in the corpus repos, so a worktree checkout at the approved sha omits it. Discovery now locates each task's original record at the corpus **HEAD** (`.guardkit/archive/<feature>/run*-artifacts-<task>/` or `.guardkit/autobuild/<task>/`) and materializes it into every per-recipe worktree — reconstruction of the authentic record, never fabrication. A task whose record artifacts are **absent at HEAD** is EXCLUDED loudly (this SKIP line): its evidence cannot be authentically reconstructed. If a task you wanted is skipped this way, confirm its `.guardkit` archive/autobuild record still exists on disk in the corpus repo. |
+| Fewer source tasks than you expected / a task you wanted is missing | Discovery is **wired** (`qav.discover`) and logs every turn-away as `DISCOVERY EXCLUDE <repo>/<feature> task=… — <reason>` (approved-sha law) or `DISCOVERY SKIP …` (empty file map / missing run record). Read those lines: a task is excluded when its approved sha cannot be resolved from a record (no `merge_summary.json`, no recognised commit key, or a sha that does not resolve in git), when it is a spec-only feature (e.g. `FEAT-SMP-001`), when its decision is not approved/completed, when it is a gold-negative source task, or when its HEAD run record is absent (previous row). This is the approved-sha honesty law — an unresolvable sha is **never** guessed or defaulted to HEAD. |
 | Interrupted run | No resume — just re-run the driver command. Your prior corpus is safe as `*.bak`. |
 
 ---

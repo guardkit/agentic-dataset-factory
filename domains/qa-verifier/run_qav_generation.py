@@ -191,10 +191,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     logger.info(
         "DONE seeded_code=%s control=%s seeded_bundle=%s harvest=%s gold=%s "
-        "teacher_refused=%s coach_rejected=%s cue_rejected=%s train=%s eval_qav=%s",
+        "teacher_refused=%s coach_rejected=%s cue_rejected=%s evidence_empty_rejected=%s "
+        "train=%s eval_qav=%s",
         summary.seeded_code_written, summary.seeded_control_written, summary.seeded_bundle_written,
         summary.harvest_written, summary.gold_negatives_written, summary.teacher_refused,
-        summary.coach_rejected, summary.cue_rejected, summary.train, summary.eval_qav,
+        summary.coach_rejected, summary.cue_rejected, summary.evidence_empty_rejected,
+        summary.train, summary.eval_qav,
     )
     print(json.dumps(summary.__dict__, indent=2))
     return 0

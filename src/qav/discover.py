@@ -59,7 +59,99 @@ APPROVED_SHA_KEYS: tuple[str, ...] = ("merged_commit", "merge_commit", "main_hea
 _TASK_LIST_KEYS: tuple[str, ...] = ("tasks", "tasks_merged")
 _MERGE_SUMMARY = "merge_summary.json"
 _ARCHIVE_REL = Path(".guardkit") / "archive"
+_AUTOBUILD_REL = Path(".guardkit") / "autobuild"
 _FEATURES_REL = Path(".guardkit") / "features"
+
+# ---------------------------------------------------------------------------------------------
+# RUN-RECORD MATERIALIZATION — reconstruct the task's original autobuild record in the worktree.
+#
+# guardkit ``CoachValidator.gather_evidence`` reads the Player's task-work record from the EXACT
+# path (verified in guardkit source 2026-07-20):
+#   guardkit/orchestrator/paths.py  TaskArtifactPaths.TASK_WORK_RESULTS
+#       = ".guardkit/autobuild/{task_id}/task_work_results.json"
+#   coach_validator.py:4203  read_quality_gate_results -> task_work_results_path(task_id, worktree)
+#       -> <worktree>/.guardkit/autobuild/<task>/task_work_results.json  (missing -> the
+#          ``partial_exception`` / ``missing_results`` evidence-empty bundle the round-3 spike hit).
+#
+# But ``.guardkit`` is GITIGNORED in the corpus repos, so a ``git worktree add`` at the approved
+# sha checks out the tracked source tree ONLY — the run record is absent from the scratch worktree
+# even though it exists on disk at the corpus repo's HEAD. gather_evidence then short-circuits to
+# an all-null bundle (the round-3 poison). We therefore copy the task's HEAD run-record artifacts
+# into the worktree's expected ``.guardkit/autobuild/<task>/`` before regeneration.
+#
+# HONESTY (reconstruction, NOT fabrication): the HEAD ``.guardkit`` record IS the authentic record
+# of that task's original approved autobuild run — the git checkout drops it only because
+# ``.guardkit`` is gitignored, never because the run did not happen. We copy the real recorded
+# artifacts verbatim; we never synthesise a task_work_results. A task whose record artifacts cannot
+# be found at HEAD is EXCLUDED loudly (the discovery exclusion-law pattern) rather than regenerated
+# against an empty record — we do not manufacture evidence for a run whose record is gone.
+# ---------------------------------------------------------------------------------------------
+RUN_RECORD_SENTINEL = "task_work_results.json"  # the artifact gather_evidence hard-requires
+
+
+def _dedup_preserve(paths: Iterable[Path]) -> list[Path]:
+    seen: set[str] = set()
+    out: list[Path] = []
+    for p in paths:
+        key = str(p)
+        if key not in seen:
+            seen.add(key)
+            out.append(p)
+    return out
+
+
+def _candidate_record_dirs(corpus_root: Path, feature: Optional[str], task: str) -> list[Path]:
+    """Candidate on-disk directories that may hold ``task``'s original run record, in priority
+    order: the canonical live autobuild path first (exactly what gather_evidence reads), then the
+    archived approved-run artifacts under the resolved feature, then live/foreign run-artifacts
+    dirs. Globs are ordered so a deterministic first-hit wins."""
+    gk_autobuild = corpus_root / _AUTOBUILD_REL
+    gk_archive = corpus_root / _ARCHIVE_REL
+    cands: list[Path] = [gk_autobuild / task]  # 1. canonical live autobuild dir
+    if feature:
+        # 2. archived approved-run artifacts under the resolved feature (e.g.
+        #    .guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001/). Latest run wins.
+        cands += sorted(gk_archive.glob(f"{feature}/*-artifacts-{task}"), reverse=True)
+        cands.append(gk_archive / feature / task)  # bare archived task dir
+    # 3. live autobuild run-artifacts dirs (e.g. .guardkit/autobuild/FEAT-*-run2-artifacts-<task>/).
+    cands += sorted(gk_autobuild.glob(f"*-artifacts-{task}"), reverse=True)
+    # 4. archived run-artifacts under ANY feature (fallback for a mis-attributed feature key).
+    cands += sorted(gk_archive.glob(f"*/*-artifacts-{task}"), reverse=True)
+    return _dedup_preserve(cands)
+
+
+def locate_run_record_dir(
+    corpus_root: Path, feature: Optional[str], task: str
+) -> Optional[Path]:
+    """Return the corpus-HEAD directory holding ``task``'s original run record (the first candidate
+    that actually contains ``task_work_results.json``), or ``None`` if no record exists at HEAD.
+
+    Pure filesystem read over the corpus repo's live ``.guardkit`` tree (no git, no model)."""
+    corpus_root = Path(corpus_root)
+    for cand in _candidate_record_dirs(corpus_root, feature, task):
+        if (cand / RUN_RECORD_SENTINEL).is_file():
+            return cand
+    return None
+
+
+def materialize_run_record(record_dir: Path, worktree: Path, task: str) -> list[str]:
+    """Copy the task's HEAD run-record artifacts into the worktree at the EXACT location
+    gather_evidence reads — ``<worktree>/.guardkit/autobuild/<task>/`` (guardkit
+    ``TaskArtifactPaths.TASK_WORK_RESULTS``). Copies every regular file in ``record_dir`` verbatim
+    (task_work_results.json + player/coach turn records + siblings the honesty/gate reads consume);
+    subdirectories are skipped (the record artifacts are flat). Returns the destination paths
+    written. Reconstruction of the authentic record, never fabrication (see module note)."""
+    record_dir = Path(record_dir)
+    dest_dir = Path(worktree) / _AUTOBUILD_REL / task
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for src in sorted(record_dir.iterdir()):
+        if not src.is_file():
+            continue
+        dest = dest_dir / src.name
+        shutil.copy2(src, dest)
+        written.append(str(dest))
+    return written
 
 # ---------------------------------------------------------------------------------------------
 # File-map scoping — source/test text files the recipes operate on, size + binary guarded.
@@ -90,6 +182,10 @@ class ResolvedSourceTask:
     sha: str
     files: dict[str, str] = field(default_factory=dict)
     evidence_paths: list[str] = field(default_factory=list)
+    # The corpus-HEAD directory holding this task's original autobuild run record, to be
+    # materialized into each per-recipe worktree at .guardkit/autobuild/<task>/ before regeneration
+    # (reconstruction of the authentic record — see the RUN-RECORD MATERIALIZATION note).
+    record_dir: Optional[str] = None
 
 
 @dataclass
@@ -388,10 +484,24 @@ def discover_source_tasks(config: Any, *, limit: Optional[int] = None) -> list[R
                 ref.repo, ref.task, ref.sha,
             )
             continue
+        # Locate the task's original run record at the corpus HEAD. Its ABSENCE is a loud
+        # exclusion (the honesty law): without the authentic record, gather_evidence would emit
+        # an evidence-empty ``missing_results`` bundle — we exclude rather than regenerate against
+        # nothing (and never fabricate a record). The record is copied into each per-recipe
+        # worktree at regeneration time (qav.generate._materialize_worktree).
+        record_dir = locate_run_record_dir(corpus_roots[ref.repo], ref.feature, ref.task)
+        if record_dir is None:
+            logger.warning(
+                "DISCOVERY SKIP %s/%s — no autobuild run record at HEAD (looked for "
+                "%s under .guardkit/autobuild + .guardkit/archive/%s); cannot reconstruct "
+                "authentic evidence, excluded (never fabricated)",
+                ref.repo, ref.task, RUN_RECORD_SENTINEL, ref.feature,
+            )
+            continue
         resolved.append(
             ResolvedSourceTask(
                 repo=ref.repo, feature=ref.feature, task=ref.task, sha=ref.sha,
-                files=files, evidence_paths=ref.evidence_paths,
+                files=files, evidence_paths=ref.evidence_paths, record_dir=str(record_dir),
             )
         )
         if limit is not None and len(resolved) >= limit:

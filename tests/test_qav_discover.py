@@ -10,17 +10,22 @@ guards + the read-only git-worktree checkout).
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from qav.discover import (
     APPROVED_SHA_KEYS,
-    ExclusionRecord,
     MAX_FILE_BYTES,
+    RUN_RECORD_SENTINEL,
     checkout_scoped_file_map,
     discover_source_task_refs,
+    discover_source_tasks,
+    locate_run_record_dir,
+    materialize_run_record,
     resolve_approved_sha,
     scope_file_map,
 )
@@ -253,6 +258,102 @@ def test_checkout_raises_on_bad_sha(tmp_path):
     _init_repo(repo, {"src/a.py": "x = 1\n"})
     with pytest.raises(RuntimeError):
         checkout_scoped_file_map(repo, "deadbeefdeadbeef", tmp_path / "scratch" / "r" / "t")
+
+
+# --------------------------------------------------------------------------------------
+# Run-record materialization (finding 1) — reconstruct the HEAD autobuild record in the worktree.
+#
+# guardkit gather_evidence reads <worktree>/.guardkit/autobuild/<task>/task_work_results.json
+# (verified in guardkit paths.py TaskArtifactPaths.TASK_WORK_RESULTS). ``.guardkit`` is gitignored
+# in the corpus so a worktree checkout at the approved sha omits it — the record must be copied in.
+# --------------------------------------------------------------------------------------
+def _write_record(root: Path, rel_dir: str, task: str, *, extra: bool = True) -> Path:
+    d = root / rel_dir
+    d.mkdir(parents=True, exist_ok=True)
+    (d / RUN_RECORD_SENTINEL).write_text(
+        json.dumps({"task_id": task, "files_authored": ["src/a.py"], "tests_passed": True}),
+        encoding="utf-8",
+    )
+    if extra:
+        (d / "player_turn_1.json").write_text(json.dumps({"turn": 1}), encoding="utf-8")
+        (d / "coach_turn_1.json").write_text(json.dumps({"decision": "approve"}), encoding="utf-8")
+    return d
+
+
+def test_locate_run_record_dir_finds_archive_run_artifacts(tmp_path):
+    # The FEAT-C332 shape: record lives at .guardkit/archive/<feature>/run1-artifacts-<task>/.
+    repo = tmp_path / "guardkit"
+    rec = _write_record(repo, ".guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001", "TASK-QAWE-001")
+    got = locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-001")
+    assert got == rec
+
+
+def test_locate_run_record_dir_prefers_canonical_autobuild(tmp_path):
+    # When both the canonical live autobuild dir AND an archived one exist, the canonical
+    # .guardkit/autobuild/<task>/ (exactly what gather_evidence reads) wins.
+    repo = tmp_path / "guardkit"
+    _write_record(repo, ".guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001", "TASK-QAWE-001")
+    canonical = _write_record(repo, ".guardkit/autobuild/TASK-QAWE-001", "TASK-QAWE-001")
+    assert locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-001") == canonical
+
+
+def test_locate_run_record_dir_absent_returns_none(tmp_path):
+    # A bare task dir with NO task_work_results.json (the .guardkit/archive/<feat>/<task>/ that
+    # holds only progress.log) is not a record — absence returns None (drives the loud exclusion).
+    repo = tmp_path / "guardkit"
+    bare = repo / ".guardkit" / "archive" / "FEAT-C332" / "TASK-QAWE-001"
+    bare.mkdir(parents=True)
+    (bare / "progress.log").write_text("started\n", encoding="utf-8")
+    assert locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-001") is None
+
+
+def test_materialize_run_record_writes_at_exact_gather_read_path(tmp_path):
+    repo = tmp_path / "guardkit"
+    rec = _write_record(repo, ".guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001", "TASK-QAWE-001")
+    worktree = tmp_path / "scratch" / "guardkit" / "TASK-QAWE-001" / "R-CONTROL-noop"
+    (worktree / "src").mkdir(parents=True)
+    (worktree / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")  # the scoped-map tree
+
+    written = materialize_run_record(rec, worktree, "TASK-QAWE-001")
+
+    # THE EXACT path guardkit gather_evidence reads (TaskArtifactPaths.TASK_WORK_RESULTS).
+    gather_read = worktree / ".guardkit" / "autobuild" / "TASK-QAWE-001" / "task_work_results.json"
+    assert gather_read.is_file()
+    assert json.loads(gather_read.read_text())["task_id"] == "TASK-QAWE-001"
+    # siblings the honesty / gate reads consume come across too; the scoped tree is untouched.
+    assert (gather_read.parent / "player_turn_1.json").is_file()
+    assert (gather_read.parent / "coach_turn_1.json").is_file()
+    assert str(gather_read) in written
+    assert (worktree / "src" / "a.py").read_text() == "x = 1\n"
+
+
+def test_discover_source_tasks_materializes_present_record_and_excludes_absent(tmp_path, caplog):
+    # End-to-end wiring on a temp git repo: a task WITH a HEAD record is included and carries its
+    # record_dir; a task with NO record is EXCLUDED loudly (the discovery exclusion-law pattern).
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n", "tests/test_a.py": "def test(): assert True\n"})
+    # .guardkit written AFTER the commit -> untracked (mirrors the gitignored corpus reality).
+    _write_merge_summary(repo, "FEAT-C332", {
+        "merged_commit": sha,
+        "tasks": [
+            {"id": "TASK-HAS-REC", "decision": "approved"},
+            {"id": "TASK-NO-REC", "decision": "approved"},
+        ],
+    })
+    rec = _write_record(repo, ".guardkit/archive/FEAT-C332/run1-artifacts-TASK-HAS-REC", "TASK-HAS-REC")
+
+    config = SimpleNamespace(
+        corpus_roots={"guardkit": str(repo)},
+        scratch_dir=str(tmp_path / "scratch"),
+    )
+    with caplog.at_level(logging.WARNING, logger="qav.discover"):
+        resolved = discover_source_tasks(config)
+
+    tasks = {r.task: r for r in resolved}
+    assert set(tasks) == {"TASK-HAS-REC"}  # the recordless task never becomes a source task
+    assert tasks["TASK-HAS-REC"].record_dir == str(rec)
+    loud = "\n".join(r.getMessage() for r in caplog.records)
+    assert "no autobuild run record at HEAD" in loud and "TASK-NO-REC" in loud
 
 
 def test_checkout_with_relative_worktree_path_never_plants_inside_corpus(tmp_path, monkeypatch):
