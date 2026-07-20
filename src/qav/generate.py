@@ -799,16 +799,22 @@ def _restamp_split(row: dict[str, Any], split: str) -> dict[str, Any]:
 
 def _discover_source_tasks(config: GenerateConfig) -> list[SourceTask]:  # pragma: no cover - generation run
     """Discover known-green source tasks from the config corpus roots, checking each out at its
-    approved sha into a read-only scratch worktree and reading its files into memory.
+    record-resolved approved sha into a read-only scratch worktree and reading its scoped file
+    map into memory.
 
     This is the generation-run seam (GB10, post-window): it does real git + filesystem work
     against the read-only corpus repos and is NEVER reached by unit tests (they inject
-    ``source_tasks`` directly). Open points recorded in the commit message: (a) approved-sha
-    resolution per task and (b) the file-map scoping (whole-worktree vs recipe-relevant subtree)
-    are the concrete wiring left for the first attended run; the pinned ``GatherEvidenceRegenerator``
-    seam and per-repo ``interpreters`` config feed it."""
-    raise RuntimeError(
-        "source-task discovery is a generation run — inject source_tasks in tests, and wire "
-        "the git-worktree provider (approved-sha resolution + per-repo interpreter, config."
-        "interpreters) for the attended GB10 run"
-    )
+    ``source_tasks`` directly; ``qav.discover``'s record/scoping functions are unit-tested
+    hermetically). Discovery resolves each approved sha from real on-disk record evidence
+    (``.guardkit/archive/<FEAT>/merge_summary.json``) — a task with no resolvable sha is EXCLUDED
+    with a logged reason, never guessed and never defaulted to HEAD (the approved-sha honesty law).
+    ``config.interpreters`` feeds the interpreter-bridged ``SubprocessBridgeRegenerator``."""
+    from qav.discover import discover_source_tasks as _discover
+
+    resolved = _discover(config, limit=config.limit)
+    return [
+        SourceTask(
+            repo=r.repo, feature=r.feature, task=r.task, sha=r.sha, files=r.files, run="seeded"
+        )
+        for r in resolved
+    ]

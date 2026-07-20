@@ -2,10 +2,11 @@
 """Documented entrypoint for a REAL qa-verifier (QAV) seeded-defect generation run.
 
 Wires the real OpenAI-compatible clients from ``agent-config.yaml`` (teacher rationale +
-Coach gate) and the real ``GatherEvidenceRegenerator`` (guardkit ``CoachValidator.gather_evidence``
-as a library call) and drives ``src/qav/generate.py``'s ``run_generation``. The deterministic
-truth of every seeded row is the injector's fixed label — never a model. Datasets are private
-(DF-008).
+Coach gate) and the interpreter-bridged ``qav.regenerate.SubprocessBridgeRegenerator`` (guardkit
+``CoachValidator.gather_evidence`` run under the guardkit-importing interpreter via a subprocess
+bridge) and drives ``src/qav/generate.py``'s ``run_generation``. Source tasks are discovered by
+``qav.discover`` (record-resolved approved shas + the exclusion law). The deterministic truth of
+every seeded row is the injector's fixed label — never a model. Datasets are private (DF-008).
 
 Usage (attended, on the GB10 with the served fleet on :9000, guardkit importable per-repo):
 
@@ -18,9 +19,10 @@ Honesty notes:
   first (a tiny --limit), inspect, then run full.
 - ZERO model/seat/GPU calls happen in this module's imports or in the test suite. Real calls
   happen only when you point --config at a live endpoint and run it on the GB10.
-- ``GatherEvidenceRegenerator`` is the first wiring of the ``src/qav/injector.py`` seam: it
-  lazy-imports guardkit and raises loudly if unimportable (per-repo interpreter — the
-  SIBTESTENV01 lesson; see ``interpreters:`` in the config).
+- ``SubprocessBridgeRegenerator`` satisfies the ``src/qav/injector.py`` ``BundleRegenerator``
+  seam without importing guardkit into this process: it shells out to ``qav_regenerate_bridge.py``
+  under ``interpreters.guardkit`` and pins each target repo's pytest to ``interpreters.<repo>``
+  (the SIBTESTENV01 lesson). A non-zero bridge exit surfaces loudly (never an unchecked row).
 """
 
 from __future__ import annotations
@@ -44,7 +46,7 @@ from qav.generate import (
     OpenAICompatibleClient,
     run_generation,
 )
-from qav.injector import GatherEvidenceRegenerator
+from qav.regenerate import SubprocessBridgeRegenerator
 
 logger = logging.getLogger("qav.run")
 
@@ -164,10 +166,12 @@ def main(argv: list[str] | None = None) -> int:
         cfg.limit = args.limit
 
     teacher, coach = build_clients(config_path)
-    # The first wiring of the injector.py:141 seam — one regenerator per run (guardkit lazy
-    # import + loud refusal if unimportable). task_id is stamped per row by gather_evidence
-    # from the worktree; a single instance is fine for the library-call path.
-    regenerator = GatherEvidenceRegenerator(task_id="qav-seeded", profile_name=None)
+    # The interpreter-bridged regenerator (qav.regenerate) — one per run. It shells out to the
+    # bridge script under the guardkit-importing interpreter (config.interpreters['guardkit'])
+    # and pins each target repo's pytest substrate to config.interpreters[repo] as venv_python
+    # (the SIBTESTENV01 seam). The factory venv cannot import guardkit, so the subprocess bridge
+    # is the honest wiring; a non-zero bridge exit surfaces loudly (never a silent unchecked row).
+    regenerator = SubprocessBridgeRegenerator.from_config(cfg)
     logger.info(
         "QAV run: mode=%s limit=%s out=%s teacher=%s corpus=%s",
         cfg.mode, cfg.limit, cfg.output_dir, getattr(teacher, "model", "?"),

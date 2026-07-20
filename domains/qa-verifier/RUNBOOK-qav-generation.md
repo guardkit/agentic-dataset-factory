@@ -40,6 +40,22 @@ Plus **seeded_bundle** (augmentation, capped at 25% of seeded rows — cue-audit
 **harvest** (real historical bundles + curator outcomes). The **4 gold negatives** are always
 written to `eval_qav` (the must-catch holdout) and their source tasks never seed a training row.
 
+### How discovery finds source tasks + resolves approved shas (the exclusion law)
+
+You never list source tasks by hand. `qav.discover` walks each corpus repo's `.guardkit` records
+and, for every feature, reads its approved (merged) commit from
+`.guardkit/archive/<FEAT>/merge_summary.json` — the landed-commit key (`merged_commit` /
+`merge_commit` / `main_head_after`, in that priority). It then checks the repo out at that sha into
+a throwaway git worktree under `scratch_dir/_src/…`, reads the recipe-relevant **source/test text
+files** (size + binary guarded, `.guardkit`/venv/vendored dirs excluded), and removes the worktree —
+the corpus repo's live tree is never touched.
+
+**The approved-sha honesty law:** a task whose sha cannot be resolved from a record — no
+`merge_summary.json` (a spec-only feature like `FEAT-SMP-001`), no recognised commit key, or a sha
+that does not resolve in git — is **excluded with a logged reason** (`DISCOVERY EXCLUDE …`), never
+guessed and never silently defaulted to HEAD. Gold-negative source tasks and non-approved tasks are
+excluded the same way. Read the `DISCOVERY:` summary line for the included/excluded counts.
+
 ---
 
 ## Prerequisites (check these once, before you start)
@@ -52,9 +68,13 @@ written to `eval_qav` (the must-catch holdout) and their source tasks never seed
   OPENAI_API_KEY=local`.
 - **guardkit imports against each corpus repo.** `seeded_code` regeneration drives
   `guardkit CoachValidator.gather_evidence` over each repo's worktree using that repo's pytest
-  substrate. Resolve the interpreter per-repo (the SIBTESTENV01 lesson) — the `interpreters:`
-  block in `agent-config.yaml` names each repo's venv python. If guardkit is not importable the run
-  **refuses loudly** (`GatherEvidenceRegenerator`) rather than emitting unchecked rows — by design.
+  substrate. The factory `.venv` cannot import guardkit, so the regenerator
+  (`qav.regenerate.SubprocessBridgeRegenerator`) shells out to `qav_regenerate_bridge.py` under the
+  **guardkit-importing interpreter** (`interpreters.guardkit` — the only venv that imports guardkit)
+  and pins each target repo's pytest to that repo's own interpreter (`interpreters.<repo>`) via
+  guardkit's `venv_python` seam (the SIBTESTENV01 lesson). Make sure every `interpreters:` path in
+  `agent-config.yaml` exists on disk. If the bridge exits non-zero the run **fails loudly** rather
+  than emitting an unchecked row — by design.
 - **The Python environment is ready.** From the repo root: `source .venv/bin/activate`.
 
 ## ⚠️ THE KEEPALIVE GOTCHA (do this — it is the one thing that bites)
@@ -123,7 +143,7 @@ PYTHONPATH=src python domains/qa-verifier/run_qav_generation.py \
 ```
 
 That single driver command reads the models + settings from the config, wires the real teacher +
-Coach clients to `:9000` and the real `GatherEvidenceRegenerator`, runs the seeded pipelines (plus
+Coach clients to `:9000` and the interpreter-bridged `SubprocessBridgeRegenerator`, runs the seeded pipelines (plus
 harvest if outcomes are wired) into `output/qa-verifier/`, and writes `manifest.json` at the end —
 **refusing to finish** if the embedded contamination check does not pass.
 
@@ -208,12 +228,12 @@ complete corpus is preserved as `*.bak`.
 
 | Symptom | Cause → fix |
 |---|---|
-| `guardkit CoachValidator unavailable` (loud refusal) | guardkit not importable against the target repo. Resolve the per-repo interpreter/venv (`interpreters:` in the config, the SIBTESTENV01 lesson). The run refuses on purpose rather than emitting unchecked rows. |
+| `regenerator bridge FAILED (rc=…)` / `guardkit CoachValidator unavailable` | The bridge (`qav_regenerate_bridge.py`) could not run guardkit. Check `interpreters.guardkit` actually imports guardkit and each `interpreters.<repo>` path exists (the SIBTESTENV01 lesson). The `stderr:`/`stdout:` in the error carry guardkit's own cause. The run fails on purpose rather than emitting unchecked rows. |
 | The run hangs or errors on the first teacher call | The model server/seat isn't ready. Check `curl -s http://localhost:9000/v1/models` lists `gpt-oss-120b` and `coach-ft-v3`. `gpt-oss-120b` can take a few minutes to load on the first call — give it time. |
 | Out of memory (OOM), box thrashing | Almost always the keepalive timer revived the fleet on top of `gpt-oss-120b`. Stop the run, `sudo systemctl stop llama-swap-keepalive.timer`, confirm `inactive`, start over. |
 | `contamination_check.status: fail` / the run raises at finalize | A hold-out capability or a train/eval overlap slipped in. The run refuses to write an invalid manifest. Capture the `intersection_row_ids` / `sibling_variant_violations` and raise it; this should not happen (it's enforced in code + guaranteed by same-split-for-siblings assignment). |
 | Lots of rows in `rejected.jsonl` | Read the `reason` field: `coach_rejected` (rationale inconsistent with the fixed label), `teacher_refusal` (empty teacher output — a RESULT, not retried), `cue_leakage` (a surface artefact in the bundle), `schema_invalid`. A high reject rate is a quality signal to note, not a crash. |
-| `source-task discovery is a generation run` (RuntimeError) | You ran a seeded mode without wiring the git-worktree source provider. That provider (approved-sha resolution + per-repo interpreter) is the attended-run wiring — see the open points in the code-half README / commit. |
+| Fewer source tasks than you expected / a task you wanted is missing | Discovery is **wired** (`qav.discover`) and logs every turn-away as `DISCOVERY EXCLUDE <repo>/<feature> task=… — <reason>`. Read those lines: a task is excluded when its approved sha cannot be resolved from a record (no `merge_summary.json`, no recognised commit key, or a sha that does not resolve in git), when it is a spec-only feature (e.g. `FEAT-SMP-001`), when its decision is not approved/completed, or when it is a gold-negative source task. This is the approved-sha honesty law — an unresolvable sha is **never** guessed or defaulted to HEAD. |
 | Interrupted run | No resume — just re-run the driver command. Your prior corpus is safe as `*.bak`. |
 
 ---
