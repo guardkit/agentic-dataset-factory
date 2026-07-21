@@ -148,3 +148,31 @@ bundles discover on disk, the teacher leg returns a real 200, keepalive posture 
 clean. Re-run this exact command after the serving posture is fixed; expect (at this N) 2
 approve-side harvest rows + 4 gold and the **expected low-N imbalance refusal** in the manifest —
 which will then be the honest recorded result.
+
+---
+
+## ROUND 2 (the qav-coach cure) — COMPLETED; first ratified rows BANKED
+
+> Written by the coordinator: the operator agent was killed mid-watch by a VS Code crash —
+> the detached (nohup) driver finished the run alone, which is exactly what that discipline
+> is for. All post-run verification below re-driven by the coordinator's own hand.
+
+- **Run:** `run_logs/qav_harvest_r2_20260721-084747.log`, 08:47:47 → 09:39:09 (**51m22s**),
+  rc clean. Config coach = `qav-coach` (the unique-member set cure, commit `b2e89fa`).
+- **Banked: 6 rows — the full ratified consumable set.** train = 1 (BDDW approve; its sibling
+  approve landed eval by the holdout RNG), eval_qav = 5 (4 gold negatives + 1 approve).
+  4 queued outcomes skipped LOUDLY (A3/PRV/flagged — per policy). Zero rejects, zero
+  teacher refusals, zero coach rejections, zero schema/evidence-empty rejects.
+- **Coordinator validation: 6/6 contract-valid** (`validate_row` + `extract_bundle` +
+  `extract_label` per row); labels byte-match the ratified outcomes yaml; manifest
+  finalized, contamination **pass**, and the balance advisory **honestly refused**
+  (`approve_share 1.00 outside 0.50±0.10`) — the expected verdict at this N, recorded
+  not hidden.
+- **Co-residency verdict: FUNCTIONAL PASS, measurement inconclusive.** Round-1's kill mode
+  is gone — zero coach 500s; every `qav-coach` call forced the qav set as designed. BUT the
+  51-minute wall for 2 model rows shows serving contention with LIVE tutor/s2s traffic
+  during the run (post-run `/running` = the tutor set resident — the box was not quiet).
+  Warm co-resident leg times remain unmeasured; measure on the next quiet-box run.
+- **Keepalive:** `inactive` before/after (verified; never re-armed). **Venue:** corpus repos
+  carry only their documented pre-existing residue (guardkit memory-query-log · forge
+  uv.lock · Rich's untracked study-tutor notes); zero harvest debris.
