@@ -22,7 +22,11 @@ player:                      # seat reused as the rationale TEACHER in seeded_de
 
 coach:                       # row-quality gate: schema + label-consistency + cue-audit
   provider: local
-  model: coach-ft-v3         # the deployed judgment Coach; endpoint :9000 (not :8080)
+  model: qav-coach           # SAME coach-ft-v3 GGUF via the qav-set unique alias (2026-07-21):
+                             # requesting qav-coach forces the co-resident `qav` llama-swap set
+                             # (go stays loaded), curing the per-leg eviction thrash the
+                             # 2026-07-21 harvest run walled on. coach-ft-v3 remains the alias
+                             # for all-family lanes; endpoint :9000 (not :8080).
   endpoint: http://localhost:9000/v1
   temperature: 0.2
   max_tokens: 8192
