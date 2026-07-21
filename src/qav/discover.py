@@ -88,6 +88,29 @@ _FEATURES_REL = Path(".guardkit") / "features"
 # ---------------------------------------------------------------------------------------------
 RUN_RECORD_SENTINEL = "task_work_results.json"  # the artifact gather_evidence hard-requires
 
+# ---------------------------------------------------------------------------------------------
+# RECORD-STORE RECOVERY — the factory-side home for HEAD-missing run records (S-B, 2026-07-21).
+#
+# The round-4 pilot SKIP'd 10 of 13 discovered tasks: their ``task_work_results.json`` was not
+# reachable by the corpus ``.guardkit`` globs above. RECON found every one of the 10 has an
+# AUTHENTIC record, just not where the globs look:
+#   - guardkit TASK-QAWE-003 / -004 — live at HEAD under
+#       .guardkit/archive/FEAT-C332/worktree-artifacts/<task>/ (a dir the globs never enumerate).
+#   - guardkit TASK-BDDW-002 — inside the live git worktree
+#       .guardkit/worktrees/FEAT-E2CB/.guardkit/autobuild/TASK-BDDW-002/.
+#   - study_tutor TASK-PRV-001..007 — deleted from HEAD by the FEAT-70A4 "clean autobuild state"
+#       commit; the authentic final state is its parent 6eb41a71^ == 94f3331 ==
+#       FEAT-70A4 merge_summary.main_head_after (the feature's approved sha itself).
+#
+# We do NOT widen the corpus globs to reach into corpus internals (worktrees, git history) — that
+# stays a read-only venue. Instead the recovered records are copied VERBATIM into a factory-side
+# store (``domains/qa-verifier/record-store/<repo>/<task>/`` + a sha256 provenance index), and
+# ``locate_run_record_dir`` gains that store as an additive ``record_store_roots`` search root.
+# Reconstruction of the authentic record from its real source, never fabrication: a task with no
+# authentic record ANYWHERE still returns None and is excluded loudly.
+# ---------------------------------------------------------------------------------------------
+DEFAULT_RECORD_STORE_ROOT = "domains/qa-verifier/record-store"
+
 
 def _dedup_preserve(paths: Iterable[Path]) -> list[Path]:
     seen: set[str] = set()
@@ -100,11 +123,22 @@ def _dedup_preserve(paths: Iterable[Path]) -> list[Path]:
     return out
 
 
-def _candidate_record_dirs(corpus_root: Path, feature: Optional[str], task: str) -> list[Path]:
+def _candidate_record_dirs(
+    corpus_root: Path,
+    feature: Optional[str],
+    task: str,
+    *,
+    repo: Optional[str] = None,
+    record_store_roots: Iterable[Path] = (),
+) -> list[Path]:
     """Candidate on-disk directories that may hold ``task``'s original run record, in priority
     order: the canonical live autobuild path first (exactly what gather_evidence reads), then the
     archived approved-run artifacts under the resolved feature, then live/foreign run-artifacts
-    dirs. Globs are ordered so a deterministic first-hit wins."""
+    dirs, and FINALLY the factory-side record store(s) — the sanctioned home for records recovered
+    for HEAD-missing tasks (a git-history blob, a live worktree, or a non-glob-reachable corpus
+    path). Corpus candidates come first so an already-materializable task keeps its live source;
+    the store is a purely-additive fallback and never a corpus write. Globs are ordered so a
+    deterministic first-hit wins."""
     gk_autobuild = corpus_root / _AUTOBUILD_REL
     gk_archive = corpus_root / _ARCHIVE_REL
     cands: list[Path] = [gk_autobuild / task]  # 1. canonical live autobuild dir
@@ -117,18 +151,36 @@ def _candidate_record_dirs(corpus_root: Path, feature: Optional[str], task: str)
     cands += sorted(gk_autobuild.glob(f"*-artifacts-{task}"), reverse=True)
     # 4. archived run-artifacts under ANY feature (fallback for a mis-attributed feature key).
     cands += sorted(gk_archive.glob(f"*/*-artifacts-{task}"), reverse=True)
+    # 5. factory-side record store(s): <root>/<repo>/<task>/ — recovered authentic records for
+    #    tasks whose HEAD record is not reachable by the corpus globs above (see the RECORD-STORE
+    #    RECOVERY note). Keyed by repo, so it is only consulted when the repo name is known.
+    if repo:
+        for store_root in record_store_roots:
+            cands.append(Path(store_root) / repo / task)
     return _dedup_preserve(cands)
 
 
 def locate_run_record_dir(
-    corpus_root: Path, feature: Optional[str], task: str
+    corpus_root: Path,
+    feature: Optional[str],
+    task: str,
+    *,
+    repo: Optional[str] = None,
+    record_store_roots: Iterable[Path] = (),
 ) -> Optional[Path]:
-    """Return the corpus-HEAD directory holding ``task``'s original run record (the first candidate
-    that actually contains ``task_work_results.json``), or ``None`` if no record exists at HEAD.
+    """Return the directory holding ``task``'s original run record (the first candidate that
+    actually contains ``task_work_results.json``), or ``None`` if no record exists anywhere the
+    search reaches.
 
-    Pure filesystem read over the corpus repo's live ``.guardkit`` tree (no git, no model)."""
+    Searches, in priority order, the corpus repo's live ``.guardkit`` tree first, then any
+    ``record_store_roots`` (factory-side stores laid out as ``<root>/<repo>/<task>/``) — the latter
+    consulted only when ``repo`` is given. Pure filesystem read (no git, no model). The store roots
+    are the recovery path for HEAD-missing records; they are never written back into a corpus repo.
+    """
     corpus_root = Path(corpus_root)
-    for cand in _candidate_record_dirs(corpus_root, feature, task):
+    for cand in _candidate_record_dirs(
+        corpus_root, feature, task, repo=repo, record_store_roots=record_store_roots
+    ):
         if (cand / RUN_RECORD_SENTINEL).is_file():
             return cand
     return None
@@ -462,6 +514,9 @@ def discover_source_tasks(config: Any, *, limit: Optional[int] = None) -> list[R
     map. Real git + filesystem work against the read-only corpus repos — a generation run, never
     reached by unit tests (they exercise the pure functions above and inject ``source_tasks``)."""
     corpus_roots = {k: Path(v) for k, v in dict(config.corpus_roots).items()}
+    # Factory-side record-store roots (additive; recovered HEAD-missing records). Config key is
+    # optional — absent => the pre-recovery behaviour (corpus globs only).
+    record_store_roots = [Path(p) for p in getattr(config, "record_store_roots", ()) or ()]
     result = discover_source_task_refs(corpus_roots)
 
     for exc in result.excluded:
@@ -489,13 +544,17 @@ def discover_source_tasks(config: Any, *, limit: Optional[int] = None) -> list[R
         # an evidence-empty ``missing_results`` bundle — we exclude rather than regenerate against
         # nothing (and never fabricate a record). The record is copied into each per-recipe
         # worktree at regeneration time (qav.generate._materialize_worktree).
-        record_dir = locate_run_record_dir(corpus_roots[ref.repo], ref.feature, ref.task)
+        record_dir = locate_run_record_dir(
+            corpus_roots[ref.repo], ref.feature, ref.task,
+            repo=ref.repo, record_store_roots=record_store_roots,
+        )
         if record_dir is None:
             logger.warning(
-                "DISCOVERY SKIP %s/%s — no autobuild run record at HEAD (looked for "
-                "%s under .guardkit/autobuild + .guardkit/archive/%s); cannot reconstruct "
-                "authentic evidence, excluded (never fabricated)",
+                "DISCOVERY SKIP %s/%s — no autobuild run record found (looked for %s under "
+                ".guardkit/autobuild + .guardkit/archive/%s AND the factory record store(s) %s); "
+                "cannot reconstruct authentic evidence, excluded (never fabricated)",
                 ref.repo, ref.task, RUN_RECORD_SENTINEL, ref.feature,
+                [str(p) for p in record_store_roots] or "(none configured)",
             )
             continue
         resolved.append(

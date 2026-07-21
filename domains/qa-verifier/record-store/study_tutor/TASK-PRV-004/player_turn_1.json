@@ -1,0 +1,121 @@
+{
+  "task_id": "TASK-PRV-004",
+  "turn": 1,
+  "files_modified": [
+    ".guardkit/autobuild/TASK-PRV-002/checkpoints.json",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/src/study_tutor/knowledge/retrieval.py",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_retrieval.py",
+    "src/study_tutor/knowledge/retrieval.py",
+    "tasks/backlog/TASK-PRV-004-source-filtered-retrieval-with-reranker.md",
+    "tests/unit/knowledge/test_retrieval.py"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-PRV-004-implementation-plan.md",
+    ".guardkit/autobuild/TASK-PRV-004/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-004/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-004/turn_context.json",
+    ".guardkit/bdd/TASK-PRV-004_junit.xml",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/.guardkit/autobuild/TASK-PRV-004/player_turn_1.json",
+    "tasks/design_approved/TASK-PRV-004-source-filtered-retrieval-with-reranker.md",
+    "tests/unit/knowledge/test_seam_corpus_loader.py",
+    "tests/unit/knowledge/test_seam_retrieval_decision.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_retrieval.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation. Files planned: 0, Files actual: 0",
+  "concerns": [],
+  "requirements_addressed": [
+    "retrieve(query, text_name, focus_aos, top_k=6) implemented with source-filtered ChromaDB query",
+    "Primary-first ordering invariant enforced via _primary_first partition",
+    "Top-K cap with secondary fill when fewer than K primary chunks",
+    "BAAI/bge-reranker-v2-m3 reranker baseline with try/except ImportError graceful degradation",
+    "MODE_RERANK / MODE_NO_RERANK flags exposed via get_last_retrieval_mode for orchestrator turn metadata",
+    "Defence-in-depth AQA filename exclusion at retrieval-time (AQA_FILENAME_PATTERN)",
+    "context_historical excluded for non-AO3 turns via NON_AO3_SOURCE_TYPES + chromadb where-filter",
+    "Empty-corpus / no-provider paths return [] without raising",
+    "Input validation rejects empty text_name and non-positive top_k",
+    "Seam test (@integration_contract SourceTypedCorpus) green",
+    "All TASK-PRV-003 decision-function tests still pass (no regression)"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 30,
+  "sdk_max_turns": 150,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 34,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Filtered retrieval prefers primary-text chunks over secondary at equal score (covers @key-example @smoke @retrieval @primary scenario \"retrieves source-filtered chunks\")",
+      "status": "complete",
+      "evidence": "Implemented _primary_first() in src/study_tutor/knowledge/retrieval.py which partitions ranker output into PRIMARY_TEXT first then SECONDARY_*. test_retrieve_primary_first_at_equal_score interleaves 3 primary + 3 secondary chunks at the same distance and asserts indices [0,1,2] are all primary, [3,4,5] all secondary. Seam test test_retrieve_returns_primary_first_with_citation_anchors validates the SourceTypedCorpus contract.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Top-K boundary: 7 available primary chunks \u2192 6 returned; 0 available \u2192 empty list; 3 \u2192 3 returned (covers @boundary @retrieval Scenario Outline)",
+      "status": "complete",
+      "evidence": "retrieve() takes top_k=DEFAULT_TOP_K (6) and applies (primary + secondary)[:top_k] in _primary_first. Parametrised test_retrieve_top_k_boundary covers (0,3,6,7) \u2192 (0,3,6,6).",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Retrieval for a text_name with no primary edition returns [] and the orchestrator records `no primary-text edition available` reason (covers @negative @retrieval scenario)",
+      "status": "complete",
+      "evidence": "retrieve() returns [] when (a) no collection provider is wired, (b) the provider yields None, or (c) the where-filter on text_name yields zero rows. test_retrieve_empty_corpus_returns_empty_list and test_retrieve_returns_empty_when_no_collection_provider cover both empty-corpus shapes.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "AQA-pattern filename in chunk metadata is excluded at retrieval-time even if present in the collection (covers @negative @retrieval @copyright scenario)",
+      "status": "complete",
+      "evidence": "AQA_FILENAME_PATTERN regex defined at module level (mirrors corpus.AQA_REFUSAL_PATTERN). _passes_aqa_filter() drops any chunk whose Path(source_path).name matches; applied in retrieve() before reranking. test_retrieve_filters_aqa_filename_defence_in_depth covers past_paper, mark-scheme, and examiner_report variants.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Reranker unavailability does not block the turn \u2014 chunks returned in base similarity order with mode=\"no_rerank\" recorded (covers @edge-case @retrieval @resilience scenario)",
+      "status": "complete",
+      "evidence": "_load_reranker() either delegates to _reranker_factory or imports sentence_transformers.CrossEncoder lazily; ImportError is caught in retrieve() which then sets _last_retrieval_mode = MODE_NO_RERANK and returns _primary_first(chunks, top_k) using the chromadb-distance ordering. RERANKER_MODEL=\"BAAI/bge-reranker-v2-m3\" is held as a module-level constant. test_retrieve_falls_back_when_reranker_unavailable verifies chunks are returned, primary-first holds, and get_last_retrieval_mode() returns MODE_NO_RERANK. test_retrieve_records_mode_rerank_on_success_path verifies the success branch records MODE_RERANK.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Filter excludes context_historical/ chunks for non-AO3 turns (the four-folder layout invariant)",
+      "status": "complete",
+      "evidence": "NON_AO3_SOURCE_TYPES = (PRIMARY_TEXT, SECONDARY_STUDY_GUIDE, SECONDARY_CRITICAL) \u2014 CONTEXT_HISTORICAL is intentionally excluded. The where-filter passes [s.value for s in NON_AO3_SOURCE_TYPES] under {\"source_type\": {\"$in\": [...]}}. test_retrieve_excludes_context_historical_for_non_ao3_turns places a CONTEXT_HISTORICAL chunk with the lowest distance and asserts it does not surface in the result.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Implementation follows existing module patterns (PEP 8, type hints, docstrings, from __future__ import annotations, pathlib.Path, logging not print). All 34 tests in tests/unit/knowledge/test_retrieval.py pass. The full knowledge test suite (270 tests) shows only 1 unrelated failure (test_module_loads_in_subprocess_with_graphiti_core_absent \u2014 a pre-existing subprocess PYTHONPATH issue not touched by this task).",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    }
+  ]
+}

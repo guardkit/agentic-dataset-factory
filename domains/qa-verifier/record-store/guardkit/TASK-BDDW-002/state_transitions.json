@@ -1,0 +1,9 @@
+[
+  {
+    "task_id": "TASK-BDDW-002",
+    "pre_path": "tasks/backlog/TASK-BDDW-002-multi-stack-bdd-reachability.md",
+    "post_path": "tasks/design_approved/TASK-BDDW-002-multi-stack-bdd-reachability.md",
+    "timestamp": "2026-07-04T16:11:07.327225+00:00",
+    "kind": "design_approved_transition"
+  }
+]

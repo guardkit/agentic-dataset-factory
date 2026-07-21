@@ -1,0 +1,133 @@
+{
+  "task_id": "TASK-QAWE-004",
+  "timestamp": "2026-06-12T19:12:30.407821",
+  "completed": true,
+  "phases": {},
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 25,
+    "tests_failed": 0,
+    "coverage": null,
+    "coverage_met": null,
+    "all_passed": null
+  },
+  "files_modified": [
+    ".guardkit/features/FEAT-C332.yaml",
+    "guardkit/orchestrator/agent_invoker.py",
+    "guardkit/orchestrator/quality_gates/coach_validator.py"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-QAWE-004-implementation-plan.md",
+    "conversation_history/session_29471071.md",
+    "tests/orchestrator/test_qawe_004_spec_gap.py"
+  ],
+  "files_authored": [],
+  "tests_written": [],
+  "summary": "25 tests passed",
+  "sdk_turns": {
+    "turns_used": null,
+    "max_turns": 150,
+    "ceiling_hit": false
+  },
+  "task_type": "feature",
+  "agent_invocations_validation": {
+    "status": "violation",
+    "expected_phases": 3,
+    "actual_invocations": 2,
+    "missing_phases": [
+      "3"
+    ],
+    "violation_message": "\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\u274c PROTOCOL VIOLATION: Agent invocation incomplete\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\nExpected: 3 agent invocations\nActual: 2 completed invocations\n\nMissing phases:\n  - Phase 3 (Implementation)\n\nCannot generate completion report until all agents are invoked.\nReview the AGENT INVOCATIONS LOG above to see which phases were skipped.\n\nAGENT INVOCATIONS LOG:\n\u2705 Phase 4 (Phase 4): test-orchestrator (completed in ?s)\n\u2705 Phase 5 (Phase 5): code-reviewer (completed in ?s)\n\nTASK WILL BE MOVED TO BLOCKED STATE\nReason: Protocol violation - required agents not invoked\n\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550"
+  },
+  "plan_audit": {
+    "status": "skipped",
+    "severity": null,
+    "violations": 0,
+    "extra_files": [],
+    "missing_files": [],
+    "extra_modifications": [],
+    "missing_modifications": [],
+    "extra_dependencies": [],
+    "missing_dependencies": [],
+    "loc_variance_pct": null,
+    "discrepancies_count": 0,
+    "message": "no implementation plan on disk"
+  },
+  "unconfirmed_low_confidence_assumptions": {
+    "status": "ok",
+    "unconfirmed": [],
+    "files_scanned": 0,
+    "files_skipped": 0,
+    "message": null
+  },
+  "completion_promises": [
+    {
+      "criterion_id": "AC-011",
+      "criterion_text": "a tagged scenario in ground truth but absent from the executed set \u2192 one advisory spec_gap finding.",
+      "status": "complete",
+      "evidence": "Implemented _compute_spec_gap() in coach_validator.py that scans feature files for @task:<TASK-ID> tags, compares against BDDRunResult.executed_scenarios, and produces SPEC_GAP advisory findings for each absent scenario. 3 tests cover this: tagged scenario absent produces finding, tagged scenario present produces no finding, no feature files produces 0 ground truth.",
+      "test_file": "tests/orchestrator/test_qawe_004_spec_gap.py",
+      "implementation_files": [
+        "guardkit/orchestrator/quality_gates/coach_validator.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-012",
+      "criterion_text": "a BDDRunResult whose scenarios_attempted key is absent does NOT set whole_file_deselection and does NOT fire the hard gate (.get(...,0) forbidden; absent = UNKNOWN).",
+      "status": "complete",
+      "evidence": "Implemented _compute_spec_gap() with 'in' check for scenarios_attempted key (not .get(...,0)). When key is absent, whole_file_deselection is False. The hard guard in agent_invoker.py uses spec_gap.get('whole_file_deselection', False) which returns False for absent key. Tests verify: absent key \u2192 no deselection, absent key \u2192 no hard gate fire, None bdd_dict \u2192 unsupported_stack.",
+      "test_file": "tests/orchestrator/test_qawe_004_spec_gap.py",
+      "implementation_files": [
+        "guardkit/orchestrator/quality_gates/coach_validator.py",
+        "guardkit/orchestrator/agent_invoker.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-013",
+      "criterion_text": "ground_truth_count > 0 with scenarios_attempted present-and-zero \u2192 whole_file_deselection:true \u2192 NEW _apply_spec_gap_absent_guard overrides approve\u2192feedback, prepends a must_fix category:absence_of_failure issue, re-persists coach_turn_N.json.",
+      "status": "complete",
+      "evidence": "Implemented _apply_spec_gap_absent_guard() in agent_invoker.py modelled verbatim on _reconcile_absent_independent_test_signal. Wired at line 2237 (same seam as independent test guard). Tests verify: whole_file_deselection=True overrides approve\u2192feedback, rationale contains ground_truth/executed counts, must_fix issue prepended with category absence_of_failure, coach_turn_N.json re-persisted on disk, feedback verdict not overridden.",
+      "test_file": "tests/orchestrator/test_qawe_004_spec_gap.py",
+      "implementation_files": [
+        "guardkit/orchestrator/agent_invoker.py",
+        "guardkit/orchestrator/quality_gates/coach_validator.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-014",
+      "criterion_text": "the guard no-ops when evidence_bundle is None, spec_gap is None, or whole_file_deselection absent/falsey.",
+      "status": "complete",
+      "evidence": "Implemented None-safety in _apply_spec_gap_absent_guard: early returns for decision != 'approve', evidence_bundle is None, spec_gap is None, whole_file_deselection absent/falsey. 4 tests verify: None bundle \u2192 approve stays, None spec_gap \u2192 approve stays, falsey whole_file_deselection \u2192 approve stays, absent whole_file_deselection key \u2192 approve stays.",
+      "test_file": "tests/orchestrator/test_qawe_004_spec_gap.py",
+      "implementation_files": [
+        "guardkit/orchestrator/agent_invoker.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-022",
+      "criterion_text": "when bdd.discover(stack) returns None, spec_gap.status is unsupported_stack and the guard does not fire.",
+      "status": "complete",
+      "evidence": "Implemented _compute_spec_gap() with None-safety: when bdd_dict is None, status is 'unsupported_stack' and whole_file_deselection is False. Test verifies: None bdd_dict \u2192 unsupported_stack status, unsupported_stack \u2192 guard does not fire (approve stays).",
+      "test_file": "tests/orchestrator/test_qawe_004_spec_gap.py",
+      "implementation_files": [
+        "guardkit/orchestrator/quality_gates/coach_validator.py"
+      ]
+    }
+  ],
+  "agent_invocations": [
+    {
+      "phase": "4",
+      "agent": "test-orchestrator",
+      "status": "completed",
+      "source": "orchestrator",
+      "duration_seconds": 125.9952556040007
+    },
+    {
+      "phase": "5",
+      "agent": "code-reviewer",
+      "status": "completed",
+      "source": "orchestrator",
+      "duration_seconds": 99.07194944599905
+    }
+  ]
+}

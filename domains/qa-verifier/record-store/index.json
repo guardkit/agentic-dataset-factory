@@ -1,0 +1,541 @@
+{
+  "generated_utc": "2026-07-21T11:50:21.576141+00:00",
+  "purpose": "Factory-side store of authentic QAV run records recovered for the 10 discovered tasks that lacked a materializable task_work_results.json at their corpus repo HEAD (round-4 pilot HEAD-record coverage lane). Records copied VERBATIM from their authentic source; never fabricated. locate_run_record_dir searches this store via the additive record_store_roots config key.",
+  "layout": "record-store/<repo>/<task>/<artifact files>",
+  "records": {
+    "guardkit/TASK-QAWE-003": {
+      "source_kind": "corpus_head_file",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/archive/FEAT-C332/worktree-artifacts/TASK-QAWE-003",
+      "source_path": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/archive/FEAT-C332/worktree-artifacts/TASK-QAWE-003",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "789ee5d6cdc8841c8ddd918ad99b361c4f7ac98b1038e9d9a8e95c4dad080092",
+          "bytes": 401
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "7f7fc9fb00bf10cc93fc098ea694ab08f3e82cfc87d33db0df3381019db15f46",
+          "bytes": 1961
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "821ccf82dc74447440dd70c2a3e12b248e9ae555f0ab9dc08d780a3ecb7ada0b",
+          "bytes": 224
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "cfd9f46d4dd2cc5909afc09359c9dbf739e58340ac9164133678dab8ed1ae94b",
+          "bytes": 4455
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "dc4724ab88219b3bf6d29f173bdc63a5e56434eac781ddab569c948b1776e85f",
+          "bytes": 597
+        },
+        {
+          "name": "state_transitions.json",
+          "sha256": "bedb1398c063aab0cd3b448d1aa6910ee98707ab934f1b7778aa4398db86ecc7",
+          "bytes": 294
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "d7ad028c6bb5cf79be7f5cc27d627b4012201d7a267482439c177c71207110f8",
+          "bytes": 6891
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "1f407194310aaf67528bef065391f98c2e370d66a44eb86a24ab84b8522755ea",
+          "bytes": 763
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "de6d4a9554d9d93dd0e531cf0f25e14b673f44c3b80e1218e17708d5c40cdc5e",
+          "bytes": 971
+        }
+      ]
+    },
+    "guardkit/TASK-QAWE-004": {
+      "source_kind": "corpus_head_file",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/archive/FEAT-C332/worktree-artifacts/TASK-QAWE-004",
+      "source_path": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/archive/FEAT-C332/worktree-artifacts/TASK-QAWE-004",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "d0d8342d170da4825363049c71b96f2676b12ce7b2db6a0389c178889df4a718",
+          "bytes": 401
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "786e081ea09b993a7d4613a54f43ffccea66c80977e596b69c9569b44900dc99",
+          "bytes": 2316
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "3e86bf42335ed9e231a380197e675a8ce0c4be38d29153bbc58c7c28fb956fd4",
+          "bytes": 284
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "fc0a465b400f6d7b001e28c178da13ae6d5450aa699f7266259750c488ec8bcb",
+          "bytes": 5281
+        },
+        {
+          "name": "progress.log",
+          "sha256": "9e18cdbce4ba5fd81804252a682dfe3137f90253f482a8fbdb0d763adb5fb79e",
+          "bytes": 2407
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "7c9bab52fd387e6f5662980f1b69d8361819cb272369457b955692f425e3e6e6",
+          "bytes": 655
+        },
+        {
+          "name": "state_transitions.json",
+          "sha256": "996ee3e6338ee25ca8360e88c6097316068038da5c2c4539a27f5bdf239c0135",
+          "bytes": 294
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "e73b09a1a6d35a081698daaaadf627ba8c19dcbd782be6f9fc3568251bfafbce",
+          "bytes": 7660
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "1e869b6f8469998e559e3d1ae606cf583b3a35ad1ea5a674d10287019150804e",
+          "bytes": 763
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "661bb130ad2be55e8a82db1558b28914421435a12e3a4381607a6be4fe173bd8",
+          "bytes": 970
+        }
+      ]
+    },
+    "guardkit/TASK-BDDW-002": {
+      "source_kind": "corpus_head_file",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/worktrees/FEAT-E2CB/.guardkit",
+      "source_path": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/worktrees/FEAT-E2CB/.guardkit/autobuild/TASK-BDDW-002",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "715dddb82c0ecf90d94cfac6ab1d3ee5e46a92432bdfc589fff28701c5a26ef7",
+          "bytes": 508
+        },
+        {
+          "name": "coach_evidence_turn_1.json",
+          "sha256": "a450fa52d66e1b6842cbdfba37030be413d7a37a04d082a64557e4bb4912ee09",
+          "bytes": 26508
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "762618c89b4cc9875d8146cbd66c31be4b70b9e18d66724ee99ee1f25dbb05b0",
+          "bytes": 1829
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "e3050208173d49d3234b7901a55636b4055e0d7e8ea99133d9b1ec99d3e35bc3",
+          "bytes": 3057
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "2454c694c5c589943736cfafd739735969edc735086f4d7d8b28f5f3c407b2b2",
+          "bytes": 741
+        },
+        {
+          "name": "state_transitions.json",
+          "sha256": "2538915f0a79e520dc6fc4bd23f3a8b8c34aa5a2c58ba307c2e9972496cc4fcb",
+          "bytes": 304
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "8194b698ded8517928101a85af9e89875836bf4660b5cb2c530e0434801cc34a",
+          "bytes": 5595
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "258dc2dc0e40796e35abe6a057d5b347644298de2fe9e680c87e99b5cc11e2ee",
+          "bytes": 763
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "3744ba03c76abc30a8ce3515297f61b6a3a879ad5b94d07c48529ef2017fbcb9",
+          "bytes": 656
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-001": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-001/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "76cb47d11ac29cd3f1bf26fbd4182c613f6247393743d48837d412d1fe277aba",
+          "bytes": 399
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "3f6438636c3978ce5b28a5a10065732a056117c9e5342922081842780c603214",
+          "bytes": 12836
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "053372ef1680690441f2290922af8aab3e17df5328856dfcb71c1df283b77864",
+          "bytes": 6866
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "a6956d8ad712ba2fda8fc79330dd7cfb3aca436799f2898137003975f266997f",
+          "bytes": 5449
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "77704f067552c5723faa8230caa463a2eefc4fc253a362bb072f1f5f42454689",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "5466e565f49d9de2f6fe70fb4d496e6f96a2444f755254fd9cf3180b9d5a23e1",
+          "bytes": 920
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-002": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-002/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "31fd92c672731ce51175e80668a66ffc4f42b26103df489aeb153a2119ee96b2",
+          "bytes": 696
+        },
+        {
+          "name": "coach_feedback_for_turn_2.json",
+          "sha256": "6c7cb277ab13beed7e8fe4906f44f2747333e01bae03f9b2144d3200b7735199",
+          "bytes": 976
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "7f10e40c917968bc33e1e14dc9c4267ff9da6e6f0a293c409ff83785a2753518",
+          "bytes": 22943
+        },
+        {
+          "name": "coach_turn_2.json",
+          "sha256": "80882e87cd7736dda3082399479eccd9009bbc71ec33262ccdbef19d308a1b80",
+          "bytes": 25671
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "f6bd897d4466071912b230de7d113360e168f0a5e8ce64c9145a07c90830e648",
+          "bytes": 267
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "7be0fef6d183edef5f2da27448e17109a383525964a4fe8aebb5a36050bcc425",
+          "bytes": 11061
+        },
+        {
+          "name": "player_turn_2.json",
+          "sha256": "75393f989de2ac02d3e184d99674e920562b67b0a52987587552804d6fecb695",
+          "bytes": 12896
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "7f548c1040f137a819d910b9bda5e92afe834d4184c11acd385f48a4ecc4b45d",
+          "bytes": 638
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "79ad3ae5599f9f2e37684c3aac0ce61db3254c186658f6c8dba9f3d96e7612ce",
+          "bytes": 14778
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "306583dc22cf39a80001c3bb1cee6028dbf0490c0b287c369f35918e12bc02d4",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "494a308c5305174947c7625b248cb10d989b858d586a025bd0097a932afea6a1",
+          "bytes": 2956
+        },
+        {
+          "name": "turn_state_turn_2.json",
+          "sha256": "ada69a66e30b857de4112c58e9fcbb083045e1d93f38ce2d042c86bbc5a1e0ee",
+          "bytes": 3378
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-003": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-003/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "076281cffd4093f274d4aba5656a36d60f2b15abab70afa4da7cdb727a22bfb8",
+          "bytes": 696
+        },
+        {
+          "name": "coach_feedback_for_turn_2.json",
+          "sha256": "6c7cb277ab13beed7e8fe4906f44f2747333e01bae03f9b2144d3200b7735199",
+          "bytes": 976
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "92a91e573a6d4e500485f8cd6918470bc3675f01cf3f0caefc591ab7f9971aff",
+          "bytes": 17933
+        },
+        {
+          "name": "coach_turn_2.json",
+          "sha256": "afaff4c9acb51c25918c93e5de25e2f412cd552d50c305c9b4052eae112e4e39",
+          "bytes": 24677
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "2b3cdd5089d957dd53c3ca5995afe37d62e024bc5e057f7852d06fdf6e64ef9b",
+          "bytes": 274
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "c865dd9460ea48106ae354016126c0d09386c669c431dcd6e85ecb6e39879300",
+          "bytes": 8354
+        },
+        {
+          "name": "player_turn_2.json",
+          "sha256": "c3015431512926b7294a8d85ccb947106ae7077a271a9c23ce924056e2df65c4",
+          "bytes": 11945
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "8daf67016ab143c2b315700c4e991a39813b41609f99c2992c7ca2daa11f2a56",
+          "bytes": 645
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "7f2eb2b7b63969273b13484b8728f6fcaad5fbd89251ee699f8f746a0e82a246",
+          "bytes": 14326
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "42b94503497ddfd5f057ecb7ccdbea104e6baf7a094d1362ff03e66ed7fbaa5f",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "6914bcd2e096ca69e9e980b1227006cb312774a8b459b049e04bf2e82c22323a",
+          "bytes": 2533
+        },
+        {
+          "name": "turn_state_turn_2.json",
+          "sha256": "6ecf9230b7d5c5dd8592ce260e77d5ad4b50ad19ff5c036c4a874c5edad4da90",
+          "bytes": 3267
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-004": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-004/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "46dad24faab9ebdce22feeea83c4ebce3fdcfe5e91c20aa34396da1d9dec74f8",
+          "bytes": 399
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "c646c97660e2343c1f338a3755c8ec33983f672c97e360a828f9d559e53912f0",
+          "bytes": 18342
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "eaba7cff2c2323dc3987c4123ee38315ee8d6cc2963dfe12814b9da55f5f80bc",
+          "bytes": 246
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "5dce8afe40a40379e8f4d8259485fb825b3082bc700d9c168889f1357c0d5189",
+          "bytes": 8273
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "d72386d0af9863ac7142da124a843347ecf7c34d26cd25d15ab60e1d798036b4",
+          "bytes": 619
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "77b1e8ef0c1a0fd5ab8d0ef59b3734c86a3206025bc9642124db4a25470511f3",
+          "bytes": 13288
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "457a1f8f3f527179cdcf120416d8eb57934be4a07a4eaaec18a82a51f1807b74",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "0b5d93daea98c0e6460e54d3e4d998bb77a6ec807f926861e2bbc3f0cbec67c9",
+          "bytes": 1979
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-005": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-005/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "719a326c9f96afdbe556bcceea504687404bece3cb5ca81fc63c28148b0a51e8",
+          "bytes": 399
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "da504a16a512f3f9b467743b68538606ecb2d7ff599d42c4516ab463452cd083",
+          "bytes": 34551
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "c425c74ae5fc59ceb860daf153854f8efc07c8033e8d951d23c7830b1ccffa8f",
+          "bytes": 269
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "2017efec65da6a6479d7f291df7a32b9280a78186b0e66a90df5435618e9bc25",
+          "bytes": 14402
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "8838845fb680ab3f87df1b22d38a1005dce07a067dc54315156e63984c3322fe",
+          "bytes": 641
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "d83724753f8d6e0d4a80f6f4083cd0ebdeed1b9010b16d479ea40dd2168feb21",
+          "bytes": 25192
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "65cfa8ae6ce79dc69f57807a66dc60bd27235d8e6b188785960e1fdd1d01de1d",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "eba0fe9cd5ca4b49b9a11e277aec440094f0a7987605c95cb9948c030b694e85",
+          "bytes": 2068
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-006": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-006/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "c82aacbec08bc39ebc617851ac8b2ff5ae8b05debfe46d3ce4f4cf8b5c0720e0",
+          "bytes": 399
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "0ee2aa4db12356d08fcd8445459cd26f380371d729529c799e3d8446374b7adc",
+          "bytes": 23145
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "249c54932b01df2dd202b9b5a7a6c415e99650651e5890d08527a338886ee46a",
+          "bytes": 215
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "e9132575c8803996d678ec6228bb494dc2e184645eb4a11869b306dd36495ccd",
+          "bytes": 9911
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "5b64b648640a260f83b797df8479b507d83818688c9cb92ae1a2fed95bfad827",
+          "bytes": 588
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "3aaef38d0ff17a7e284a5bd49500e03439c6dd30a1b4cc3fe1fe6d759641ecae",
+          "bytes": 12758
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "f1207e60ec1e2ffbc017e3efb6c2270d407eb66ad362ee6ce5dd1c2c9646b07d",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "4b48ef0c52cf705d9f23434417d87bc29fa04c8494303b0d1c9c42e8f23a6d82",
+          "bytes": 2222
+        }
+      ]
+    },
+    "study_tutor/TASK-PRV-007": {
+      "source_kind": "git_blob_at_approved_sha",
+      "source_repo": "/home/richardwoollcott/Projects/appmilla_github/study-tutor",
+      "source_rev": "6eb41a71^ == 94f3331f3c99413f45b0395ab368a17ad34064f1",
+      "source_path": ".guardkit/autobuild/TASK-PRV-007/ (deleted from HEAD by 6eb41a71)",
+      "provenance_note": "6eb41a71^ resolves to FEAT-70A4 merge_summary.main_head_after (94f3331) \u2014 the records ARE the on-disk state at the feature's approved sha",
+      "files": [
+        {
+          "name": "checkpoints.json",
+          "sha256": "06cabd62e701cf3c4f81123fdd237fa239c0063955e49473502719f02c110e6b",
+          "bytes": 399
+        },
+        {
+          "name": "coach_turn_1.json",
+          "sha256": "eb9cf77217740142a73c095977f3d5a7e4bb3c1c7b021f7a05037c3540175cb2",
+          "bytes": 19965
+        },
+        {
+          "name": "phase_4_summary.json",
+          "sha256": "2d0d1765d3d58716b5af76e7c82498b9316ad9d7f3b6bc981ba0dce6fc288235",
+          "bytes": 266
+        },
+        {
+          "name": "player_turn_1.json",
+          "sha256": "7b200c306879de11d60d8ee01925ced45ac7c2cf5c98485df40a238944d8e578",
+          "bytes": 8713
+        },
+        {
+          "name": "specialist_results.json",
+          "sha256": "92ba9dbe6c0631b8aafb89bc346933c803f35a2c28e94df8d58f3a731dba4c38",
+          "bytes": 637
+        },
+        {
+          "name": "task_work_results.json",
+          "sha256": "bc0a96e777fbd179c50c5cdf248d924b814923c33638f7669ba7cdff39b25ab3",
+          "bytes": 10859
+        },
+        {
+          "name": "turn_context.json",
+          "sha256": "2406b46f7f62b5163c8227a98e5198997dc2976e1281064b8265b50056588596",
+          "bytes": 762
+        },
+        {
+          "name": "turn_state_turn_1.json",
+          "sha256": "77c975feac3f4f5678a178d69e45fc93237bdb6df44b4b4cecc55447201fca1b",
+          "bytes": 1881
+        }
+      ]
+    }
+  }
+}

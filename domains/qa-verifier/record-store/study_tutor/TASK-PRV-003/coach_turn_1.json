@@ -1,0 +1,193 @@
+{
+  "task_id": "TASK-PRV-003",
+  "turn": 1,
+  "decision": "feedback",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest tests/unit/knowledge/test_retrieval.py -v --tb=short",
+      "test_output_summary": "Result:\ntests/unit/knowledge/test_retrieval.py::test_has_primary_text_reflects_registry_state PASSED [ 84%]\ntests/unit/knowledge/test_retrieval.py::test_register_primary_text_rejects_empty_string PASSED [ 89%]\ntests/unit/knowledge/test_retrieval.py::test_focus_aos_accepts_frozenset_for_ao3_only_branch PASSED [ 94%]\ntests/unit/knowledge/test_retrieval.py::test_should_retrieve_returns_named_tuple_contract PASSED [100%]\n============================== 19 passed in 5.27s ==============================",
+      "duration_seconds": 5.9079976081848145
+    },
+    "requirements": {
+      "criteria_total": 8,
+      "criteria_met": 8,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Branch 1 (AO3-only) returns `(False, REASON_AO3_ONLY,",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "should_retrieve checks `set(focus_aos) == {\"AO3\"}` first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). Verified by test_decide_retrieval_decision_matrix[ao3_only_bypass], test_ao3_only_bypasses_even_when_primary_indexed, and test_ao3_only_bypasses_with_empty_corpus.",
+      "notes": "should_retrieve checks `set(focus_aos) == {\"AO3\"}` first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). Verified by test_decide_retrieval_decision_matrix[ao3_only_bypass], test_ao3_only_bypasses_even_when_primary_indexed, and test_ao3_only_bypasses_with_empty_corpus."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Branch 2 (no primary text in corpus) returns `(False,",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "should_retrieve checks `not has_primary_text(text_name)` after the AO3-only short-circuit and returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\"). Verified by test_decide_retrieval_decision_matrix[no_primary_text] and test_empty_focus_aos_with_no_primary_falls_through_to_analysis_mode.",
+      "notes": "should_retrieve checks `not has_primary_text(text_name)` after the AO3-only short-circuit and returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\"). Verified by test_decide_retrieval_decision_matrix[no_primary_text] and test_empty_focus_aos_with_no_primary_falls_through_to_analysis_mode."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Branch 3 (mixed AO3 + AO1/AO2) returns `(True,",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "should_retrieve checks `\"AO3\" in focus_aos and len(focus_aos) > 1` and returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\"). Verified by test_decide_retrieval_decision_matrix[mixed_ao3] and the identity-check test_reason_strings_are_module_level_constants.",
+      "notes": "should_retrieve checks `\"AO3\" in focus_aos and len(focus_aos) > 1` and returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\"). Verified by test_decide_retrieval_decision_matrix[mixed_ao3] and the identity-check test_reason_strings_are_module_level_constants."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Branch 4 (primary present, non-AO3-only) returns `(True,",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") when none of the earlier branches match. Verified by test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present.",
+      "notes": "should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") when none of the earlier branches match. Verified by test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "AO3-only with empty `context_historical/` folder still",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Because the AO3-only check is the first branch, corpus contents are irrelevant when focus_aos == {\"AO3\"}. Verified by test_ao3_only_bypasses_with_empty_corpus (no registrations) and test_ao3_only_bypasses_even_when_primary_indexed (primary text present); both yield REASON_AO3_ONLY.",
+      "notes": "Because the AO3-only check is the first branch, corpus contents are irrelevant when focus_aos == {\"AO3\"}. Verified by test_ao3_only_bypasses_with_empty_corpus (no registrations) and test_ao3_only_bypasses_even_when_primary_indexed (primary text present); both yield REASON_AO3_ONLY."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Embedder unavailability (sleep > 5s) \u2192 `(False,",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "embedder_available_within measures monotonic wall-clock around the installed probe; decide_retrieval consults it and returns RetrievalDecision(False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") on timeout or probe exception. Verified by test_decide_retrieval_decision_matrix[embedder_timeout_override] (probe sleeps EMBEDDER_TIMEOUT_SECONDS+0.05s), test_embedder_probe_sleep_over_budget_triggers_override, and test_embedder_probe_raising_treated_as_unavailable.",
+      "notes": "embedder_available_within measures monotonic wall-clock around the installed probe; decide_retrieval consults it and returns RetrievalDecision(False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") on timeout or probe exception. Verified by test_decide_retrieval_decision_matrix[embedder_timeout_override] (probe sleeps EMBEDDER_TIMEOUT_SECONDS+0.05s), test_embedder_probe_sleep_over_budget_triggers_override, and test_embedder_probe_raising_treated_as_unavailable."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Reason strings are module-level constants (tests assert",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, and REASON_RETRIEVE_MIXED are defined as module-level string constants and referenced by name in every return site. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches, and test_should_retrieve_returns_named_tuple_contract (the seam test) asserts `decision.reason is REASON_NO_PRIMARY`.",
+      "notes": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, and REASON_RETRIEVE_MIXED are defined as module-level string constants and referenced by name in every return site. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches, and test_should_retrieve_returns_named_tuple_contract (the seam test) asserts `decision.reason is REASON_NO_PRIMARY`."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All modified files pass project-configured lint/format checks",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Module imports cleanly under Python 3.12 (pytest collected 19/19 tests with no import errors). Source file uses `from __future__ import annotations`, type hints throughout, PEP 8 formatting (line lengths within standard limits), descriptive docstrings, no unused imports, no print() (uses logging module). pyproject.toml does not declare a ruff/black config so there is no project-configured linter beyond the implicit pytest/pyflakes-via-pytest gate, which all tests pass.",
+      "notes": "Module imports cleanly under Python 3.12 (pytest collected 19/19 tests with no import errors). Source file uses `from __future__ import annotations`, type hints throughout, PEP 8 formatting (line lengths within standard limits), descriptive docstrings, no unused imports, no print() (uses logging module). pyproject.toml does not declare a ruff/black config so there is no project-configured linter beyond the implicit pytest/pyflakes-via-pytest gate, which all tests pass."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Branch 1 (AO3-only) returns `(False, REASON_AO3_ONLY,",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "should_retrieve checks `set(focus_aos) == {\"AO3\"}` first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). Verified by test_decide_retrieval_decision_matrix[ao3_only_bypass], test_ao3_only_bypasses_even_when_primary_indexed, and test_ao3_only_bypasses_with_empty_corpus.",
+        "notes": "should_retrieve checks `set(focus_aos) == {\"AO3\"}` first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). Verified by test_decide_retrieval_decision_matrix[ao3_only_bypass], test_ao3_only_bypasses_even_when_primary_indexed, and test_ao3_only_bypasses_with_empty_corpus."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Branch 2 (no primary text in corpus) returns `(False,",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "should_retrieve checks `not has_primary_text(text_name)` after the AO3-only short-circuit and returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\"). Verified by test_decide_retrieval_decision_matrix[no_primary_text] and test_empty_focus_aos_with_no_primary_falls_through_to_analysis_mode.",
+        "notes": "should_retrieve checks `not has_primary_text(text_name)` after the AO3-only short-circuit and returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\"). Verified by test_decide_retrieval_decision_matrix[no_primary_text] and test_empty_focus_aos_with_no_primary_falls_through_to_analysis_mode."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Branch 3 (mixed AO3 + AO1/AO2) returns `(True,",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "should_retrieve checks `\"AO3\" in focus_aos and len(focus_aos) > 1` and returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\"). Verified by test_decide_retrieval_decision_matrix[mixed_ao3] and the identity-check test_reason_strings_are_module_level_constants.",
+        "notes": "should_retrieve checks `\"AO3\" in focus_aos and len(focus_aos) > 1` and returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\"). Verified by test_decide_retrieval_decision_matrix[mixed_ao3] and the identity-check test_reason_strings_are_module_level_constants."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Branch 4 (primary present, non-AO3-only) returns `(True,",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") when none of the earlier branches match. Verified by test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present.",
+        "notes": "should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") when none of the earlier branches match. Verified by test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "AO3-only with empty `context_historical/` folder still",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Because the AO3-only check is the first branch, corpus contents are irrelevant when focus_aos == {\"AO3\"}. Verified by test_ao3_only_bypasses_with_empty_corpus (no registrations) and test_ao3_only_bypasses_even_when_primary_indexed (primary text present); both yield REASON_AO3_ONLY.",
+        "notes": "Because the AO3-only check is the first branch, corpus contents are irrelevant when focus_aos == {\"AO3\"}. Verified by test_ao3_only_bypasses_with_empty_corpus (no registrations) and test_ao3_only_bypasses_even_when_primary_indexed (primary text present); both yield REASON_AO3_ONLY."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Embedder unavailability (sleep > 5s) \u2192 `(False,",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "embedder_available_within measures monotonic wall-clock around the installed probe; decide_retrieval consults it and returns RetrievalDecision(False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") on timeout or probe exception. Verified by test_decide_retrieval_decision_matrix[embedder_timeout_override] (probe sleeps EMBEDDER_TIMEOUT_SECONDS+0.05s), test_embedder_probe_sleep_over_budget_triggers_override, and test_embedder_probe_raising_treated_as_unavailable.",
+        "notes": "embedder_available_within measures monotonic wall-clock around the installed probe; decide_retrieval consults it and returns RetrievalDecision(False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") on timeout or probe exception. Verified by test_decide_retrieval_decision_matrix[embedder_timeout_override] (probe sleeps EMBEDDER_TIMEOUT_SECONDS+0.05s), test_embedder_probe_sleep_over_budget_triggers_override, and test_embedder_probe_raising_treated_as_unavailable."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Reason strings are module-level constants (tests assert",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, and REASON_RETRIEVE_MIXED are defined as module-level string constants and referenced by name in every return site. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches, and test_should_retrieve_returns_named_tuple_contract (the seam test) asserts `decision.reason is REASON_NO_PRIMARY`.",
+        "notes": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, and REASON_RETRIEVE_MIXED are defined as module-level string constants and referenced by name in every return site. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches, and test_should_retrieve_returns_named_tuple_contract (the seam test) asserts `decision.reason is REASON_NO_PRIMARY`."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "All modified files pass project-configured lint/format checks",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Module imports cleanly under Python 3.12 (pytest collected 19/19 tests with no import errors). Source file uses `from __future__ import annotations`, type hints throughout, PEP 8 formatting (line lengths within standard limits), descriptive docstrings, no unused imports, no print() (uses logging module). pyproject.toml does not declare a ruff/black config so there is no project-configured linter beyond the implicit pytest/pyflakes-via-pytest gate, which all tests pass.",
+        "notes": "Module imports cleanly under Python 3.12 (pytest collected 19/19 tests with no import errors). Source file uses `from __future__ import annotations`, type hints throughout, PEP 8 formatting (line lengths within standard limits), descriptive docstrings, no unused imports, no print() (uses logging module). pyproject.toml does not declare a ruff/black config so there is no project-configured linter beyond the implicit pytest/pyflakes-via-pytest gate, which all tests pass."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "warning",
+      "category": "agent_invocations_advisory",
+      "description": "Advisory (non-blocking): task-work produced a report with 2 of 3 expected agent invocations. Missing phases: 3 (Implementation). Consider invoking these agents via the Task tool to strengthen stack-specific quality:\n- Phase 3: `the stack-specific Phase-3 specialist` (Implementation)",
+      "details": {
+        "missing_phases": [
+          "3"
+        ],
+        "expected_phases": 3,
+        "actual_invocations": 2
+      }
+    },
+    {
+      "severity": "must_fix",
+      "category": "bdd_failure",
+      "description": "BDD oracle: 1 scenario(s) failed during pytest-bdd execution. Implementation does not satisfy the Gherkin specification.",
+      "scenarios_failed": 1,
+      "scenarios_passed": 0,
+      "scenarios_pending": 0,
+      "feature_files": [
+        "features/primary-text-rag-and-quote-verifier/primary-text-rag-and-quote-verifier.feature"
+      ],
+      "failure_examples": [
+        "pytest_runner_error \u2014 pytest_runner_error: exit=4; ERROR: not found: /home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/features/primary-text-r"
+      ]
+    }
+  ],
+  "rationale": "BDD scenarios failed: 1 scenario(s) reported assertion failure during pytest-bdd execution.",
+  "context_used": "## Job-Specific Context\n\nBudget: 1636/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- ASSIGNS_TASK_TO\n- USED_IN_PATTERN\n- DESCRIBES\n- CALLED_BY\n\n### \u26a0\ufe0f Warnings\n- REQUIRES\n- CALLS\n- CAUSES_INCORRECT_PATH\n\n### \ud83c\udfad Role Constraints\n- DELEGATE_TO_TASK_WORK\n- HAS_ROLE_MUST_DO\n- MUST_CONSULT_BEFORE_MODIFYING\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false,
+  "environment_conditional_approval": false
+}

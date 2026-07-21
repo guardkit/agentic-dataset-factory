@@ -307,6 +307,70 @@ def test_locate_run_record_dir_absent_returns_none(tmp_path):
     assert locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-001") is None
 
 
+# --------------------------------------------------------------------------------------
+# Factory-side record store — the HEAD-missing recovery path (S-B, 2026-07-21).
+# --------------------------------------------------------------------------------------
+def _write_store_record(store_root: Path, repo: str, task: str) -> Path:
+    """A recovered record laid out as <store_root>/<repo>/<task>/ (the store contract)."""
+    return _write_record(store_root, f"{repo}/{task}", task)
+
+
+def test_record_store_root_recovers_a_head_missing_record(tmp_path):
+    # The task's record is ABSENT from the corpus tree but PRESENT in the factory store — the
+    # exact shape of the 10 recovered tasks (worktree-artifacts / live-worktree / git-blob source
+    # copied into domains/qa-verifier/record-store/<repo>/<task>/).
+    repo = tmp_path / "guardkit"  # no .guardkit record for the task
+    store = tmp_path / "record-store"
+    rec = _write_store_record(store, "guardkit", "TASK-QAWE-003")
+
+    # Without the store root: absent (reproduces the round-4 SKIP).
+    assert locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-003") is None
+    # With the store root + repo: the recovered record is found.
+    got = locate_run_record_dir(
+        repo, "FEAT-C332", "TASK-QAWE-003",
+        repo="guardkit", record_store_roots=[store],
+    )
+    assert got == rec
+    assert json.loads((got / RUN_RECORD_SENTINEL).read_text())["task_id"] == "TASK-QAWE-003"
+
+
+def test_record_store_is_additive_corpus_wins(tmp_path):
+    # An already-materializable task keeps its LIVE corpus source; the store never shadows it.
+    repo = tmp_path / "guardkit"
+    canonical = _write_record(repo, ".guardkit/autobuild/TASK-QAWE-001", "TASK-QAWE-001")
+    store = tmp_path / "record-store"
+    _write_store_record(store, "guardkit", "TASK-QAWE-001")
+    got = locate_run_record_dir(
+        repo, "FEAT-C332", "TASK-QAWE-001",
+        repo="guardkit", record_store_roots=[store],
+    )
+    assert got == canonical  # corpus candidate ordered before the store
+
+
+def test_record_store_ignored_without_repo(tmp_path):
+    # The store is keyed by repo; with no repo name it is not consulted (backward-compatible with
+    # the 3-arg call sites).
+    repo = tmp_path / "guardkit"
+    store = tmp_path / "record-store"
+    _write_store_record(store, "guardkit", "TASK-QAWE-003")
+    assert locate_run_record_dir(repo, "FEAT-C332", "TASK-QAWE-003") is None
+    assert locate_run_record_dir(
+        repo, "FEAT-C332", "TASK-QAWE-003", record_store_roots=[store]
+    ) is None  # repo omitted -> store skipped
+
+
+def test_record_store_absent_everywhere_still_excludes(tmp_path):
+    # THE EXCLUSION LAW under recovery: a task with no authentic record in the corpus AND none in
+    # any store root still returns None -> the loud exclusion fires (never fabricated).
+    repo = tmp_path / "guardkit"
+    store = tmp_path / "record-store"
+    store.mkdir()  # empty store
+    assert locate_run_record_dir(
+        repo, "FEAT-C332", "TASK-GHOST-001",
+        repo="guardkit", record_store_roots=[store],
+    ) is None
+
+
 def test_materialize_run_record_writes_at_exact_gather_read_path(tmp_path):
     repo = tmp_path / "guardkit"
     rec = _write_record(repo, ".guardkit/archive/FEAT-C332/run1-artifacts-TASK-QAWE-001", "TASK-QAWE-001")
@@ -353,7 +417,30 @@ def test_discover_source_tasks_materializes_present_record_and_excludes_absent(t
     assert set(tasks) == {"TASK-HAS-REC"}  # the recordless task never becomes a source task
     assert tasks["TASK-HAS-REC"].record_dir == str(rec)
     loud = "\n".join(r.getMessage() for r in caplog.records)
-    assert "no autobuild run record at HEAD" in loud and "TASK-NO-REC" in loud
+    assert "no autobuild run record found" in loud and "TASK-NO-REC" in loud
+
+
+def test_discover_source_tasks_recovers_record_from_factory_store(tmp_path):
+    # End-to-end recovery: a task with NO corpus record but a record in the factory store is
+    # INCLUDED (the 10 HEAD-missing tasks' path). The record_dir points at the store, not the repo.
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n", "tests/test_a.py": "def test(): assert True\n"})
+    _write_merge_summary(repo, "FEAT-C332", {
+        "merged_commit": sha,
+        "tasks": [{"id": "TASK-QAWE-003", "decision": "approved"}],
+    })
+    store = tmp_path / "record-store"
+    rec = _write_store_record(store, "guardkit", "TASK-QAWE-003")
+
+    config = SimpleNamespace(
+        corpus_roots={"guardkit": str(repo)},
+        scratch_dir=str(tmp_path / "scratch"),
+        record_store_roots=[str(store)],
+    )
+    resolved = discover_source_tasks(config)
+    tasks = {r.task: r for r in resolved}
+    assert set(tasks) == {"TASK-QAWE-003"}
+    assert tasks["TASK-QAWE-003"].record_dir == str(rec)  # recovered from the store
 
 
 def test_checkout_with_relative_worktree_path_never_plants_inside_corpus(tmp_path, monkeypatch):

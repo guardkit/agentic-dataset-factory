@@ -1,0 +1,157 @@
+{
+  "task_id": "TASK-PRV-003",
+  "turn": 2,
+  "files_modified": [
+    ".claude/task-plans/TASK-PRV-002-implementation-plan.md",
+    ".claude/task-plans/TASK-PRV-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-PRV-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-PRV-002/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-002/phase_4_summary.json",
+    ".guardkit/autobuild/TASK-PRV-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-002/specialist_results.json",
+    ".guardkit/autobuild/TASK-PRV-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-002/turn_context.json",
+    ".guardkit/autobuild/TASK-PRV-002/turn_state_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-003/checkpoints.json",
+    ".guardkit/autobuild/TASK-PRV-003/coach_feedback_for_turn_2.json",
+    ".guardkit/autobuild/TASK-PRV-003/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-003/phase_4_summary.json",
+    ".guardkit/autobuild/TASK-PRV-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-003/specialist_results.json",
+    ".guardkit/autobuild/TASK-PRV-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-003/turn_context.json",
+    ".guardkit/autobuild/TASK-PRV-003/turn_state_turn_1.json",
+    ".guardkit/bdd/TASK-PRV-002_junit.xml",
+    ".guardkit/bdd/TASK-PRV-003_junit.xml",
+    "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py",
+    "src/study_tutor/knowledge/corpus.py",
+    "src/study_tutor/knowledge/retrieval.py",
+    "tasks/backlog/primary-text-rag-and-quote-verifier/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/backlog/primary-text-rag-and-quote-verifier/TASK-PRV-003-retrieval-decision-function.md",
+    "tasks/design_approved/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/design_approved/TASK-PRV-003-retrieval-decision-function.md",
+    "tests/unit/knowledge/test_corpus.py",
+    "tests/unit/knowledge/test_retrieval.py"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-PRV-002/checkpoints.json",
+    ".guardkit/autobuild/TASK-PRV-002/coach_feedback_for_turn_2.json",
+    ".guardkit/autobuild/TASK-PRV-003/player_turn_2.json",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/.guardkit/autobuild/TASK-PRV-003/player_turn_2.json",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation. Files planned: 0, Files actual: 0",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: AO3-only bypass branch (BDD-bound)",
+    "AC-002: no-primary-text analysis-mode branch (BDD-bound)",
+    "AC-003: mixed AO3+AO1/AO2 retrieve-mixed branch (BDD-bound)",
+    "AC-004: primary-present non-AO3-only retrieve-primary branch (unit-tested; BDD scenario is TASK-PRV-004's)",
+    "AC-005: AO3-only bypasses regardless of corpus state (BDD-bound for empty historical-context)",
+    "AC-006: embedder-timeout override forces analysis-mode (BDD-bound)",
+    "AC-007: reason constants are module-level (identity-comparable; BDD steps use `is`)",
+    "AC-008: lint/format/import cleanliness (24/24 tests collect+pass)",
+    "Coach must_fix: BDD oracle scenario failure resolved (5/5 @task:TASK-PRV-003 scenarios now bound and passing)"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 19,
+  "sdk_max_turns": 150,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 24,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Branch 1 (AO3-only) returns (False, REASON_AO3_ONLY, \"ao3_bypass\") (covers @key-example @smoke @retrieval @ao3-bypass scenario)",
+      "status": "complete",
+      "evidence": "Unit: should_retrieve checks set(focus_aos) == {\"AO3\"} first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). BDD: the @task:TASK-PRV-003 @key-example @smoke @retrieval @ao3-bypass scenario 'A turn whose focus is AO3 context bypasses retrieval and is answered from training' now passes via test_primary_text_rag_and_quote_verifier.py \u2014 verified by `pytest -m task_TASK_PRV_003` reporting 5/5 passed in junit (tests=\"5\" failures=\"0\").",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Branch 2 (no primary text in corpus) returns (False, REASON_NO_PRIMARY, \"analysis_mode\") (covers @key-example @smoke @retrieval @analysis-mode scenario)",
+      "status": "complete",
+      "evidence": "Unit: should_retrieve returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\") when has_primary_text(text_name) is False. BDD: the @key-example @smoke @retrieval @analysis-mode scenario 'A turn on an in-copyright modern text whose primary edition is not in the corpus skips retrieval and runs in Analysis Mode' is bound by _given_in_copyright_no_primary (deliberately does NOT register the text) + _then_metadata_records_skip_reason (asserts decision.reason is REASON_NO_PRIMARY by identity). 5/5 BDD scenarios passing.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Branch 3 (mixed AO3 + AO1/AO2) returns (True, REASON_RETRIEVE_MIXED, \"mixed\") (covers @edge-case @retrieval @ao3 mixed-mode scenario)",
+      "status": "complete",
+      "evidence": "Unit: should_retrieve returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\") when 'AO3' in focus_aos and len(focus_aos) > 1. BDD: the @edge-case @retrieval @ao3 'mixed focus assessment objectives' scenario is bound by _given_focus_mixed ({\"AO1\", \"AO2\", \"AO3\"}) + _then_retrieve_for_ao12, _then_ao3_from_training, and _then_metadata_mixed_mode all asserting mode==\"mixed\" and reason is REASON_RETRIEVE_MIXED. 5/5 BDD scenarios passing.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Branch 4 (primary present, non-AO3-only) returns (True, REASON_RETRIEVE_PRIMARY, \"retrieve\") (covers @key-example @smoke @retrieval @primary scenario)",
+      "status": "complete",
+      "evidence": "Unit: should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") in test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present. The @key-example @smoke @retrieval @primary BDD scenario in the feature file is tagged @task:TASK-PRV-004 (not -003), so its BDD binding is TASK-PRV-004's responsibility \u2014 but the underlying decision-function behaviour (Branch 4) is fully implemented and unit-tested here.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "AO3-only with empty context_historical/ folder still bypasses (covers @edge-case @retrieval @ao3 scenario for empty context-historical)",
+      "status": "complete",
+      "evidence": "Unit: test_ao3_only_bypasses_with_empty_corpus and test_ao3_only_bypasses_even_when_primary_indexed prove the AO3-only short-circuit fires regardless of corpus state. BDD: the @edge-case @retrieval @ao3 'AO3-only turn with empty historical-context folder' scenario is bound by _given_empty_historical_context (no-op \u2014 folder contents are irrelevant for the decision function) + _given_focus_ao3_only + _then_metadata_ao3_bypass. The 5th of 5 BDD scenarios passing in the junit run.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Embedder unavailability (sleep > 5s) \u2192 (False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") (covers @edge-case @retrieval @resilience scenario)",
+      "status": "complete",
+      "evidence": "Unit: test_embedder_probe_sleep_over_budget_triggers_override + test_decide_retrieval_decision_matrix[embedder_timeout_override]. BDD: the @edge-case @retrieval @resilience scenario 'When the embedding service is unavailable retrieval is skipped and the turn proceeds in Analysis Mode' is bound by _given_embedder_unavailable (installs a sleep-stub probe via set_embedder_probe and tightens timeout_s to 0.01 so the test runs in milliseconds \u2014 the override behaviour is independent of absolute timeout) + _when_decision_runs (calls decide_retrieval) + _then_metadata_embedder_unavailable (asserts decision.reason is REASON_EMBEDDER_TIMEOUT, mode == \"analysis_mode\", retrieve is False). 5/5 BDD scenarios passing.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Reason strings are module-level constants (tests assert decision.reason is REASON_AO3_ONLY, never literal compare)",
+      "status": "complete",
+      "evidence": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, REASON_RETRIEVE_MIXED are module-level string constants in retrieval.py. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches; test_should_retrieve_returns_named_tuple_contract (seam) does the same; the BDD Then-step bindings (_then_metadata_records_skip_reason, _then_retrieve_for_ao12, _then_metadata_ao3_bypass, _then_metadata_embedder_unavailable) all use `is` rather than `==` for reason comparisons.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "All 3 files import cleanly under Python 3.12. pytest collected 19/19 unit tests + 5/5 BDD scenarios with zero collection or import errors. Source uses `from __future__ import annotations`, type hints throughout, descriptive docstrings, no print() (logging module only), no bare except, no unused imports. pyproject.toml declares no ruff/black config so the implicit gate is the pytest collection + execution pass, which is green.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py",
+        "tests/unit/knowledge/test_retrieval.py",
+        "features/primary-text-rag-and-quote-verifier/test_primary_text_rag_and_quote_verifier.py"
+      ]
+    }
+  ]
+}

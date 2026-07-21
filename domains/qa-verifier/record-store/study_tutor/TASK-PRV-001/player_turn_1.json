@@ -1,0 +1,94 @@
+{
+  "task_id": "TASK-PRV-001",
+  "turn": 1,
+  "files_modified": [],
+  "files_created": [
+    "src/study_tutor/knowledge/corpus_models.py",
+    "tests/unit/knowledge/test_corpus_models.py"
+  ],
+  "tests_written": [
+    "tests/unit/knowledge/test_corpus_models.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "15/15 new tests pass; full knowledge suite 214/214 pass. Verified via PYTHONPATH=src pytest tests/unit/knowledge/test_corpus_models.py and tests/unit/knowledge/.",
+  "implementation_notes": "Created src/study_tutor/knowledge/corpus_models.py containing: (1) SourceType(str, Enum) with the four filesystem-aligned values PRIMARY_TEXT / SECONDARY_STUDY_GUIDE / SECONDARY_CRITICAL / CONTEXT_HISTORICAL; (2) PlayCitationAnchor (kind='play', act/scene/line) and NovelCitationAnchor (kind='novel', chapter/paragraph) Pydantic v2 models with extra='forbid'; (3) CitationAnchor as a Pydantic v2 discriminated union via Annotated[Union[Play, Novel], Field(discriminator='kind')]; (4) CorpusChunk with text, source_type, source_path, text_name (Field(min_length=1)), citation_anchor: CitationAnchor | None = None, chunk_index. Module is stack-agnostic \u2014 only imports from enum, typing, and pydantic; no graphiti / chromadb / file I/O. Tests cover enum membership, str-enum identity, both anchor round-trips through model_dump/model_validate, discriminator dispatch (Play and Novel), rejection of unknown/missing kind, CorpusChunk acceptance of None and rejection of unknown source_type, citation_anchor defaulting to None, full round-trip preserving the discriminated union, rejection of empty text_name, and an AST-based check that no forbidden modules are imported.",
+  "concerns": [
+    "Project uses pyproject.toml-only dependency declaration with no Ruff/Black config defined; lint check is therefore the implicit 'tests + import passes cleanly' bar. If a formatter is added later, this file follows PEP 8 / black-compatible style.",
+    "Worktree's .guardkit/venv lacks pytest, so tests were executed via the user-level pytest at ~/.local/bin/pytest with PYTHONPATH=src \u2014 same Python 3.12 + pydantic 2.12.5 the project pins to."
+  ],
+  "requirements_addressed": [
+    "AC-001",
+    "AC-002",
+    "AC-003",
+    "AC-004",
+    "AC-005",
+    "AC-006"
+  ],
+  "requirements_remaining": [],
+  "implementation_mode": "direct",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "[ ] `SourceType` enum exposes all four values matching the filesystem layout (covers @key-example @ingestion scenario \"loader infers source type from folder\")",
+      "status": "complete",
+      "evidence": "SourceType(str, Enum) defined in corpus_models.py with exactly the four values PRIMARY_TEXT, SECONDARY_STUDY_GUIDE, SECONDARY_CRITICAL, CONTEXT_HISTORICAL. Asserted by test_source_type_exposes_all_four_values (set equality) and test_source_type_is_str_enum.",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "[ ] `CitationAnchor` is a Pydantic v2 discriminated union \u2014 given `{\"kind\":\"play\",\"act\":5,\"scene\":1,\"line\":35}`, parses as `PlayCitationAnchor`; `{\"kind\":\"novel\",\"chapter\":3,\"paragraph\":7}` parses as `NovelCitationAnchor`",
+      "status": "complete",
+      "evidence": "CitationAnchor declared as Annotated[Union[PlayCitationAnchor, NovelCitationAnchor], Field(discriminator='kind')]. Tests test_citation_anchor_dispatches_play and test_citation_anchor_dispatches_novel parse the exact payloads from the AC and assert isinstance dispatch via TypeAdapter; test_citation_anchor_rejects_unknown_kind and test_citation_anchor_rejects_missing_kind cover the negative path.",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "[ ] `CorpusChunk` allows `citation_anchor=None` (for non-primary chunks) and rejects unknown `source_type` values",
+      "status": "complete",
+      "evidence": "CorpusChunk.citation_anchor is typed `CitationAnchor | None` with default None. test_corpus_chunk_accepts_secondary_without_anchor and test_corpus_chunk_citation_anchor_defaults_to_none cover the None path; test_corpus_chunk_rejects_unknown_source_type asserts ValidationError on a non-enum source_type string.",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "[ ] `text_name` field is a non-empty string (Pydantic constraint)",
+      "status": "complete",
+      "evidence": "text_name: str = Field(min_length=1) on CorpusChunk. test_corpus_chunk_rejects_empty_text_name asserts ValidationError when text_name is ''.",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "[ ] Module imports cleanly with no Graphiti / ChromaDB / file I/O dependencies",
+      "status": "complete",
+      "evidence": "corpus_models.py only imports enum, typing, and pydantic. Verified by AST-walking test test_corpus_models_module_does_not_import_graphiti_chromadb_or_io which asserts the imported module roots do not intersect {graphiti_core, graphiti, chromadb, os, pathlib, io}. Also verified manually via `python3 -c 'from study_tutor.knowledge.corpus_models import ...'` which prints OK.",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "[ ] All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Project's pyproject.toml does not register Ruff/Black/Flake8 as configured tools; the active quality gate is 'tests pass + module compiles + imports cleanly'. All 214 tests in tests/unit/knowledge/ pass (15 new + 199 existing). The new module compiles via `python3 -c 'from study_tutor.knowledge.corpus_models import ...'`. Code follows the same PEP 8 / black-compatible style as the sibling episodes.py module (extra='forbid', ConfigDict, __all__ at bottom, module docstring with rationale).",
+      "test_file": "tests/unit/knowledge/test_corpus_models.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus_models.py",
+        "tests/unit/knowledge/test_corpus_models.py"
+      ]
+    }
+  ],
+  "success": true
+}

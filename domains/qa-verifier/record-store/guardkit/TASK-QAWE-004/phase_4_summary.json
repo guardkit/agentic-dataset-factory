@@ -1,0 +1,7 @@
+{
+  "tests_run": 25,
+  "tests_failed": 0,
+  "coverage_pct": 13.42,
+  "output_summary": "All 25 tests passed covering AC-011 through AC-022; SPEC_GAP detection, absent-guard, hard-gate override, none-safety, and unsupported-stack scenarios verified.",
+  "quality_gates_passed": true
+}

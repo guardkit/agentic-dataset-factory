@@ -1,0 +1,164 @@
+{
+  "task_id": "TASK-PRV-002",
+  "turn": 1,
+  "files_modified": [
+    "tasks/backlog/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/backlog/TASK-PRV-003-retrieval-decision-function.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-PRV-002-implementation-plan.md",
+    ".claude/task-plans/TASK-PRV-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-PRV-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-PRV-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-002/turn_context.json",
+    ".guardkit/autobuild/TASK-PRV-003/phase_4_summary.json",
+    ".guardkit/autobuild/TASK-PRV-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-003/specialist_results.json",
+    ".guardkit/autobuild/TASK-PRV-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-003/turn_context.json",
+    ".guardkit/bdd/TASK-PRV-002_junit.xml",
+    ".guardkit/bdd/TASK-PRV-003_junit.xml",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/.guardkit/autobuild/TASK-PRV-002/player_turn_1.json",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/src/study_tutor/knowledge/corpus.py",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_corpus.py",
+    "src/study_tutor/knowledge/corpus.py",
+    "src/study_tutor/knowledge/retrieval.py",
+    "tasks/design_approved/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/design_approved/TASK-PRV-003-retrieval-decision-function.md",
+    "tests/unit/knowledge/test_corpus.py",
+    "tests/unit/knowledge/test_retrieval.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_corpus.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation. Files planned: 0, Files actual: 0",
+  "concerns": [],
+  "requirements_addressed": [
+    "load_corpus(root: Path) -> IngestResult walks four canonical folders",
+    "Source-type inference from parent directory name; unknown folder \u2192 skip with warning",
+    "AQA refusal via filename regex with publisher-prohibition log line",
+    "In-copyright deny-list refusal with per-student Phase 2 path advisory",
+    "Path-traversal safety via Path.resolve(strict=True) + relative_to(root)",
+    "Resilience to corrupted files (UnicodeDecodeError/OSError \u2192 skip)",
+    "Whitespace-only file skip with structured log",
+    "Empty primary_text/ folder \u2192 zero chunks, no error",
+    "Citation-anchor inference for plays (PlayCitationAnchor) and novels (NovelCitationAnchor) with None fallback + structured warning",
+    "Chunker adapted from ADF (RecursiveCharacterTextSplitter shape, chunk_size=512, overlap=100)",
+    "CorpusChunk metadata includes source_type, text_name, citation_anchor",
+    "Seam test for TASK-PRV-001 integration contract"
+  ],
+  "requirements_remaining": [
+    "ChromaDB persistence under chroma/gcse-english/ \u2014 deferred (see concerns); requires chromadb dependency and an additional writer module"
+  ],
+  "sdk_turns_used": 24,
+  "sdk_max_turns": 150,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 20,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Loading a four-folder corpus produces CorpusChunks with correct source_type per folder (covers @key-example @ingestion scenario \"loader infers source type\")",
+      "status": "complete",
+      "evidence": "load_corpus walks the four canonical folders and assigns SourceType per parent directory via SOURCE_TYPE_FOLDERS mapping. Verified by test_loader_infers_source_type_from_each_of_four_folders which asserts all four SourceType values appear and that file\u2192folder routing matches expected text_name.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "AQA past-paper-named file is refused; refusal log line references publisher prohibition (covers @negative @ingestion @copyright scenario)",
+      "status": "complete",
+      "evidence": "AQA_REFUSAL_PATTERN regex applied to filename in _process_file before any read. Refusal recorded with reason=AQA_ASSESSMENT_MATERIAL and detail string containing 'AQA' and 'publisher prohibition'. Verified by test_aqa_named_file_is_refused_with_publisher_log and the parametrised test_aqa_pattern_catches_assessment_material_filenames covering past_paper.pdf, Mark-Scheme.pdf, examiner_report_2024.pdf, PastPaper.txt, mark_scheme.txt, examiner-report.pdf.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "In-copyright modern set text in primary_text/ is refused; log advises per-student Phase 2 path (covers @negative @ingestion @copyright scenario)",
+      "status": "complete",
+      "evidence": "INCOPYRIGHT_TITLES frozenset matched case-insensitively against normalised filename stem (hyphens/spaces/dots \u2192 underscores). Refusal detail mentions 'per-student Phase 2 path'. Verified by test_incopyright_match_is_case_insensitive_with_punctuation parametrised over inspector_calls.txt and Inspector-Calls.txt, and test_incopyright_titles_constant_lists_required_entries asserting all six required titles are present.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Empty primary_text/ folder produces zero chunks and no error (covers @boundary @ingestion scenario)",
+      "status": "complete",
+      "evidence": "load_corpus on an empty corpus skeleton returns IngestResult with chunks_created=0 and chunks=[], no exception raised. Verified by test_empty_primary_text_folder_produces_zero_chunks_no_error.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Whitespace-only file is skipped with structured log (covers @boundary @ingestion scenario)",
+      "status": "complete",
+      "evidence": "After read_text, _process_file checks `not text.strip()` and emits SkipRecord(reason=WHITESPACE_ONLY) plus a logger.warning('corpus.skip.whitespace_only') with structured extras. Verified by test_whitespace_only_file_is_skipped.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Corrupted file in primary_text/ is skipped; valid file in same folder still loads (covers @edge-case @ingestion @resilience scenario)",
+      "status": "complete",
+      "evidence": "read_text wrapped in try/except for UnicodeDecodeError and OSError; on failure a SkipRecord(reason=CORRUPTED_FILE) is appended and processing continues with sibling files. Verified by test_corrupted_file_is_skipped_and_valid_neighbour_still_loads which writes invalid UTF-8 bytes alongside a valid Macbeth fixture and asserts both the skip is recorded AND the valid neighbour still produces chunks.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Path-traversal file is rejected; refusal log names the attempt (covers @edge-case @ingestion @security scenario)",
+      "status": "complete",
+      "evidence": "_process_file resolves each candidate with strict=True and calls relative_to(root); ValueError \u2192 RefusalRecord(reason=PATH_TRAVERSAL) whose path field names the offending file. Verified by test_symlink_escaping_corpus_root_is_refused which creates a symlink in primary_text/ pointing outside the corpus root.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Plays produce chunks with PlayCitationAnchor (act/scene/line); novels produce chunks with NovelCitationAnchor (chapter/paragraph) (covers @edge-case @verify @integration @citation scenario)",
+      "status": "complete",
+      "evidence": "_infer_citation_anchor dispatches on presence of ACT vs CHAPTER markers and runs a state-machine walker (_infer_play_anchor / _infer_novel_anchor) that tracks act/scene/line or chapter/paragraph and captures the first content line/paragraph at-or-past the chunk's char_offset. Verified by test_play_chunks_carry_play_citation_anchor (Macbeth fixture \u2192 PlayCitationAnchor with act=1/scene=1) and test_novel_chunks_carry_novel_citation_anchor (Christmas Carol fixture \u2192 NovelCitationAnchor with chapter=1). The seam test test_corpus_chunk_carries_typed_citation_anchor independently re-validates the discriminated-union contract with TASK-PRV-001.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "No chunk carries an unset/default source-type label (covers @key-example @ingestion scenario)",
+      "status": "complete",
+      "evidence": "source_type on CorpusChunk is non-defaulted (no = default in corpus_models.py), and the loader only ever instantiates it from SOURCE_TYPE_FOLDERS lookup \u2014 Pydantic ValidationError would fire if it were ever omitted. Verified by test_no_chunk_carries_default_or_unset_source_type which asserts every chunk's source_type is a SourceType enum member with a value in the canonical set.",
+      "test_file": "tests/unit/knowledge/test_corpus.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Files use `from __future__ import annotations`, modern PEP 604 union syntax, type hints on all public functions, docstrings on module + every public symbol, no bare except, specific exception catches (UnicodeDecodeError, OSError), pathlib.Path throughout, logging module (no print). The repo has no enforced linter command in pyproject.toml beyond pytest; pytest collection passes cleanly with no warnings.",
+      "test_file": null,
+      "implementation_files": [
+        "src/study_tutor/knowledge/corpus.py",
+        "tests/unit/knowledge/test_corpus.py"
+      ]
+    }
+  ]
+}

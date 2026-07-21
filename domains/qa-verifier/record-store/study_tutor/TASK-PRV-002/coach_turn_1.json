@@ -1,0 +1,225 @@
+{
+  "task_id": "TASK-PRV-002",
+  "turn": 1,
+  "decision": "feedback",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest tests/unit/knowledge/test_corpus.py tests/unit/knowledge/test_retrieval.py -v --tb=short",
+      "test_output_summary": "Result:\ntests/unit/knowledge/test_retrieval.py::test_has_primary_text_reflects_registry_state PASSED [ 92%]\ntests/unit/knowledge/test_retrieval.py::test_register_primary_text_rejects_empty_string PASSED [ 94%]\ntests/unit/knowledge/test_retrieval.py::test_focus_aos_accepts_frozenset_for_ao3_only_branch PASSED [ 97%]\ntests/unit/knowledge/test_retrieval.py::test_should_retrieve_returns_named_tuple_contract PASSED [100%]\n============================== 39 passed in 5.29s ==============================",
+      "duration_seconds": 5.922282934188843
+    },
+    "requirements": {
+      "criteria_total": 10,
+      "criteria_met": 10,
+      "all_criteria_met": true,
+      "missing": []
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Loading a four-folder corpus produces `CorpusChunk`s with",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "load_corpus walks the four canonical folders and assigns SourceType per parent directory via SOURCE_TYPE_FOLDERS mapping. Verified by test_loader_infers_source_type_from_each_of_four_folders which asserts all four SourceType values appear and that file\u2192folder routing matches expected text_name.",
+      "notes": "load_corpus walks the four canonical folders and assigns SourceType per parent directory via SOURCE_TYPE_FOLDERS mapping. Verified by test_loader_infers_source_type_from_each_of_four_folders which asserts all four SourceType values appear and that file\u2192folder routing matches expected text_name."
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "AQA past-paper-named file is refused; refusal log line",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "AQA_REFUSAL_PATTERN regex applied to filename in _process_file before any read. Refusal recorded with reason=AQA_ASSESSMENT_MATERIAL and detail string containing 'AQA' and 'publisher prohibition'. Verified by test_aqa_named_file_is_refused_with_publisher_log and the parametrised test_aqa_pattern_catches_assessment_material_filenames covering past_paper.pdf, Mark-Scheme.pdf, examiner_report_2024.pdf, PastPaper.txt, mark_scheme.txt, examiner-report.pdf.",
+      "notes": "AQA_REFUSAL_PATTERN regex applied to filename in _process_file before any read. Refusal recorded with reason=AQA_ASSESSMENT_MATERIAL and detail string containing 'AQA' and 'publisher prohibition'. Verified by test_aqa_named_file_is_refused_with_publisher_log and the parametrised test_aqa_pattern_catches_assessment_material_filenames covering past_paper.pdf, Mark-Scheme.pdf, examiner_report_2024.pdf, PastPaper.txt, mark_scheme.txt, examiner-report.pdf."
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "In-copyright modern set text in `primary_text/` is refused;",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "INCOPYRIGHT_TITLES frozenset matched case-insensitively against normalised filename stem (hyphens/spaces/dots \u2192 underscores). Refusal detail mentions 'per-student Phase 2 path'. Verified by test_incopyright_match_is_case_insensitive_with_punctuation parametrised over inspector_calls.txt and Inspector-Calls.txt, and test_incopyright_titles_constant_lists_required_entries asserting all six required titles are present.",
+      "notes": "INCOPYRIGHT_TITLES frozenset matched case-insensitively against normalised filename stem (hyphens/spaces/dots \u2192 underscores). Refusal detail mentions 'per-student Phase 2 path'. Verified by test_incopyright_match_is_case_insensitive_with_punctuation parametrised over inspector_calls.txt and Inspector-Calls.txt, and test_incopyright_titles_constant_lists_required_entries asserting all six required titles are present."
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Empty `primary_text/` folder produces zero chunks and no error",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "load_corpus on an empty corpus skeleton returns IngestResult with chunks_created=0 and chunks=[], no exception raised. Verified by test_empty_primary_text_folder_produces_zero_chunks_no_error.",
+      "notes": "load_corpus on an empty corpus skeleton returns IngestResult with chunks_created=0 and chunks=[], no exception raised. Verified by test_empty_primary_text_folder_produces_zero_chunks_no_error."
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Whitespace-only file is skipped with structured log (covers",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "After read_text, _process_file checks `not text.strip()` and emits SkipRecord(reason=WHITESPACE_ONLY) plus a logger.warning('corpus.skip.whitespace_only') with structured extras. Verified by test_whitespace_only_file_is_skipped.",
+      "notes": "After read_text, _process_file checks `not text.strip()` and emits SkipRecord(reason=WHITESPACE_ONLY) plus a logger.warning('corpus.skip.whitespace_only') with structured extras. Verified by test_whitespace_only_file_is_skipped."
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Corrupted file in `primary_text/` is skipped; valid file in",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "read_text wrapped in try/except for UnicodeDecodeError and OSError; on failure a SkipRecord(reason=CORRUPTED_FILE) is appended and processing continues with sibling files. Verified by test_corrupted_file_is_skipped_and_valid_neighbour_still_loads which writes invalid UTF-8 bytes alongside a valid Macbeth fixture and asserts both the skip is recorded AND the valid neighbour still produces chunks.",
+      "notes": "read_text wrapped in try/except for UnicodeDecodeError and OSError; on failure a SkipRecord(reason=CORRUPTED_FILE) is appended and processing continues with sibling files. Verified by test_corrupted_file_is_skipped_and_valid_neighbour_still_loads which writes invalid UTF-8 bytes alongside a valid Macbeth fixture and asserts both the skip is recorded AND the valid neighbour still produces chunks."
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Path-traversal file is rejected; refusal log names the",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "_process_file resolves each candidate with strict=True and calls relative_to(root); ValueError \u2192 RefusalRecord(reason=PATH_TRAVERSAL) whose path field names the offending file. Verified by test_symlink_escaping_corpus_root_is_refused which creates a symlink in primary_text/ pointing outside the corpus root.",
+      "notes": "_process_file resolves each candidate with strict=True and calls relative_to(root); ValueError \u2192 RefusalRecord(reason=PATH_TRAVERSAL) whose path field names the offending file. Verified by test_symlink_escaping_corpus_root_is_refused which creates a symlink in primary_text/ pointing outside the corpus root."
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Plays produce chunks with `PlayCitationAnchor` (act/scene/line);",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "_infer_citation_anchor dispatches on presence of ACT vs CHAPTER markers and runs a state-machine walker (_infer_play_anchor / _infer_novel_anchor) that tracks act/scene/line or chapter/paragraph and captures the first content line/paragraph at-or-past the chunk's char_offset. Verified by test_play_chunks_carry_play_citation_anchor (Macbeth fixture \u2192 PlayCitationAnchor with act=1/scene=1) and test_novel_chunks_carry_novel_citation_anchor (Christmas Carol fixture \u2192 NovelCitationAnchor with chapter=1). The seam test test_corpus_chunk_carries_typed_citation_anchor independently re-validates the discriminated-union contract with TASK-PRV-001.",
+      "notes": "_infer_citation_anchor dispatches on presence of ACT vs CHAPTER markers and runs a state-machine walker (_infer_play_anchor / _infer_novel_anchor) that tracks act/scene/line or chapter/paragraph and captures the first content line/paragraph at-or-past the chunk's char_offset. Verified by test_play_chunks_carry_play_citation_anchor (Macbeth fixture \u2192 PlayCitationAnchor with act=1/scene=1) and test_novel_chunks_carry_novel_citation_anchor (Christmas Carol fixture \u2192 NovelCitationAnchor with chapter=1). The seam test test_corpus_chunk_carries_typed_citation_anchor independently re-validates the discriminated-union contract with TASK-PRV-001."
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "No chunk carries an unset/default source-type label (covers",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "source_type on CorpusChunk is non-defaulted (no = default in corpus_models.py), and the loader only ever instantiates it from SOURCE_TYPE_FOLDERS lookup \u2014 Pydantic ValidationError would fire if it were ever omitted. Verified by test_no_chunk_carries_default_or_unset_source_type which asserts every chunk's source_type is a SourceType enum member with a value in the canonical set.",
+      "notes": "source_type on CorpusChunk is non-defaulted (no = default in corpus_models.py), and the loader only ever instantiates it from SOURCE_TYPE_FOLDERS lookup \u2014 Pydantic ValidationError would fire if it were ever omitted. Verified by test_no_chunk_carries_default_or_unset_source_type which asserts every chunk's source_type is a SourceType enum member with a value in the canonical set."
+    },
+    {
+      "criterion_id": "AC-010",
+      "criterion_text": "All modified files pass project-configured lint/format checks",
+      "result": "verified",
+      "status": "verified",
+      "evidence": "Files use `from __future__ import annotations`, modern PEP 604 union syntax, type hints on all public functions, docstrings on module + every public symbol, no bare except, specific exception catches (UnicodeDecodeError, OSError), pathlib.Path throughout, logging module (no print). The repo has no enforced linter command in pyproject.toml beyond pytest; pytest collection passes cleanly with no warnings.",
+      "notes": "Files use `from __future__ import annotations`, modern PEP 604 union syntax, type hints on all public functions, docstrings on module + every public symbol, no bare except, specific exception catches (UnicodeDecodeError, OSError), pathlib.Path throughout, logging module (no print). The repo has no enforced linter command in pyproject.toml beyond pytest; pytest collection passes cleanly with no warnings."
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "Loading a four-folder corpus produces `CorpusChunk`s with",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "load_corpus walks the four canonical folders and assigns SourceType per parent directory via SOURCE_TYPE_FOLDERS mapping. Verified by test_loader_infers_source_type_from_each_of_four_folders which asserts all four SourceType values appear and that file\u2192folder routing matches expected text_name.",
+        "notes": "load_corpus walks the four canonical folders and assigns SourceType per parent directory via SOURCE_TYPE_FOLDERS mapping. Verified by test_loader_infers_source_type_from_each_of_four_folders which asserts all four SourceType values appear and that file\u2192folder routing matches expected text_name."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "AQA past-paper-named file is refused; refusal log line",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "AQA_REFUSAL_PATTERN regex applied to filename in _process_file before any read. Refusal recorded with reason=AQA_ASSESSMENT_MATERIAL and detail string containing 'AQA' and 'publisher prohibition'. Verified by test_aqa_named_file_is_refused_with_publisher_log and the parametrised test_aqa_pattern_catches_assessment_material_filenames covering past_paper.pdf, Mark-Scheme.pdf, examiner_report_2024.pdf, PastPaper.txt, mark_scheme.txt, examiner-report.pdf.",
+        "notes": "AQA_REFUSAL_PATTERN regex applied to filename in _process_file before any read. Refusal recorded with reason=AQA_ASSESSMENT_MATERIAL and detail string containing 'AQA' and 'publisher prohibition'. Verified by test_aqa_named_file_is_refused_with_publisher_log and the parametrised test_aqa_pattern_catches_assessment_material_filenames covering past_paper.pdf, Mark-Scheme.pdf, examiner_report_2024.pdf, PastPaper.txt, mark_scheme.txt, examiner-report.pdf."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "In-copyright modern set text in `primary_text/` is refused;",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "INCOPYRIGHT_TITLES frozenset matched case-insensitively against normalised filename stem (hyphens/spaces/dots \u2192 underscores). Refusal detail mentions 'per-student Phase 2 path'. Verified by test_incopyright_match_is_case_insensitive_with_punctuation parametrised over inspector_calls.txt and Inspector-Calls.txt, and test_incopyright_titles_constant_lists_required_entries asserting all six required titles are present.",
+        "notes": "INCOPYRIGHT_TITLES frozenset matched case-insensitively against normalised filename stem (hyphens/spaces/dots \u2192 underscores). Refusal detail mentions 'per-student Phase 2 path'. Verified by test_incopyright_match_is_case_insensitive_with_punctuation parametrised over inspector_calls.txt and Inspector-Calls.txt, and test_incopyright_titles_constant_lists_required_entries asserting all six required titles are present."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Empty `primary_text/` folder produces zero chunks and no error",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "load_corpus on an empty corpus skeleton returns IngestResult with chunks_created=0 and chunks=[], no exception raised. Verified by test_empty_primary_text_folder_produces_zero_chunks_no_error.",
+        "notes": "load_corpus on an empty corpus skeleton returns IngestResult with chunks_created=0 and chunks=[], no exception raised. Verified by test_empty_primary_text_folder_produces_zero_chunks_no_error."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "Whitespace-only file is skipped with structured log (covers",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "After read_text, _process_file checks `not text.strip()` and emits SkipRecord(reason=WHITESPACE_ONLY) plus a logger.warning('corpus.skip.whitespace_only') with structured extras. Verified by test_whitespace_only_file_is_skipped.",
+        "notes": "After read_text, _process_file checks `not text.strip()` and emits SkipRecord(reason=WHITESPACE_ONLY) plus a logger.warning('corpus.skip.whitespace_only') with structured extras. Verified by test_whitespace_only_file_is_skipped."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "Corrupted file in `primary_text/` is skipped; valid file in",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "read_text wrapped in try/except for UnicodeDecodeError and OSError; on failure a SkipRecord(reason=CORRUPTED_FILE) is appended and processing continues with sibling files. Verified by test_corrupted_file_is_skipped_and_valid_neighbour_still_loads which writes invalid UTF-8 bytes alongside a valid Macbeth fixture and asserts both the skip is recorded AND the valid neighbour still produces chunks.",
+        "notes": "read_text wrapped in try/except for UnicodeDecodeError and OSError; on failure a SkipRecord(reason=CORRUPTED_FILE) is appended and processing continues with sibling files. Verified by test_corrupted_file_is_skipped_and_valid_neighbour_still_loads which writes invalid UTF-8 bytes alongside a valid Macbeth fixture and asserts both the skip is recorded AND the valid neighbour still produces chunks."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Path-traversal file is rejected; refusal log names the",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "_process_file resolves each candidate with strict=True and calls relative_to(root); ValueError \u2192 RefusalRecord(reason=PATH_TRAVERSAL) whose path field names the offending file. Verified by test_symlink_escaping_corpus_root_is_refused which creates a symlink in primary_text/ pointing outside the corpus root.",
+        "notes": "_process_file resolves each candidate with strict=True and calls relative_to(root); ValueError \u2192 RefusalRecord(reason=PATH_TRAVERSAL) whose path field names the offending file. Verified by test_symlink_escaping_corpus_root_is_refused which creates a symlink in primary_text/ pointing outside the corpus root."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Plays produce chunks with `PlayCitationAnchor` (act/scene/line);",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "_infer_citation_anchor dispatches on presence of ACT vs CHAPTER markers and runs a state-machine walker (_infer_play_anchor / _infer_novel_anchor) that tracks act/scene/line or chapter/paragraph and captures the first content line/paragraph at-or-past the chunk's char_offset. Verified by test_play_chunks_carry_play_citation_anchor (Macbeth fixture \u2192 PlayCitationAnchor with act=1/scene=1) and test_novel_chunks_carry_novel_citation_anchor (Christmas Carol fixture \u2192 NovelCitationAnchor with chapter=1). The seam test test_corpus_chunk_carries_typed_citation_anchor independently re-validates the discriminated-union contract with TASK-PRV-001.",
+        "notes": "_infer_citation_anchor dispatches on presence of ACT vs CHAPTER markers and runs a state-machine walker (_infer_play_anchor / _infer_novel_anchor) that tracks act/scene/line or chapter/paragraph and captures the first content line/paragraph at-or-past the chunk's char_offset. Verified by test_play_chunks_carry_play_citation_anchor (Macbeth fixture \u2192 PlayCitationAnchor with act=1/scene=1) and test_novel_chunks_carry_novel_citation_anchor (Christmas Carol fixture \u2192 NovelCitationAnchor with chapter=1). The seam test test_corpus_chunk_carries_typed_citation_anchor independently re-validates the discriminated-union contract with TASK-PRV-001."
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "No chunk carries an unset/default source-type label (covers",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "source_type on CorpusChunk is non-defaulted (no = default in corpus_models.py), and the loader only ever instantiates it from SOURCE_TYPE_FOLDERS lookup \u2014 Pydantic ValidationError would fire if it were ever omitted. Verified by test_no_chunk_carries_default_or_unset_source_type which asserts every chunk's source_type is a SourceType enum member with a value in the canonical set.",
+        "notes": "source_type on CorpusChunk is non-defaulted (no = default in corpus_models.py), and the loader only ever instantiates it from SOURCE_TYPE_FOLDERS lookup \u2014 Pydantic ValidationError would fire if it were ever omitted. Verified by test_no_chunk_carries_default_or_unset_source_type which asserts every chunk's source_type is a SourceType enum member with a value in the canonical set."
+      },
+      {
+        "criterion_id": "AC-010",
+        "criterion_text": "All modified files pass project-configured lint/format checks",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Files use `from __future__ import annotations`, modern PEP 604 union syntax, type hints on all public functions, docstrings on module + every public symbol, no bare except, specific exception catches (UnicodeDecodeError, OSError), pathlib.Path throughout, logging module (no print). The repo has no enforced linter command in pyproject.toml beyond pytest; pytest collection passes cleanly with no warnings.",
+        "notes": "Files use `from __future__ import annotations`, modern PEP 604 union syntax, type hints on all public functions, docstrings on module + every public symbol, no bare except, specific exception catches (UnicodeDecodeError, OSError), pathlib.Path throughout, logging module (no print). The repo has no enforced linter command in pyproject.toml beyond pytest; pytest collection passes cleanly with no warnings."
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "warning",
+      "category": "agent_invocations_advisory",
+      "description": "Advisory (non-blocking): task-work produced a report with 2 of 3 expected agent invocations. Missing phases: 3 (Implementation). Consider invoking these agents via the Task tool to strengthen stack-specific quality:\n- Phase 3: `the stack-specific Phase-3 specialist` (Implementation)",
+      "details": {
+        "missing_phases": [
+          "3"
+        ],
+        "expected_phases": 3,
+        "actual_invocations": 2
+      }
+    },
+    {
+      "severity": "must_fix",
+      "category": "bdd_failure",
+      "description": "BDD oracle: 1 scenario(s) failed during pytest-bdd execution. Implementation does not satisfy the Gherkin specification.",
+      "scenarios_failed": 1,
+      "scenarios_passed": 0,
+      "scenarios_pending": 0,
+      "feature_files": [
+        "features/primary-text-rag-and-quote-verifier/primary-text-rag-and-quote-verifier.feature"
+      ],
+      "failure_examples": [
+        "pytest_runner_error \u2014 pytest_runner_error: exit=4; ERROR: not found: /home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/features/primary-text-r"
+      ]
+    }
+  ],
+  "rationale": "BDD scenarios failed: 1 scenario(s) reported assertion failure during pytest-bdd execution.",
+  "context_used": "## Job-Specific Context\n\nBudget: 1537/5200 tokens\n\n### \ud83c\udfa8 Relevant Patterns\n- HAS_TYPE_HINT\n- USES_OPTION\n- HAS_TYPE_HINT\n- HAS_OPTION\n\n### \u26a0\ufe0f Warnings\n- SOURCE_OF\n- IS_IMPLEMENTED_AS\n- REPORTED_IN_SOURCE\n\n### \ud83c\udfad Role Constraints\n- MUST_CONSULT_BEFORE_MODIFYING\n- DELEGATE_TO_TASK_WORK\n- DELEGATES_TO\n\n### \ud83d\udee0\ufe0f Implementation Modes\n- APPLIES_TO\n",
+  "approved_without_independent_tests": false,
+  "is_configuration_error": false,
+  "environment_conditional_approval": false
+}

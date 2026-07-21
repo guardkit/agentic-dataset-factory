@@ -1,0 +1,7 @@
+{
+  "tests_run": 42,
+  "tests_failed": 0,
+  "coverage_pct": 91.0,
+  "output_summary": "pytest: 42 passed (20 unit corpus + 15 unit corpus_models + 7 BDD @task:TASK-PRV-002); coverage corpus+corpus_models = 91% (252 stmts, 23 miss).",
+  "quality_gates_passed": true
+}

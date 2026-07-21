@@ -1,0 +1,24 @@
+{
+  "task_id": "TASK-PRV-003",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "d283e3d8116f95289ee2670429374645c0204473",
+      "timestamp": "2026-04-30T16:51:00.684252",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: pass)",
+      "from_prior_run": false
+    },
+    {
+      "turn": 2,
+      "commit_hash": "e946325c587c06680fa2994b0d7afb604bfd1390",
+      "timestamp": "2026-04-30T17:02:28.432173",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 2 complete (tests: pass)",
+      "from_prior_run": false
+    }
+  ],
+  "last_updated": "2026-04-30T17:02:28.432297"
+}

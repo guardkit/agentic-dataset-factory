@@ -1,0 +1,9 @@
+[
+  {
+    "task_id": "TASK-QAWE-004",
+    "pre_path": "tasks/backlog/TASK-QAWE-004-spec-gap-and-hard-guard.md",
+    "post_path": "tasks/design_approved/TASK-QAWE-004-spec-gap-and-hard-guard.md",
+    "timestamp": "2026-06-12T17:59:00.134847+00:00",
+    "kind": "design_approved_transition"
+  }
+]

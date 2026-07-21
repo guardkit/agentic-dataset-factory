@@ -1,0 +1,18 @@
+{
+  "task_id": "TASK-BDDW-002",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "c0ea3f4683d33385fb57e050d457e99e380949fe",
+      "timestamp": "2026-07-04T17:18:29.795751",
+      "tests_passed": true,
+      "test_count": 11,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: pass)",
+      "from_prior_run": false,
+      "evidence_commits": {
+        "guardkitfactory": "e0b8362cee85d412479430c270cd5aa4c0c49e7f"
+      }
+    }
+  ],
+  "last_updated": "2026-07-04T17:18:29.795844"
+}

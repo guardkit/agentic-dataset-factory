@@ -64,6 +64,12 @@ corpus:                      # read-only source repos (venue rule) — scratch w
   study_tutor: /home/richardwoollcott/Projects/appmilla_github/study-tutor
   forge: /home/richardwoollcott/Projects/appmilla_github/forge
   bundle_schema_sha: "41a0ebe457"
+  # Factory-side record store(s) — recovered authentic run records for the 10 discovered tasks
+  # whose task_work_results.json was not reachable at their corpus HEAD by the .guardkit globs
+  # (S-B, 2026-07-21). Laid out as <root>/<repo>/<task>/; searched AFTER the corpus globs, never
+  # a corpus write. See domains/qa-verifier/record-store/index.json for per-file sha256 provenance.
+  record_store_roots:
+    - domains/qa-verifier/record-store
 
 # Per-repo interpreter/venv resolution for the regenerator's pytest substrate (SIBTESTENV01:
 # config, not hardcode). Threaded at worktree/regeneration setup time in the attended run.

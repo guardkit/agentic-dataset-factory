@@ -1,0 +1,30 @@
+{
+  "id": "TURN-FEAT-C332-1",
+  "feature_id": "FEAT-C332",
+  "task_id": "TASK-QAWE-003",
+  "turn_number": 1,
+  "player_summary": "Implementation attempt",
+  "player_decision": "approve",
+  "coach_decision": "approve",
+  "coach_feedback": null,
+  "mode": "fresh_start",
+  "blockers_found": [],
+  "progress_summary": "Turn 1: approve",
+  "acceptance_criteria_status": {},
+  "files_modified": [
+    "guardkit/orchestrator/quality_gates/coach_validator.py",
+    "tests/orchestrator/test_coach_wiring_bundle.py",
+    "tests/unit/orchestrator/quality_gates/test_wiring_bundle_integration.py",
+    ".claude/task-plans/TASK-QAWE-003-implementation-plan.md",
+    "tests/orchestrator/test_qawe_003_mocked_seam.py"
+  ],
+  "tests_passed": 78,
+  "tests_failed": 0,
+  "coverage": null,
+  "arch_score": null,
+  "started_at": "2026-06-12T18:26:10.339316",
+  "completed_at": "2026-06-12T18:26:10.339316",
+  "duration_seconds": null,
+  "lessons_from_turn": [],
+  "what_to_try_next": null
+}

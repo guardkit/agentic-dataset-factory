@@ -1,0 +1,7 @@
+{
+  "tests_run": 78,
+  "tests_failed": 0,
+  "coverage_pct": 100.0,
+  "output_summary": "78/78 tests passed across 3 test files; coach_validator+coach_evidence modules at 100% line coverage.",
+  "quality_gates_passed": true
+}

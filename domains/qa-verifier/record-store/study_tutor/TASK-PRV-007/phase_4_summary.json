@@ -1,0 +1,7 @@
+{
+  "tests_run": 3,
+  "tests_failed": 0,
+  "coverage_pct": 71.0,
+  "output_summary": "3/3 integration tests passed in 0.06s; 71% line coverage across RAG pipeline modules (coach_handover, corpus_models, quote_verifier, retrieval).",
+  "quality_gates_passed": true
+}

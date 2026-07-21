@@ -252,6 +252,11 @@ class GenerateConfig:
     # carries ONLY committed-record labels; the loader schema-validates it (loud on malformed)
     # and consumes only ``disposition: consumable`` entries (queued/flagged are skipped + counted).
     harvest_outcomes_path: str | None = None
+    # Factory-side record-store roots (additive; recovered HEAD-missing run records). Each is laid
+    # out as ``<root>/<repo>/<task>/`` and searched by discover.locate_run_record_dir AFTER the
+    # corpus ``.guardkit`` globs. Empty => pre-recovery behaviour (corpus globs only). Never a
+    # corpus write — the store is a factory-owned copy of authentic records (S-B, 2026-07-21).
+    record_store_roots: list[str] = field(default_factory=list)
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "GenerateConfig":
@@ -277,6 +282,9 @@ class GenerateConfig:
             interpreters={str(k): str(v) for k, v in (data.get("interpreters", {}) or {}).items()},
             dataset_id=gen.get("dataset_id", "qav-phase1-train-v1"),
             harvest_outcomes_path=gen.get("harvest_outcomes"),
+            record_store_roots=[
+                str(p) for p in (corpus.get("record_store_roots") or [])
+            ],
         )
 
 

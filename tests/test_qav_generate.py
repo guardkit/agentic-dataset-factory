@@ -408,3 +408,28 @@ def test_harvest_inert_when_no_outcomes(tmp_path):
     summary = _run(cfg, source_tasks=[], emit_gold_negatives=False)
     assert summary.harvest_written == 0
     assert summary.train == 0 and summary.eval_qav == 0
+
+
+def test_config_yaml_loads_record_store_roots(tmp_path):
+    # The additive search-root config key: corpus.record_store_roots threads into the config so the
+    # generation-run discovery can find recovered HEAD-missing records (S-B, 2026-07-21).
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text(
+        "domain: qa-verifier\n"
+        "corpus:\n"
+        "  guardkit: /some/guardkit\n"
+        "  record_store_roots:\n"
+        "    - domains/qa-verifier/record-store\n",
+        encoding="utf-8",
+    )
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    assert cfg.record_store_roots == ["domains/qa-verifier/record-store"]
+
+
+def test_config_yaml_record_store_roots_default_empty(tmp_path):
+    # Absent key => pre-recovery behaviour (corpus globs only); never crashes.
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text(
+        "domain: qa-verifier\ncorpus:\n  guardkit: /some/guardkit\n", encoding="utf-8"
+    )
+    assert GenerateConfig.from_yaml(yaml_path).record_store_roots == []

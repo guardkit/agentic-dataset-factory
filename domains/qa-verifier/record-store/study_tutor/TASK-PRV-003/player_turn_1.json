@@ -1,0 +1,130 @@
+{
+  "task_id": "TASK-PRV-003",
+  "turn": 1,
+  "files_modified": [
+    "tasks/backlog/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/backlog/TASK-PRV-003-retrieval-decision-function.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-PRV-002-implementation-plan.md",
+    ".claude/task-plans/TASK-PRV-003-implementation-plan.md",
+    ".guardkit/autobuild/TASK-PRV-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-PRV-002/turn_context.json",
+    ".guardkit/autobuild/TASK-PRV-003/player_turn_1.json",
+    ".guardkit/autobuild/TASK-PRV-003/task_work_results.json",
+    ".guardkit/autobuild/TASK-PRV-003/turn_context.json",
+    ".guardkit/bdd/TASK-PRV-003_junit.xml",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/.guardkit/autobuild/TASK-PRV-003/player_turn_1.json",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/src/study_tutor/knowledge/retrieval.py",
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_retrieval.py",
+    "src/study_tutor/knowledge/retrieval.py",
+    "tasks/design_approved/TASK-PRV-002-source-typed-corpus-loader.md",
+    "tasks/design_approved/TASK-PRV-003-retrieval-decision-function.md",
+    "tests/unit/knowledge/test_retrieval.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/study-tutor/.guardkit/worktrees/FEAT-70A4/tests/unit/knowledge/test_retrieval.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation. Files planned: 0, Files actual: 0",
+  "concerns": [],
+  "requirements_addressed": [
+    "AC-001: AO3-only bypass branch",
+    "AC-002: no-primary-text analysis-mode branch",
+    "AC-003: mixed AO3+AO1/AO2 retrieve-mixed branch",
+    "AC-004: primary-present non-AO3-only retrieve-primary branch",
+    "AC-005: AO3-only bypasses regardless of corpus state",
+    "AC-006: embedder-timeout override forces analysis-mode",
+    "AC-007: reason constants are module-level (identity-comparable)",
+    "AC-008: lint/format/import cleanliness"
+  ],
+  "requirements_remaining": [],
+  "sdk_turns_used": 27,
+  "sdk_max_turns": 150,
+  "sdk_ceiling_hit": false,
+  "tests_passed_count": 19,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "Branch 1 (AO3-only) returns (False, REASON_AO3_ONLY, \"ao3_bypass\") (covers @key-example @smoke @retrieval @ao3-bypass scenario)",
+      "status": "complete",
+      "evidence": "should_retrieve checks `set(focus_aos) == {\"AO3\"}` first and returns RetrievalDecision(False, REASON_AO3_ONLY, \"ao3_bypass\"). Verified by test_decide_retrieval_decision_matrix[ao3_only_bypass], test_ao3_only_bypasses_even_when_primary_indexed, and test_ao3_only_bypasses_with_empty_corpus.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Branch 2 (no primary text in corpus) returns (False, REASON_NO_PRIMARY, \"analysis_mode\") (covers @key-example @smoke @retrieval @analysis-mode scenario)",
+      "status": "complete",
+      "evidence": "should_retrieve checks `not has_primary_text(text_name)` after the AO3-only short-circuit and returns RetrievalDecision(False, REASON_NO_PRIMARY, \"analysis_mode\"). Verified by test_decide_retrieval_decision_matrix[no_primary_text] and test_empty_focus_aos_with_no_primary_falls_through_to_analysis_mode.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Branch 3 (mixed AO3 + AO1/AO2) returns (True, REASON_RETRIEVE_MIXED, \"mixed\") (covers @edge-case @retrieval @ao3 mixed-mode scenario)",
+      "status": "complete",
+      "evidence": "should_retrieve checks `\"AO3\" in focus_aos and len(focus_aos) > 1` and returns RetrievalDecision(True, REASON_RETRIEVE_MIXED, \"mixed\"). Verified by test_decide_retrieval_decision_matrix[mixed_ao3] and the identity-check test_reason_strings_are_module_level_constants.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Branch 4 (primary present, non-AO3-only) returns (True, REASON_RETRIEVE_PRIMARY, \"retrieve\") (covers @key-example @smoke @retrieval @primary scenario)",
+      "status": "complete",
+      "evidence": "should_retrieve falls through to RetrievalDecision(True, REASON_RETRIEVE_PRIMARY, \"retrieve\") when none of the earlier branches match. Verified by test_decide_retrieval_decision_matrix[primary_present] and test_empty_focus_aos_defaults_to_retrieve_when_primary_present.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "AO3-only with empty context_historical/ folder still bypasses (covers @edge-case @retrieval @ao3 scenario for empty context-historical)",
+      "status": "complete",
+      "evidence": "Because the AO3-only check is the first branch, corpus contents are irrelevant when focus_aos == {\"AO3\"}. Verified by test_ao3_only_bypasses_with_empty_corpus (no registrations) and test_ao3_only_bypasses_even_when_primary_indexed (primary text present); both yield REASON_AO3_ONLY.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Embedder unavailability (sleep > 5s) \u2192 (False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") (covers @edge-case @retrieval @resilience scenario)",
+      "status": "complete",
+      "evidence": "embedder_available_within measures monotonic wall-clock around the installed probe; decide_retrieval consults it and returns RetrievalDecision(False, REASON_EMBEDDER_TIMEOUT, \"analysis_mode\") on timeout or probe exception. Verified by test_decide_retrieval_decision_matrix[embedder_timeout_override] (probe sleeps EMBEDDER_TIMEOUT_SECONDS+0.05s), test_embedder_probe_sleep_over_budget_triggers_override, and test_embedder_probe_raising_treated_as_unavailable.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Reason strings are module-level constants (tests assert decision.reason is REASON_AO3_ONLY, never literal compare)",
+      "status": "complete",
+      "evidence": "REASON_NO_PRIMARY, REASON_AO3_ONLY, REASON_EMBEDDER_TIMEOUT, REASON_RETRIEVE_PRIMARY, and REASON_RETRIEVE_MIXED are defined as module-level string constants and referenced by name in every return site. test_reason_strings_are_module_level_constants asserts identity (`is`) for all four branches, and test_should_retrieve_returns_named_tuple_contract (the seam test) asserts `decision.reason is REASON_NO_PRIMARY`.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+      "status": "complete",
+      "evidence": "Module imports cleanly under Python 3.12 (pytest collected 19/19 tests with no import errors). Source file uses `from __future__ import annotations`, type hints throughout, PEP 8 formatting (line lengths within standard limits), descriptive docstrings, no unused imports, no print() (uses logging module). pyproject.toml does not declare a ruff/black config so there is no project-configured linter beyond the implicit pytest/pyflakes-via-pytest gate, which all tests pass.",
+      "test_file": "tests/unit/knowledge/test_retrieval.py",
+      "implementation_files": [
+        "src/study_tutor/knowledge/retrieval.py"
+      ]
+    }
+  ]
+}

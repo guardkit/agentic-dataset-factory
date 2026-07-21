@@ -1,0 +1,138 @@
+{
+  "honesty": {
+    "verified": false,
+    "discrepancies": [
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file tests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      }
+    ],
+    "honesty_score": 1.0,
+    "resolved_paths": [],
+    "should_fix_count": 1
+  },
+  "gathering_status": "complete",
+  "gathering_error": null,
+  "quality_gates": {
+    "tests_passed": true,
+    "coverage_met": true,
+    "arch_review_passed": true,
+    "plan_audit_passed": true,
+    "tests_required": true,
+    "coverage_required": true,
+    "arch_review_required": false,
+    "plan_audit_required": true,
+    "all_gates_passed": true
+  },
+  "coverage_details": {
+    "coverage_met": null,
+    "line_coverage": null,
+    "branch_coverage": null,
+    "line_threshold": null,
+    "branch_threshold": null,
+    "coverage_required": true
+  },
+  "plan_audit": {
+    "status": "skipped",
+    "severity": null,
+    "violations": 0,
+    "extra_files": [],
+    "missing_files": [],
+    "extra_modifications": [],
+    "missing_modifications": [],
+    "extra_dependencies": [],
+    "missing_dependencies": [],
+    "loc_variance_pct": null,
+    "discrepancies_count": 0,
+    "message": "no implementation plan on disk"
+  },
+  "bdd": null,
+  "arch_review": null,
+  "tests": {
+    "tests_passed": true,
+    "tests_required": true,
+    "tests_run": null,
+    "tests_failed": 0,
+    "all_passed": null,
+    "requires_infrastructure": []
+  },
+  "wiring": null,
+  "mocked_seam": null,
+  "spec_gap": null,
+  "independent_tests": {
+    "tests_passed": true,
+    "test_command": "pytest tests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py -v --tb=short",
+    "test_output_summary": "Result:\n============================== 11 passed in 3.22s ==============================",
+    "duration_seconds": 4.206294775009155,
+    "raw_output": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/worktrees/FEAT-E2CB/.venv/bin/python\ncachedir: .pytest_cache\nrootdir: /home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/worktrees/FEAT-E2CB\nconfigfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)\nplugins: timeout-2.4.0, anyio-4.14.1, cov-7.1.0, langsmith-0.9.7, bdd-8.1.0, asyncio-1.4.0\ntimeout: 60.0s\ntimeout method: signal\ntimeout func_only: False\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function\ncollecting ... collected 11 items\n\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_python_routes_to_pytest_bdd PASSED [  9%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_dotnet_routes_to_reqnroll PASSED [ 18%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_csharp_routes_to_reqnroll PASSED [ 27%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_javascript_routes_to_cucumberjs PASSED [ 36%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_typescript_routes_to_cucumberjs PASSED [ 45%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_factory_discover_returns_matching_plugin PASSED [ 54%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_unknown_language_returns_none PASSED [ 63%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_python_without_pytest_bdd_returns_none PASSED [ 72%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_dotnet_without_project_files_returns_none PASSED [ 81%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_js_without_cucumber_dependency_returns_none PASSED [ 90%]\ntests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py::TestMultiStackRouting::test_dotnet_without_dotnet_cli_returns_none PASSED [100%]\n\n================================ tests coverage ================================\n_______________ coverage: platform linux, python 3.12.3-final-0 ________________\n\nName                                                                            Stmts   Miss Branch BrPart  Cover   Missing\n---------------------------------------------------------------------------------------------------------------------------\ninstaller/core/lib/__init__.py                                                      0      0      0      0   100%\ninstaller/core/lib/agent_bridge/__init__.py                                         4      4      0      0     0%   8-25\ninstaller/core/lib/agent_bridge/invoker.py                                         97     97     20      0     0%   8-354\ninstaller/core/lib/agent_bridge/state_manager.py                                   62     62      8      0     0%   8-235\ninstaller/core/lib/agent_enhancement/__init__.py                                    0      0      0      0   100%\ninstaller/core/lib/agent_enhancement/applier.py                                   326    326    154      0     0%   10-1088\ninstaller/core/lib/agent_enhancement/boundary_utils.py                            137    137     88      0     0%   14-526\ninstaller/core/lib/agent_enhancement/enhancer.py                                  327    327    116      0     0%   10-803\ninstaller/core/lib/agent_enhancement/metadata_validator.py                         69     69     34      0     0%   10-264\ninstaller/core/lib/agent_enhancement/models.py                                     47     47      4      0     0%   9-170\ninstaller/core/lib/agent_enhancement/orchestrator.py                              127    127     46      0     0%   14-416\ninstaller/core/lib/agent_enhancement/parser.py                                     83     83     30      0     0%   9-267\ninstaller/core/lib/agent_enhancement/prompt_builder.py                             18     18      4      0     0%   9-198\ninstaller/core/lib/agent_formatting/__init__.py                                     6      6      0      0     0%   7-30\ninstaller/core/lib/agent_formatting/metrics.py                                     82     82     26      0     0%   7-281\ninstaller/core/lib/agent_formatting/parser.py                                     101    101     32      0     0%   7-223\ninstaller/core/lib/agent_formatting/reporter.py                                    91     91     28      0     0%   7-254\ninstaller/core/lib/agent_formatting/transformers.py                               107    107     50      0     0%   7-295\ninstaller/core/lib/agent_formatting/validator.py                                   52     52     18      0     0%   7-154\ninstaller/core/lib/agent_generator/__init__.py                                      2      2      0      0     0%   12-20\ninstaller/core/lib/agent_generator/agent_generator.py                             247    247     66      0     0%   8-742\ninstaller/core/lib/agent_generator/agent_splitter.py                              101    101     54      0     0%   12-266\ninstaller/core/lib/agent_generator/markdown_formatter.py                           12     12      0      0     0%   11-80\ninstaller/core/lib/agent_orchestration/__init__.py                                  2      2      0      0     0%   21-28\ninstaller/core/lib/agent_orchestration/agent_orchestration.py                     118    118     26      0     0%   16-325\ninstaller/core/lib/agent_orchestration/external_discovery.py                       16     16      0      0     0%   11-86\ninstaller/core/lib/agent_scanner/__init__.py                                        2      2      0      0     0%   14-21\ninstaller/core/lib/agent_scanner/agent_scanner.py                                 102    102     38      0     0%   10-289\ninstaller/core/lib/codebase_analyzer/__init__.py                                    5      5      0      0     0%   32-63\ninstaller/core/lib/codebase_analyzer/agent_invoker.py                             251    251    130      0     0%   14-780\ninstaller/core/lib/codebase_analyzer/ai_analyzer.py                               129    129     30      0     0%   15-430\ninstaller/core/lib/codebase_analyzer/exclusions.py                                 37     37     24      0     0%   3-142\ninstaller/core/lib/codebase_analyzer/models.py                                    137    137     30      0     0%   14-290\ninstaller/core/lib/codebase_analyzer/prompt_builder.py                            138    138     60      0     0%   13-672\ninstaller/core/lib/codebase_analyzer/response_parser.py                           113    113     30      0     0%   13-376\ninstaller/core/lib/codebase_analyzer/serializer.py                                 91     91     22      0     0%   13-293\ninstaller/core/lib/codebase_analyzer/stratified_sampler.py                        295    295    128      0     0%   16-839\ninstaller/core/lib/config/__init__.py                                               4      4      0      0     0%   2-6\ninstaller/core/lib/config/config_schema.py                                         58     58      8      0     0%   2-117\ninstaller/core/lib/config/defaults.py                                               2      2      0      0     0%   2-5\ninstaller/core/lib/config/plan_review_config.py                                   120    120     50      0     0%   2-297\ninstaller/core/lib/constants.py                                                    10     10      0      0     0%   3-26\ninstaller/core/lib/context7/__init__.py                                             5      5      0      0     0%   23-28\ninstaller/core/lib/context7/context7_client.py                                     61     61     24      0     0%   22-315\ninstaller/core/lib/context7/detail_level.py                                        19     19      4      0     0%   12-87\ninstaller/core/lib/context7/monitor.py                                            119    119     28      0     0%   31-465\ninstaller/core/lib/context7/utils.py                                               29     29     16      0     0%   12-139\ninstaller/core/lib/external_id_mapper.py                                          106    106     48      0     0%   33-413\ninstaller/core/lib/external_id_persistence.py                                     147    147     56      0     0%   33-461\ninstaller/core/lib/feature_detection.py                                            86     86     26      0     0%   51-310\ninstaller/core/lib/guidance_generator/__init__.py                                   5      5      0      0     0%   10-15\ninstaller/core/lib/guidance_generator/extractor.py                                 43     43     26      0     0%   8-137\ninstaller/core/lib/guidance_generator/generator.py                                 67     67     12      0     0%   7-155\ninstaller/core/lib/guidance_generator/path_patterns.py                             31     31     22      0     0%   15-121\ninstaller/core/lib/guidance_generator/validator.py                                  8      8      4      0     0%   8-27\ninstaller/core/lib/guide_generator.py                                              98     98     18      0     0%   17-535\ninstaller/core/lib/id_generator.py                                                136    136     66      0     0%   87-827\ninstaller/core/lib/implement_orchestrator.py                                      291    291     66      0     0%   35-739\ninstaller/core/lib/implementation_mode_analyzer.py                                 68     68     28      0     0%   30-300\ninstaller/core/lib/metrics/__init__.py                                              3      3      0      0     0%   2-5\ninstaller/core/lib/metrics/metrics_storage.py                                      80     80     24      0     0%   2-164\ninstaller/core/lib/metrics/plan_review_dashboard.py                               133    133     52      0     0%   2-264\ninstaller/core/lib/metrics/plan_review_metrics.py                                  33     33      8      0     0%   2-197\ninstaller/core/lib/orchestrator/__init__.py                                         2      2      0      0     0%   8-16\ninstaller/core/lib/orchestrator/worktrees.py                                      128    128     18      0     0%   20-566\ninstaller/core/lib/orchestrator_error_messages.py                                  56     56     16      0     0%   16-272\ninstaller/core/lib/parallel_analyzer.py                                           112    112     64      0     0%   28-435\ninstaller/core/lib/pattern_generator.py                                           165    165     80      0     0%   10-482\ninstaller/core/lib/readme_generator.py                                            106    106     38      0     0%   28-358\ninstaller/core/lib/review_parser.py                                               145    145     60      0     0%   38-452\ninstaller/core/lib/rules_generator/__init__.py                                      2      2      0      0     0%   3-5\ninstaller/core/lib/rules_generator/code_style.py                                   18     18      0      0     0%   3-240\ninstaller/core/lib/rules_generator/generator.py                                    40     40     12      0     0%   3-96\ninstaller/core/lib/rules_generator/patterns.py                                     19     19      0      0     0%   3-355\ninstaller/core/lib/rules_generator/testing.py                                      19     19      0      0     0%   3-500\ninstaller/core/lib/settings_generator/__init__.py                                   5      5      0      0     0%   7-42\ninstaller/core/lib/settings_generator/generator.py                                178    178    100      0     0%   7-525\ninstaller/core/lib/settings_generator/models.py                                    57     57      0      0     0%   11-167\ninstaller/core/lib/settings_generator/tests/__init__.py                             0      0      0      0   100%\ninstaller/core/lib/settings_generator/tests/test_generator.py                     160    160      6      0     0%   7-313\ninstaller/core/lib/settings_generator/validator.py                                 91     91     68      0     0%   7-250\ninstaller/core/lib/slug_utils.py                                                   10     10      2      0     0%   3-38\ninstaller/core/lib/state_paths.py                                                  19      6      0      0    68%   40-42, 60, 78, 96\ninstaller/core/lib/stub_detector.py                                                58     58     30      0     0%   31-387\ninstaller/core/lib/task_review/__init__.py                                          2      2      0      0     0%   3-5\ninstaller/core/lib/task_review/model_router.py                                     54     54     16      0     0%   14-202\ninstaller/core/lib/template_config_handler.py                                     121    121     70      0     0%   10-404\ninstaller/core/lib/template_creation/__init__.py                                    3      3      0      0     0%   8-15\ninstaller/core/lib/template_creation/constants.py                                  12     12      0      0     0%   11-51\ninstaller/core/lib/template_creation/manifest_generator.py                        220    220     92      0     0%   9-575\ninstaller/core/lib/template_creation/models.py                                     42     42      0      0     0%   8-119\ninstaller/core/lib/template_generator/__init__.py                                   8      8      0      0     0%   34-79\ninstaller/core/lib/template_generator/ai_client.py                                 45     45     14      0     0%   8-263\ninstaller/core/lib/template_generator/claude_md_generator.py                      519    519    256      0     0%   9-1561\ninstaller/core/lib/template_generator/completeness_validator.py                   184    184     76      0     0%   11-678\ninstaller/core/lib/template_generator/extended_validator.py                       234    234    106      0     0%   10-678\ninstaller/core/lib/template_generator/layer_classifier.py                         200    200    114      0     0%   19-936\ninstaller/core/lib/template_generator/models.py                                   142    142      4      0     0%   8-447\ninstaller/core/lib/template_generator/path_pattern_inferrer.py                     72     72     32      0     0%   9-261\ninstaller/core/lib/template_generator/path_resolver.py                            113    113     38      0     0%   19-443\ninstaller/core/lib/template_generator/pattern_matcher.py                          126    126     80      0     0%   10-427\ninstaller/core/lib/template_generator/placeholder_patterns.py                      98     98     34      0     0%   11-330\ninstaller/core/lib/template_generator/report_generator.py                          79     79     44      0     0%   9-296\ninstaller/core/lib/template_generator/rules_structure_generator.py                318    318    112      0     0%   14-948\ninstaller/core/lib/template_generator/template_generator.py                       245    245    128      0     0%   10-683\ninstaller/core/lib/template_generator/tests/__init__.py                             0      0      0      0   100%\ninstaller/core/lib/template_generator/tests/test_placeholder_patterns.py          162    162      2      0     0%   7-350\ninstaller/core/lib/template_generator/tests/test_rules_generator.py               279    279      2      0     0%   7-778\ninstaller/core/lib/template_qa_orchestrator.py                                    158    158     22      0     0%   10-383\ninstaller/core/lib/template_validation/__init__.py                                  7      7      0      0     0%   7-25\ninstaller/core/lib/template_validation/ai_analysis_helpers.py                     130    130     82      0     0%   8-396\ninstaller/core/lib/template_validation/ai_service.py                               63     63     14      0     0%   8-285\ninstaller/core/lib/template_validation/audit_report_generator.py                  188    188     90      0     0%   7-433\ninstaller/core/lib/template_validation/audit_session.py                            63     63     10      0     0%   7-131\ninstaller/core/lib/template_validation/comprehensive_auditor.py                    41     41      4      0     0%   7-140\ninstaller/core/lib/template_validation/models.py                                  109    109      0      0     0%   7-241\ninstaller/core/lib/template_validation/orchestrator.py                            191    191     60      0     0%   7-329\ninstaller/core/lib/template_validation/progressive_disclosure_validator.py        143    143     48      0     0%   7-351\ninstaller/core/lib/template_validation/sections/__init__.py                        17     17      0      0     0%   7-24\ninstaller/core/lib/template_validation/sections/section_01_manifest.py            211    211     80      0     0%   7-553\ninstaller/core/lib/template_validation/sections/section_02_settings.py             38     38      6      0     0%   7-118\ninstaller/core/lib/template_validation/sections/section_03_documentation.py        49     49     16      0     0%   8-145\ninstaller/core/lib/template_validation/sections/section_04_files.py                32     32      6      0     0%   7-92\ninstaller/core/lib/template_validation/sections/section_05_agents.py               46     46     12      0     0%   8-95\ninstaller/core/lib/template_validation/sections/section_06_readme.py               28     28      4      0     0%   7-60\ninstaller/core/lib/template_validation/sections/section_07_global.py              120    120     42      0     0%   7-343\ninstaller/core/lib/template_validation/sections/section_08_comparison.py           98     98     28      0     0%   7-397\ninstaller/core/lib/template_validation/sections/section_09_production.py           18     18      0      0     0%   7-39\ninstaller/core/lib/template_validation/sections/section_10_scoring.py              18     18      0      0     0%   7-39\ninstaller/core/lib/template_validation/sections/section_11_findings.py            125    125     30      0     0%   7-602\ninstaller/core/lib/template_validation/sections/section_12_testing.py              59     59     14      0     0%   7-231\ninstaller/core/lib/template_validation/sections/section_13_market.py               18     18      0      0     0%   7-40\ninstaller/core/lib/template_validation/sections/section_14_recommendations.py      18     18      0      0     0%   7-40\ninstaller/core/lib/template_validation/sections/section_15_testing_recs.py         18     18      0      0     0%   7-40\ninstaller/core/lib/template_validation/sections/section_16_summary.py              18     18      0      0     0%   7-39\ninstaller/core/lib/utils/__init__.py                                                5      5      0      0     0%   2-7\ninstaller/core/lib/utils/feature_utils.py                                          22     22     12      0     0%   2-70\ninstaller/core/lib/utils/file_io.py                                                48     48      0      0     0%   23-130\ninstaller/core/lib/utils/file_operations.py                                        51     51      2      0     0%   2-117\ninstaller/core/lib/utils/json_serializer.py                                        36     36      2      0     0%   2-97\ninstaller/core/lib/utils/path_resolver.py                                          28     28      6      0     0%   2-81\n---------------------------------------------------------------------------------------------------------------------------\nTOTAL                                                                           12178  12165   4186      0     1%\nCoverage JSON written to file coverage.json\n============================== 11 passed in 3.22s ==============================\n",
+    "signal_absent": false,
+    "tests_skipped": 0,
+    "resolved_interpreter": "/home/richardwoollcott/Projects/appmilla_github/guardkit/.guardkit/worktrees/FEAT-E2CB/.venv/bin/python"
+  },
+  "independent_test_classification": null,
+  "requirements": {
+    "criteria_total": 3,
+    "criteria_met": 0,
+    "all_criteria_met": false,
+    "missing": [
+      "AC-2 (multi-stack reachability)**: a .NET project routes to `ReqnrollPlugin`",
+      "AC-2b (unsupported stack \u2192 absent-signal)**: a stack with no registered BDD",
+      "All modified files pass project-configured lint/format checks with zero errors."
+    ],
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "AC-2 (multi-stack reachability)**: a .NET project routes to `ReqnrollPlugin`",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "No completion promise for AC-001"
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "AC-2b (unsupported stack \u2192 absent-signal)**: a stack with no registered BDD",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "No completion promise for AC-002"
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors.",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "No completion promise for AC-003"
+      }
+    ]
+  },
+  "runtime_parity": null,
+  "evidence_repo_tests": [],
+  "severity_recommendations": [],
+  "advisory_issues": [
+    {
+      "severity": "warning",
+      "category": "agent_invocations_advisory",
+      "description": "Advisory (non-blocking): task-work produced a report with 2 of 3 expected agent invocations. Missing phases: 3 (Implementation). Consider invoking these agents via the Task tool to strengthen stack-specific quality:\n- Phase 3: `the stack-specific Phase-3 specialist` (Implementation)",
+      "details": {
+        "missing_phases": [
+          "3"
+        ],
+        "expected_phases": 3,
+        "actual_invocations": 2
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file tests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file tests/unit/orchestrator/quality_gates/test_bdd_multi_stack_routing.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    }
+  ],
+  "task_type": "feature",
+  "profile_name": "feature"
+}
