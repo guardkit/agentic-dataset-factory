@@ -265,7 +265,16 @@ class GenerateConfig:
         gen = data.get("generation", {}) or {}
         out = data.get("output", {}) or {}
         corpus = data.get("corpus", {}) or {}
-        corpus_roots = {k: v for k, v in corpus.items() if k != "bundle_schema_sha"}
+        # The ``corpus:`` block mixes repo-name -> path entries with a few scalar/list config keys
+        # (bundle_schema_sha, record_store_roots). Only the string-valued path entries are corpus
+        # roots; excluding the non-repo keys keeps the discovery/harvest walks from iterating a
+        # stringified list as a bogus root (harmless before, but now the feature-tracker walk reads
+        # each root's .guardkit — a real filesystem read).
+        _NON_ROOT_CORPUS_KEYS = {"bundle_schema_sha", "record_store_roots"}
+        corpus_roots = {
+            k: v for k, v in corpus.items()
+            if k not in _NON_ROOT_CORPUS_KEYS and isinstance(v, str)
+        }
         return cls(
             mode=gen.get("mode", "seeded_defect"),
             limit=gen.get("limit"),

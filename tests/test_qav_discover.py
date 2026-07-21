@@ -17,6 +17,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import yaml
+
 from qav.discover import (
     APPROVED_SHA_KEYS,
     MAX_FILE_BYTES,
@@ -27,6 +29,7 @@ from qav.discover import (
     locate_run_record_dir,
     materialize_run_record,
     resolve_approved_sha,
+    resolve_tracker_approved_sha,
     scope_file_map,
 )
 
@@ -441,6 +444,182 @@ def test_discover_source_tasks_recovers_record_from_factory_store(tmp_path):
     tasks = {r.task: r for r in resolved}
     assert set(tasks) == {"TASK-QAWE-003"}
     assert tasks["TASK-QAWE-003"].record_dir == str(rec)  # recovered from the store
+
+
+# --------------------------------------------------------------------------------------
+# Feature-tracker reader (G1, 2026-07-21) — the .guardkit/features/*.yaml +
+# archive/*/feature_state.yaml shape. The honesty law: a tracker NEVER *includes* a seeded source
+# task (inclusion stays merge_summary-gated); it turns every candidate away with a PRECISE reason,
+# resolving the committed merge sha from the record's prose where one exists.
+# --------------------------------------------------------------------------------------
+def _write_feature_tracker(root: Path, feature: str, record: dict) -> Path:
+    d = root / ".guardkit" / "features"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"{feature}.yaml"
+    p.write_text(yaml.safe_dump({"id": feature, **record}), encoding="utf-8")
+    return p
+
+
+def _approved_task(task_id: str, decision: str = "approved") -> dict:
+    return {"id": task_id, "status": "completed", "result": {"final_decision": decision}}
+
+
+def test_resolve_tracker_sha_from_completed_evidence(tmp_path):
+    # specialist-agent FEAT-32E7 shape: completed_evidence prose carries "merged to main <sha>".
+    repo = tmp_path / "specialist_agent"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    got, reason = resolve_tracker_approved_sha(
+        repo, {"completed_evidence": f"WS3 sweep: merged to main {sha} (Merge FEAT-32E7); waves..."}
+    )
+    assert got == sha and "completed_evidence" in reason
+
+
+def test_resolve_tracker_sha_salvaged_to_main_commit_phrasing(tmp_path):
+    repo = tmp_path / "forge"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    got, _ = resolve_tracker_approved_sha(
+        repo, {"execution": {"note": f"manually salvaged to main commit {sha}"}}
+    )
+    assert got == sha
+
+
+def test_resolve_tracker_sha_unresolvable_never_head(tmp_path):
+    repo = tmp_path / "repo"
+    head = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    got, reason = resolve_tracker_approved_sha(
+        repo, {"completed_evidence": "merged to main deadbeefdeadbeef"}
+    )
+    assert got is None and got != head
+    assert "unresolvable" in reason and "HEAD" in reason
+
+
+def test_resolve_tracker_sha_absent_returns_none(tmp_path):
+    repo = tmp_path / "repo"
+    _init_repo(repo, {"src/a.py": "x = 1\n"})
+    got, reason = resolve_tracker_approved_sha(repo, {"completed_evidence": "done, all green"})
+    assert got is None and "no committed merge-sha" in reason
+
+
+def test_tracker_approved_task_excluded_never_included(tmp_path):
+    # jarvis FEAT-28FF shape: completed tracker, tasks final_decision=approved, NO committed sha ->
+    # per-task exclusion, and NOTHING included (inclusion stays merge_summary-gated).
+    repo = tmp_path / "jarvis"
+    _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_feature_tracker(repo, "FEAT-28FF", {
+        "status": "completed",
+        "tasks": [_approved_task("TASK-JNB-001"), _approved_task("TASK-JNB-002")],
+    })
+    result = discover_source_task_refs({"jarvis": repo})
+    assert result.included == []  # THE LAW: a tracker never seeds an approve
+    turned = {e.task: e for e in result.excluded if e.task}
+    assert set(turned) == {"TASK-JNB-001", "TASK-JNB-002"}
+    assert "feature-tracker record" in turned["TASK-JNB-001"].reason
+    assert "no committed merge-sha" in turned["TASK-JNB-001"].reason
+    assert "never guessed/HEAD" in turned["TASK-JNB-001"].reason
+
+
+def test_tracker_false_green_with_resolvable_sha_still_excluded(tmp_path):
+    # forge FEAT-FMDR trap: a tracker task reads final_decision=approved AND a real merge sha
+    # resolves — but a tracker approve is NOT an autobuild coach-approve (documented false-green).
+    # It must be turned away, with the resolvable sha NAMED as insufficient.
+    repo = tmp_path / "forge"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_feature_tracker(repo, "FEAT-FMDR", {
+        "status": "completed",
+        "completed_evidence": f"salvaged to main commit {sha} (autobuild-false-green-analysis)",
+        "tasks": [_approved_task("TASK-FMDR-003"), _approved_task("TASK-FMDR-004")],
+    })
+    result = discover_source_task_refs({"forge": repo})
+    assert result.included == []
+    fmdr = [e for e in result.excluded if e.task == "TASK-FMDR-004"]
+    assert len(fmdr) == 1
+    assert sha in fmdr[0].reason and "resolvable" in fmdr[0].reason
+    assert "autobuild" in fmdr[0].reason.lower() and "never guessed/HEAD" in fmdr[0].reason
+
+
+def test_tracker_merged_but_stale_pending_tasks_named(tmp_path):
+    # specialist-agent FEAT-32E7/8060: feature merged (sha resolves) but every per-task decision is
+    # still 'pending' (result: None) -> a merged-but-stale exclusion that NAMES the sha, distinct
+    # from an empty spec-only stub, and never inferred into an approve.
+    repo = tmp_path / "specialist_agent"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_feature_tracker(repo, "FEAT-32E7", {
+        "status": "completed",
+        "completed_evidence": f"merged to main {sha}; Stale planned->completed.",
+        "tasks": [{"id": "TASK-SPL7-001", "status": "pending", "result": None}],
+    })
+    result = discover_source_task_refs({"specialist_agent": repo})
+    assert result.included == []
+    stale = [e for e in result.excluded if e.feature == "FEAT-32E7"]
+    assert len(stale) == 1 and stale[0].task is None
+    assert sha in stale[0].reason and "no approvable task" in stale[0].reason
+
+
+def test_tracker_gold_source_task_excluded_with_gold_reason(tmp_path):
+    # A gold-negative task appearing as a tracker record keeps the gold-negative reason (never a
+    # training row), same as the merge_summary path.
+    repo = tmp_path / "study_tutor"
+    _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_feature_tracker(repo, "FEAT-SMP-002", {
+        "status": "completed",
+        "tasks": [_approved_task("TASK-SMP2-07")],  # GN-1
+    })
+    result = discover_source_task_refs({"study_tutor": repo})
+    assert result.included == []
+    assert any(e.task == "TASK-SMP2-07" and "gold-negative" in e.reason for e in result.excluded)
+
+
+def test_tracker_spec_only_stub_keeps_spec_only_reason(tmp_path):
+    # A genuinely planned stub (no task results) keeps the pre-existing whole-feature spec-only
+    # reason — the refined reader must not regress the FEAT-SMP-001 case.
+    repo = tmp_path / "guardkit"
+    _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_feature_tracker(repo, "FEAT-0D1C", {
+        "status": "planned",
+        "tasks": [{"id": "T-1", "status": "pending", "result": None}],
+    })
+    result = discover_source_task_refs({"guardkit": repo})
+    stub = [e for e in result.excluded if e.feature == "FEAT-0D1C"]
+    assert len(stub) == 1 and stub[0].task is None
+    assert "spec-only" in stub[0].reason and "never defaulted to HEAD" in stub[0].reason
+
+
+def test_tracker_does_not_double_count_merge_summary_feature(tmp_path):
+    # A feature present as BOTH a merge_summary (archive) and a tracker (features/<FEAT>.yaml) is
+    # handled ONLY by the merge_summary path — the tracker walk must skip it (merge_summary wins).
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_merge_summary(repo, "FEAT-E2CB", {
+        "merged_commit": sha,
+        "tasks": [{"id": "TASK-BDDW-001", "decision": "approved"}],
+    })
+    _write_feature_tracker(repo, "FEAT-E2CB", {
+        "status": "completed", "tasks": [_approved_task("TASK-BDDW-001")],
+    })
+    result = discover_source_task_refs({"guardkit": repo})
+    assert [r.task for r in result.included] == ["TASK-BDDW-001"]  # included via merge_summary
+    # no tracker exclusion for the same feature (not turned away twice)
+    assert not any(e.feature == "FEAT-E2CB" and "feature-tracker record" in e.reason
+                   for e in result.excluded)
+
+
+def test_tracker_walks_archived_feature_state(tmp_path):
+    # The archived tracker shape (.guardkit/archive/<FEAT>/feature_state.yaml) with no
+    # merge_summary is walked too (jarvis FEAT-J005-946D shape) — its approved tasks are recorded
+    # turn-aways, not silent.
+    repo = tmp_path / "jarvis"
+    _init_repo(repo, {"src/a.py": "x = 1\n"})
+    d = repo / ".guardkit" / "archive" / "FEAT-J005-946D"
+    d.mkdir(parents=True)
+    (d / "feature_state.yaml").write_text(
+        yaml.safe_dump({"id": "FEAT-J005-946D", "status": "completed",
+                        "tasks": [_approved_task("TASK-J005-001")]}),
+        encoding="utf-8",
+    )
+    result = discover_source_task_refs({"jarvis": repo})
+    assert result.included == []
+    assert any(e.task == "TASK-J005-001" and "feature-tracker record" in e.reason
+               for e in result.excluded)
 
 
 def test_checkout_with_relative_worktree_path_never_plants_inside_corpus(tmp_path, monkeypatch):

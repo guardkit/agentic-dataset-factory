@@ -64,11 +64,24 @@ corpus:                      # read-only source repos (venue rule) — scratch w
   study_tutor: /home/richardwoollcott/Projects/appmilla_github/study-tutor
   forge: /home/richardwoollcott/Projects/appmilla_github/forge
   # Roots for the 2026-07-21 ratified batch labels (repo keys = THE spelling outcome entries
-  # must use; consistent underscore keys). None of these three carries a .guardkit/archive
+  # must use; consistent underscore keys). None of these carries a .guardkit/archive
   # merge_summary.json, so they add HARVEST bundle discovery only — zero new seeded source tasks.
+  # G1 (2026-07-21) added the FEATURE-TRACKER reader (qav.discover): these repos' completed
+  # .guardkit/features/*.yaml + archive/*/feature_state.yaml are now WALKED, so every approved
+  # tracker task is turned away by a PRECISE recorded exclusion instead of being silently
+  # invisible. Seeded INCLUSION stays merge_summary-gated by the honesty law (a tracker approve is
+  # not an autobuild coach-approve; forge FEAT-FMDR proved a tracker 'approved'+merged-sha can be a
+  # documented false-green) — so these still contribute ZERO new seeded source tasks, now audibly.
   api_test: /home/richardwoollcott/Projects/appmilla_github/api_test
   nats_core: /home/richardwoollcott/Projects/appmilla_github/nats-core
   jarvis: /home/richardwoollcott/Projects/appmilla_github/jarvis
+  # The remaining two repos of the harvest union census's 8 (fleet-memory + specialist-agent).
+  # Same story: feature-tracker records only (no merge_summary), so tracker-walked + excluded, not
+  # included. specialist-agent FEAT-32E7/8060 DO record a resolvable "merged to main <sha>" in
+  # completed_evidence, but their per-task decisions are stale 'pending' (no per-task approval) —
+  # named in the exclusion, never inferred into an approve.
+  fleet_memory: /home/richardwoollcott/Projects/appmilla_github/fleet-memory
+  specialist_agent: /home/richardwoollcott/Projects/appmilla_github/specialist-agent
   bundle_schema_sha: "41a0ebe457"
   # Factory-side record store(s) — recovered authentic run records for the 10 discovered tasks
   # whose task_work_results.json was not reachable at their corpus HEAD by the .guardkit globs
@@ -89,6 +102,8 @@ interpreters:
   api_test: /home/richardwoollcott/Projects/appmilla_github/api_test/.venv/bin/python
   nats_core: /home/richardwoollcott/Projects/appmilla_github/nats-core/.venv/bin/python
   jarvis: /home/richardwoollcott/Projects/appmilla_github/jarvis/.venv/bin/python
+  fleet_memory: /home/richardwoollcott/Projects/appmilla_github/fleet-memory/.venv/bin/python
+  specialist_agent: /home/richardwoollcott/Projects/appmilla_github/specialist-agent/.venv/bin/python
 
 output:
   dir: output/qa-verifier

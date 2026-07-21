@@ -29,11 +29,14 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Optional
+
+import yaml
 
 from qav.gold_negatives import GOLD_NEGATIVES
 
@@ -58,9 +61,49 @@ GOLD_SOURCE_TASKS: frozenset[tuple[str, str]] = frozenset(
 APPROVED_SHA_KEYS: tuple[str, ...] = ("merged_commit", "merge_commit", "main_head_after")
 _TASK_LIST_KEYS: tuple[str, ...] = ("tasks", "tasks_merged")
 _MERGE_SUMMARY = "merge_summary.json"
+_FEATURE_STATE = "feature_state.yaml"
 _ARCHIVE_REL = Path(".guardkit") / "archive"
 _AUTOBUILD_REL = Path(".guardkit") / "autobuild"
 _FEATURES_REL = Path(".guardkit") / "features"
+
+# ---------------------------------------------------------------------------------------------
+# THE FEATURE-TRACKER RECORD SHAPE (G1 seeded-source discovery expansion, 2026-07-21).
+#
+# Most corpus repos never emit a ``.guardkit/archive/<FEAT>/merge_summary.json`` (the autobuild
+# "approved-and-held" record the base discovery walks). What they DO carry is the FEATURE TRACKER
+# — ``.guardkit/features/<FEAT>.yaml`` (live) and ``.guardkit/archive/<FEAT>/feature_state.yaml``
+# (archived) — a per-task ledger with ``tasks[].result.final_decision`` and, on some completed
+# features, a committed merge sha recorded in prose (``completed_evidence`` / ``execution.note``,
+# e.g. "merged to main a6da898", "salvaged to main commit 4753b20"). The batch-card's A1-J rule
+# documented this shape for jarvis.
+#
+# HONESTY LAW — WHY THE TRACKER NEVER *INCLUDES* A SEEDED SOURCE TASK (only excludes, precisely):
+# a tracker ``final_decision: approved`` is NOT an autobuild coach-approve-and-held decision, and
+# the tracker's own contents cannot be distinguished from:
+#   - a MANUAL SALVAGE / DOCUMENTED FALSE-GREEN — forge FEAT-FMDR: tasks read
+#     ``final_decision: approved`` AND a real merge sha (4753b20) resolves, yet the record itself
+#     points at ``docs/reviews/FEAT-FMDR-autobuild-false-green-analysis.md`` and notes "Manual
+#     completion (not /feature-complete) ... manually salvaged". Seeding an APPROVE control row
+#     from that would poison the corpus with a known escape. (Census U1 already excludes it.)
+#   - a REVIEWER-IN-LOOP completion (census A3, study-tutor FEAT-PO-002) — different approve
+#     semantics, not an autobuild coach hold.
+#   - a STALE reconcile — specialist-agent FEAT-32E7/8060: feature merged (sha resolves) but every
+#     per-task decision is still ``pending`` ("Stale planned->completed"); no per-task approval
+#     was ever recorded.
+# So seeded INCLUSION stays gated on a committed ``merge_summary.json`` (Option B: the bundle/
+# tracker's own say-so never justifies an approve). The tracker reader's job is to turn these
+# hundreds of estate-wide turn-aways from SILENT (repos with no merge_summary contributed nothing
+# discoverable) into PRECISE, RECORDED exclusions — the module's "log every turn-away" ethos — and
+# to RESOLVE the committed merge sha where the record carries one, so the exclusion names it. The
+# instant a repo emits a real autobuild merge_summary, the base walk includes it with no new code.
+# ---------------------------------------------------------------------------------------------
+# Committed-evidence sha, recorded in tracker prose. Matches "... to main <sha>" and
+# "... to main commit <sha>" (the observed phrasings), sha = 7..40 lowercase hex. The regex only
+# proposes a candidate; a git ``cat-file`` resolvability check is ALWAYS the final authority, so a
+# pure-digit timestamp or any non-commit token that slips the pattern still fails closed to an
+# exclusion (never HEAD, never a guess).
+_TRACKER_SHA_FIELDS: tuple[str, ...] = ("completed_evidence", "merged", "superseded_note")
+_TRACKER_MERGE_SHA_RE = re.compile(r"\bto\s+main\b(?:\s+commit)?\s+([0-9a-f]{7,40})\b", re.I)
 
 # ---------------------------------------------------------------------------------------------
 # RUN-RECORD MATERIALIZATION — reconstruct the task's original autobuild record in the worktree.
@@ -352,6 +395,129 @@ def _evidence_paths(repo_root: Path, task: str, *, limit: int = 8) -> list[str]:
     return sorted(out)
 
 
+def resolve_tracker_approved_sha(
+    repo_root: Path, feature_record: dict[str, Any]
+) -> tuple[Optional[str], str]:
+    """Resolve a feature-tracker's committed merge sha from the record's prose evidence
+    (``completed_evidence`` / ``execution.note`` / ``merged`` — the "merged/salvaged to main
+    <sha>" phrasing), git-resolving each candidate. Returns ``(sha, reason)``; ``sha`` is ``None``
+    when nothing in the record resolves. NEVER returns HEAD, a git-log match, or a guess — the
+    committed record field is the only source, git ``cat-file`` the only authority.
+    """
+    texts: list[tuple[str, str]] = []
+    for key in _TRACKER_SHA_FIELDS:
+        val = feature_record.get(key)
+        if val:
+            texts.append((key, str(val)))
+    execution = feature_record.get("execution")
+    if isinstance(execution, dict) and execution.get("note"):
+        texts.append(("execution.note", str(execution["note"])))
+
+    seen: list[tuple[str, str]] = []
+    for field_name, text in texts:
+        for m in _TRACKER_MERGE_SHA_RE.finditer(text):
+            seen.append((field_name, m.group(1)))
+    if not seen:
+        return None, "no committed merge-sha in the tracker record (no 'to main <sha>' evidence)"
+    for field_name, sha in seen:
+        if _git_sha_resolves(repo_root, sha):
+            return sha, f"{field_name}:'...to main {sha}'"
+    unresolved = ", ".join(f"{k}={v}" for k, v in seen)
+    return None, (
+        f"tracker merge-sha candidate(s) present but unresolvable in {repo_root}/.git: "
+        f"{unresolved} — excluded, never defaulted to HEAD"
+    )
+
+
+def _tracker_task_records(feature_record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Per-task ledger entries that carry a ``result`` (a completed/attempted task), i.e. the
+    tracker analogue of a merge_summary's ``tasks`` list. A planned/spec-only stub has none."""
+    tasks = feature_record.get("tasks")
+    if not isinstance(tasks, list):
+        return []
+    return [
+        t for t in tasks
+        if isinstance(t, dict) and t.get("id") and isinstance(t.get("result"), dict)
+    ]
+
+
+def _tracker_final_decision(task_entry: dict[str, Any]) -> str:
+    result = task_entry.get("result")
+    if isinstance(result, dict):
+        return str(result.get("final_decision", "")).lower()
+    return ""
+
+
+def _classify_feature_tracker(
+    repo: str,
+    feature: str,
+    root: Path,
+    feature_record: dict[str, Any],
+    gold_source_tasks: Iterable[tuple[str, str]],
+) -> list[ExclusionRecord]:
+    """Classify one feature-tracker record into PRECISE per-task exclusions (the tracker shape
+    never yields an INCLUSION — see the module note; inclusion stays gated on merge_summary.json).
+
+    - No completed task-results (a planned / spec-only stub) -> a single whole-feature "spec-only"
+      exclusion (the pre-existing behaviour; the honesty law fires with the same reason).
+    - Completed-tracker tasks -> one exclusion each, naming the committed merge-sha when the record
+      carries a resolvable one, and the claimed ``final_decision``. Gold-source tasks keep the
+      gold-negative reason; the whole set is turned away because tracker evidence is not an
+      autobuild coach-approve (Option B).
+    """
+    sha, sha_reason = resolve_tracker_approved_sha(root, feature_record)
+    task_records = _tracker_task_records(feature_record)
+    if not task_records:
+        if sha:
+            # A merged feature (committed sha resolvable) whose per-task ledger was never filled in
+            # — e.g. specialist-agent FEAT-32E7/8060: "merged to main <sha> ... Stale
+            # planned->completed", every task still 'pending'. The merge is real but NO per-task
+            # approval was ever recorded, so there is nothing approvable to seed (never inferred
+            # from the feature-level merge). Named precisely, not lumped with the empty stubs.
+            return [
+                ExclusionRecord(
+                    repo, feature, None,
+                    f"feature merged (committed sha {sha} resolvable, {sha_reason}) but its "
+                    "per-task ledger records no result/decision (stale planned->completed) — no "
+                    "approvable task to seed; excluded, never inferred from the feature-level merge",
+                )
+            ]
+        return [
+            ExclusionRecord(
+                repo, feature, None,
+                "spec-only feature — no .guardkit/archive/<feature>/merge_summary.json run "
+                "record; approved sha unresolvable (excluded, never defaulted to HEAD)",
+            )
+        ]
+
+    sha_clause = (
+        f"committed merge-sha {sha} resolvable ({sha_reason}) but a tracker merge is NOT an "
+        "autobuild coach-approve"
+        if sha
+        else f"and {sha_reason}"
+    )
+    out: list[ExclusionRecord] = []
+    for task_entry in task_records:
+        task_id = str(task_entry["id"])
+        if _is_gold_source(repo, task_id, gold_source_tasks):
+            out.append(
+                ExclusionRecord(repo, feature, task_id,
+                                "gold-negative source task — never seeds a training row")
+            )
+            continue
+        decision = _tracker_final_decision(task_entry) or "<none>"
+        out.append(
+            ExclusionRecord(
+                repo, feature, task_id,
+                f"feature-tracker record (final_decision={decision!r}); tracker evidence never "
+                f"seeds a seeded-source approve — needs a committed merge_summary.json (Option B: "
+                f"forge FEAT-FMDR proved a tracker 'approved'+merged-sha can be a documented "
+                f"autobuild false-green) — {sha_clause}; excluded, never guessed/HEAD",
+            )
+        )
+    return out
+
+
 def discover_source_task_refs(
     corpus_roots: dict[str, Path],
     *,
@@ -411,21 +577,41 @@ def discover_source_task_refs(
                     SourceTaskRef(repo, feature, task_id, sha, _evidence_paths(root, task_id))
                 )
 
-        # Spec-only features (a features/<FEAT>.yaml with NO archive run record) prove the law:
-        # they have no resolvable approved sha, so every one is an excluded row (e.g. FEAT-SMP-001).
+        # Feature-tracker records (NOT covered by a merge_summary above): the live
+        # ``.guardkit/features/<FEAT>.yaml`` and the archived
+        # ``.guardkit/archive/<FEAT>/feature_state.yaml``. A planned/spec-only stub still fires the
+        # law with the same "spec-only" reason (e.g. FEAT-SMP-001); a COMPLETED tracker turns each
+        # of its tasks away precisely (approved-but-tracker-only never seeds an approve — see the
+        # module note + _classify_feature_tracker). merge_summary features win (skipped here).
+        seen_tracker_features: set[str] = set(archived_features)
+        tracker_paths: list[Path] = []
         features_dir = root / _FEATURES_REL
         if features_dir.is_dir():
-            for feature_path in sorted(features_dir.glob("*.yaml")):
-                feature = feature_path.stem
-                if feature in archived_features:
-                    continue
+            tracker_paths += sorted(features_dir.glob("*.yaml"))
+        archive_dir = root / _ARCHIVE_REL
+        if archive_dir.is_dir():
+            tracker_paths += sorted(archive_dir.glob(f"*/{_FEATURE_STATE}"))
+        for tracker_path in tracker_paths:
+            feature = (
+                tracker_path.parent.name
+                if tracker_path.name == _FEATURE_STATE
+                else tracker_path.stem
+            )
+            if feature in seen_tracker_features:
+                continue
+            seen_tracker_features.add(feature)
+            try:
+                record = yaml.safe_load(tracker_path.read_text(encoding="utf-8"))
+            except (OSError, yaml.YAMLError) as exc:
                 excluded.append(
-                    ExclusionRecord(
-                        repo, feature, None,
-                        "spec-only feature — no .guardkit/archive/<feature>/merge_summary.json run "
-                        "record; approved sha unresolvable (excluded, never defaulted to HEAD)",
-                    )
+                    ExclusionRecord(repo, feature, None, f"unreadable feature tracker: {exc}")
                 )
+                continue
+            if not isinstance(record, dict):
+                record = {}
+            excluded.extend(
+                _classify_feature_tracker(repo, feature, root, record, gold_source_tasks)
+            )
 
     included.sort(key=lambda r: (r.repo, r.feature, r.task))
     excluded.sort(key=lambda e: (e.repo, e.feature, e.task or ""))

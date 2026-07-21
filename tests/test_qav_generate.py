@@ -443,6 +443,10 @@ def test_config_yaml_loads_record_store_roots(tmp_path):
     )
     cfg = GenerateConfig.from_yaml(yaml_path)
     assert cfg.record_store_roots == ["domains/qa-verifier/record-store"]
+    # ...and record_store_roots is NOT itself parsed as a (bogus) corpus root — only the real
+    # repo->path entry survives (G1 filter fix; the feature-tracker walk reads each root's .guardkit,
+    # so a stringified list leaking in as a root would be a real filesystem misread).
+    assert set(cfg.corpus_roots) == {"guardkit"}
 
 
 def test_config_yaml_record_store_roots_default_empty(tmp_path):
