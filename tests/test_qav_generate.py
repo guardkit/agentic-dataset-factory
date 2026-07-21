@@ -93,10 +93,25 @@ def _cfg(tmp_path, **over):
     return GenerateConfig(**base)
 
 
+# The real coach_validator wiring producer (analyze_wiring) — the only recipe this single-file
+# map anchors is R-DC03-producer (see tests/test_qav_injector.py for the verbatim corpus source).
+_PRODUCER_SRC = (
+    "    try:\n"
+    "        result = analyze_wiring(\n"
+    "            authored_files=authored_files,\n"
+    "            worktree_path=worktree_path,\n"
+    "            task_type=task_type,\n"
+    "            stack=stack_obj,\n"
+    "        )\n"
+    "        if result is None:\n"
+    "            return None\n"
+)
+
+
 def _producer_task(task="TASK-P", repo="guardkit"):
     return SourceTask(
         repo=repo, feature="FEAT-X", task=task, sha="abc",
-        files={"src/evidence.py": "def gather():\n    behavioural_oracle = compute_oracle(t)\n    return behavioural_oracle\n"},
+        files={"guardkit/orchestrator/quality_gates/coach_validator.py": _PRODUCER_SRC},
     )
 
 
@@ -186,8 +201,11 @@ def test_sibling_variants_of_one_task_share_a_split(tmp_path):
     src = SourceTask(
         repo="guardkit", feature="F", task="TASK-SIB", sha="s",
         files={
-            "src/evidence.py": "def gather():\n    behavioural_oracle = compute_oracle(t)\n    return behavioural_oracle\n",
-            "src/serve.py": "def boot():\n    compose_planning(db_path=p, nats_url=u)\n",
+            "guardkit/orchestrator/quality_gates/coach_validator.py": _PRODUCER_SRC,
+            "guardkit/orchestrator/bdd_oracle.py": (
+                "def invoke(task_id, worktree_path):\n"
+                "    run_bdd_for_task(task_id, worktree_path, python_executable=None)\n"
+            ),
         },
     )
     summary = _run(cfg, [src], emit_gold_negatives=False)
