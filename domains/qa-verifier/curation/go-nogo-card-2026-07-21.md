@@ -29,3 +29,9 @@ DCL-pilot tier: `train ≥ 500` with the frozen laws PASSING (balance band 0.50�
 ≥ ~200; ugly-green floor; contamination). "Take longer and get a better count." The tune fires
 itself at the floor; the exam follows; Rich sees the verdict. His only interim touches:
 ratifying future curation batch-cards (one tap each).**
+
+**AMENDED AGAIN (Rich, same sitting): "or 1000?" — the floor rises to the PLAN's own Phase-1
+shape: `total ≥ 1000` (≈ train ≥ 850 at the 0.15 holdout) with the frozen laws PASSING.
+STALL-SAFE (coordinator's honesty clause): if a full growth cycle adds < 10% while below the
+floor, Rich gets a plateau report with the measured ceiling and a fresh decision card —
+the machine never grinds silently.**
