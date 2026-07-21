@@ -24,6 +24,7 @@ from qav.generate import (
     OutputWriter,
     SourceTask,
     assign_split,
+    build_bundle_mutations,
     cue_audit,
     evidence_empty_reason,
     run_generation,
@@ -451,3 +452,150 @@ def test_config_yaml_record_store_roots_default_empty(tmp_path):
         "domain: qa-verifier\ncorpus:\n  guardkit: /some/guardkit\n", encoding="utf-8"
     )
     assert GenerateConfig.from_yaml(yaml_path).record_store_roots == []
+
+
+# --------------------------------------------------------------------------------------
+# seeded_bundle ACTIVATION — the input wiring from REAL final-turn bundles (PLAN §2).
+#
+# The mode was built (cap enforced above) but produced ZERO rows because its input
+# (bundle_mutations) was never discovered — it defaulted to []. build_bundle_mutations wires
+# it: real serialized bundles mutated to a documented defect signature, label fixed by the
+# mutation (never model-derived), each perturbing a BUNDLE-VISIBLE field so the row_id changes
+# and the DC-03/DC-05 render-collapse (seeded-sweep §4 bottleneck #2) is escaped.
+# --------------------------------------------------------------------------------------
+_SIGNAL_BUNDLE = {
+    "honesty": {"verified": True, "discrepancies": []},
+    "gathering_status": "complete",
+    "behavioural_oracle": {"passed": True, "assertions": 5},
+    "bdd": {"scenarios": 3, "passed": 3},
+    "profile_name": "guardkit-default",
+}
+
+
+def test_build_bundle_mutations_encodes_dc_classes_and_fixes_labels():
+    base = dict(_SIGNAL_BUNDLE)
+    muts = build_bundle_mutations(
+        {("guardkit", "TASK-A"): base},
+        {("guardkit", "TASK-A"): {"feature": "FEAT-A", "sha": "deadbeef", "run": "seeded_bundle"}},
+    )
+    # one candidate per catalog recipe whose field carries a real signal
+    assert sorted(m.finding["class"] for m in muts) == ["DC-03", "DC-08", "DC-14"]
+    for m in muts:
+        assert (m.repo, m.task, m.feature, m.sha) == ("guardkit", "TASK-A", "FEAT-A", "deadbeef")
+        assert m.recipe_id.startswith("R-BUNDLE-")
+        # label fixed BY CONSTRUCTION — reject + the encoded finding, seeded source (never a model)
+        assert m.label["verdict"] == "reject"
+        assert m.label["ground_truth_source"] == "seeded"
+        assert m.label["findings"] == [m.finding]
+    # each mutation perturbs a distinct bundle-visible field -> distinct serialized bundles,
+    # each differing from the base (the render-collapse the seeded_code path suffers is escaped)
+    serialized = {json.dumps(m.bundle, sort_keys=True) for m in muts}
+    assert len(serialized) == 3
+    base_json = json.dumps(base, sort_keys=True)
+    assert all(json.dumps(m.bundle, sort_keys=True) != base_json for m in muts)
+    by_class = {m.finding["class"]: m for m in muts}
+    assert by_class["DC-03"].bundle["behavioural_oracle"] is None
+    assert by_class["DC-08"].bundle["bdd"] is None
+    assert by_class["DC-14"].bundle["honesty"]["discrepancies"]
+    assert by_class["DC-14"].bundle["honesty"]["verified"] is False
+    # the source bundle is never mutated in place (deepcopy)
+    assert base["behavioural_oracle"] == {"passed": True, "assertions": 5}
+
+
+def test_build_bundle_mutations_skips_already_vacuous_fields():
+    # all three target fields already absent/dirty -> no signal to sever, no candidate
+    base = {
+        "honesty": {"discrepancies": [{"claim_type": "x", "player_claim": "y", "actual_value": "z"}]},
+        "gathering_status": "complete",
+        "behavioural_oracle": None,
+        "bdd": None,
+        "profile_name": "p",
+    }
+    muts = build_bundle_mutations(
+        {("guardkit", "T"): base},
+        {("guardkit", "T"): {"feature": "F", "sha": "s", "run": "r"}},
+    )
+    assert muts == []
+
+
+def test_build_bundle_mutations_excludes_unresolvable_provenance():
+    # a bundle whose (repo, task) has no record-resolved provenance is EXCLUDED — never a guessed sha
+    base = dict(_SIGNAL_BUNDLE)
+    assert build_bundle_mutations({("guardkit", "T"): base}, {}) == []
+
+
+def test_build_bundle_mutations_skips_evidence_empty_base():
+    # a poison (evidence-empty) base is not a documented signature; the pre-gate would reject it anyway
+    base = {
+        "honesty": {"discrepancies": []},
+        "gathering_status": "partial_exception",
+        "gathering_error": "missing_results: task-work record not materialized",
+        "behavioural_oracle": {"passed": True},
+    }
+    muts = build_bundle_mutations(
+        {("guardkit", "T"): base},
+        {("guardkit", "T"): {"feature": "F", "sha": "s", "run": "r"}},
+    )
+    assert muts == []
+
+
+def test_seeded_bundle_rows_are_label_fixed_distinct_and_valid(tmp_path):
+    cfg = _cfg(tmp_path, seeded_bundle_cap=0.9)  # generous cap so all three admit
+    tasks = [_producer_task(task=f"TASK-{i}") for i in range(3)]  # 6 primary seeded rows
+    muts = build_bundle_mutations(
+        {("guardkit", "TASK-B"): dict(_SIGNAL_BUNDLE)},
+        {("guardkit", "TASK-B"): {"feature": "FEAT-B", "sha": "sha1", "run": "seeded_bundle"}},
+    )
+    assert len(muts) == 3
+    summary = _run(cfg, tasks, bundle_mutations=muts, emit_gold_negatives=False)
+    assert summary.seeded_bundle_written == 3  # none render-collapse (distinct bundle-visible fields)
+
+    all_rows = []
+    for name in ("train.jsonl", "eval_qav.jsonl"):
+        p = tmp_path / "out" / name
+        if p.exists():
+            all_rows += [json.loads(line) for line in p.read_text().splitlines()]
+    sb = [r for r in all_rows if r["metadata"]["generation_mode"] == "seeded_bundle"]
+    assert len(sb) == 3
+    assert len({r["metadata"]["row_id"] for r in sb}) == 3  # distinct row_ids
+    for r in sb:
+        lbl = extract_label(r)
+        assert lbl["verdict"] == "reject"
+        assert lbl["ground_truth_source"] == "seeded"
+        assert lbl["findings"][0]["class"] == r["metadata"]["dc_class"]
+        validate_row(r)
+    assert sorted(r["metadata"]["dc_class"] for r in sb) == ["DC-03", "DC-08", "DC-14"]
+
+
+def test_seeded_bundle_leaky_mutation_is_cue_rejected(tmp_path):
+    cfg = _cfg(tmp_path, seeded_bundle_cap=0.9)
+    tasks = [_producer_task(task=f"TASK-{i}") for i in range(2)]  # 4 primary
+    leaky = BundleMutation(
+        repo="guardkit", feature="F", task="BUN-LEAK", sha="s", run="r",
+        bundle={**_GREEN, "task_type": "__seeded__ sentinel", "profile_name": "bun-leak"},
+        finding={"class": "DC-03", "locus": "x"}, recipe_id="R-BUNDLE-DC03-oracle",
+    )
+    summary = _run(cfg, tasks, bundle_mutations=[leaky], emit_gold_negatives=False)
+    assert summary.cue_rejected == 1
+    assert summary.seeded_bundle_written == 0
+    rej = [json.loads(line) for line in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+    assert any(r["reason"] == "cue_leakage" for r in rej)
+
+
+def test_seeded_bundle_byte_identical_mutations_dedup(tmp_path):
+    cfg = _cfg(tmp_path, seeded_bundle_cap=0.9)
+    tasks = [_producer_task(task=f"TASK-{i}") for i in range(3)]  # 6 primary
+    dc03 = next(
+        m for m in build_bundle_mutations(
+            {("guardkit", "TASK-C"): dict(_SIGNAL_BUNDLE)},
+            {("guardkit", "TASK-C"): {"feature": "F", "sha": "s", "run": "r"}},
+        ) if m.finding["class"] == "DC-03"
+    )
+    dup = BundleMutation(
+        repo=dc03.repo, feature=dc03.feature, task=dc03.task, sha=dc03.sha, run=dc03.run,
+        bundle=dict(dc03.bundle), finding=dict(dc03.finding), recipe_id=dc03.recipe_id,
+    )
+    summary = _run(cfg, tasks, bundle_mutations=[dc03, dup], emit_gold_negatives=False)
+    # identical serialized bundle -> identical content-addressed row_id -> the 2nd is deduped
+    assert summary.seeded_bundle_written == 1
+    assert summary.deduped >= 1

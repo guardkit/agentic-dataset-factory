@@ -44,6 +44,7 @@ backups to ``output/qa-verifier/`` + the handover ``manifest.json``.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import logging
@@ -571,6 +572,172 @@ def discover_final_turn_bundles(
 
 
 # --------------------------------------------------------------------------------------
+# seeded_bundle input — REAL final-turn bundles mutated to a documented defect signature.
+#
+# PLAN §2 (the augmentation tier, capped ≤25% of seeded rows): "Mutate a real serialized
+# bundle's fields to a documented defect signature without re-running anything." Unlike the
+# seeded_code path — whose DC-03/DC-05 recipes regenerate a tree that RENDERS IDENTICAL to an
+# already-banked bundle (render-collapse: 26 legs → 0 unique rows, seeded-sweep §4 bottleneck
+# #2) — a bundle mutation perturbs a BUNDLE-VISIBLE field directly, so ``row_id`` (a sha256 of
+# the serialized bundle, contracts.py:build_user_message) necessarily changes and the row never
+# collapses. That bundle-field diversity is exactly what render-collapse starves.
+#
+# Each mutation is DETERMINISTIC and encodes ONE DC class BY CONSTRUCTION — the resulting label
+# (reject + {class, locus}, ground_truth_source=seeded) is fixed by the mutation, NEVER derived
+# by a model. Each recipe only fires where the field carries a real signal to sabotage (an
+# already-null field is skipped — no signal to sever, and no perturbation), so a mutation always
+# genuinely changes the serialized bundle. The mutation catalog is cue-clean by construction; the
+# per-row cue-leakage audit (cue_audit) is still the hard gate downstream (_gate_and_build) — a
+# real base bundle carrying an incidental token is turned away there, loudly, never dropped here.
+#
+# Recipe id namespace ``R-BUNDLE-*`` is DISJOINT from the frozen code recipes (RECIPES), so
+# _family_of / contamination._family both fall through to generation_mode="seeded_bundle" — every
+# mutation of one source task shares the split key (repo, task, "seeded_bundle") and never
+# straddles (PLAN §6 straddle law, by construction).
+# --------------------------------------------------------------------------------------
+def _mutate_dc03_oracle(bundle: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]] | None:
+    """DC-03 (composition seam, producer severed): null a populated ``behavioural_oracle`` —
+    the PLAN §3 R-DC03-producer expected signature ("behavioural_oracle field absent or vacuous",
+    the GN-3/QAV-005 gold shape). No-op-skip when already null (no producer output to sever)."""
+    if bundle.get("behavioural_oracle") is None:
+        return None
+    mutated = copy.deepcopy(bundle)
+    mutated["behavioural_oracle"] = None
+    return mutated, {
+        "class": "DC-03",
+        "locus": "behavioural_oracle severed to null (producer output vacuous)",
+    }
+
+
+def _mutate_dc08_bdd(bundle: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]] | None:
+    """DC-08 (BDD hole, independent oracle suppressed): null a populated ``bdd`` — the PLAN §3
+    R-ABSENT-junit expected signature ("bdd null + narrative claims", the SMP-002 turn-2 shape).
+    No-op-skip when already null (no independent BDD signal to drop)."""
+    if bundle.get("bdd") is None:
+        return None
+    mutated = copy.deepcopy(bundle)
+    mutated["bdd"] = None
+    return mutated, {
+        "class": "DC-08",
+        "locus": "bdd evidence dropped to null (independent BDD oracle suppressed)",
+    }
+
+
+# A documented honesty discrepancy modeled on the REAL on-disk shape (the guardkit
+# claim_audit_unmodified record: keys claim_type / player_claim / actual_value). Cue-clean —
+# no sentinel token, no RECIPES id, no truncation ellipsis (the cue_audit families).
+_PLANTED_HONESTY_DISCREPANCY = {
+    "claim_type": "claim_audit_unmodified",
+    "player_claim": "Player report claims the feature wiring was implemented and verified this run",
+    "actual_value": (
+        "git status shows the producer file was not modified in this run; the implementation "
+        "narrative over-claims disk state relative to what was actually written"
+    ),
+}
+
+
+def _mutate_dc14_honesty(bundle: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]] | None:
+    """DC-14 (narrative false-green): plant one honesty discrepancy into a CONFIDENT-clean bundle
+    (honesty present, no existing discrepancies) — the PLAN §3 R-DC14-narrative signature
+    ("honesty.discrepancies non-empty; narrative confident", the FMDR-004 shape). No-op-skip when
+    honesty already carries a discrepancy (not a confident green to falsify)."""
+    honesty = bundle.get("honesty")
+    if not isinstance(honesty, dict) or honesty.get("discrepancies"):
+        return None
+    mutated = copy.deepcopy(bundle)
+    new_honesty = dict(mutated["honesty"])
+    new_honesty["discrepancies"] = [dict(_PLANTED_HONESTY_DISCREPANCY)]
+    new_honesty["verified"] = False
+    mutated["honesty"] = new_honesty
+    return mutated, {
+        "class": "DC-14",
+        "locus": "honesty.discrepancies planted (narrative over-claims vs disk)",
+    }
+
+
+# Ordered catalog — deterministic iteration so a re-run yields the same candidate sequence.
+_BUNDLE_MUTATION_RECIPES: tuple[tuple[str, Any], ...] = (
+    ("R-BUNDLE-DC03-oracle", _mutate_dc03_oracle),
+    ("R-BUNDLE-DC08-bdd", _mutate_dc08_bdd),
+    ("R-BUNDLE-DC14-honesty", _mutate_dc14_honesty),
+)
+
+
+def build_bundle_mutations(
+    bundles: dict[tuple[str, str], dict[str, Any]],
+    provenance: dict[tuple[str, str], dict[str, str]],
+) -> list[BundleMutation]:
+    """Assemble ``seeded_bundle`` mutation candidates from REAL discovered final-turn bundles.
+
+    ``bundles`` maps ``(repo, task)`` -> the real serialized bundle (from
+    ``discover_final_turn_bundles``); ``provenance`` maps the SAME key -> the record-resolved
+    ``{feature, sha, run}`` (from the known-green source-task discovery, never a guessed sha). A
+    ``(repo, task)`` with no provenance entry is EXCLUDED (the approved-sha honesty law — no
+    fabricated coordinates), as is any evidence-empty bundle (a poison regeneration is not a
+    documented signature and would be turned away by the evidence-empty pre-gate regardless).
+
+    For each surviving bundle, every catalog recipe whose target field carries a real signal
+    yields one ``BundleMutation`` (label fixed by the mutation). The ≤cap share and the cue-audit
+    are enforced downstream in ``_run_seeded_bundle`` / ``_gate_and_build``."""
+    out: list[BundleMutation] = []
+    for key in sorted(bundles):
+        repo, task = key
+        prov = provenance.get(key)
+        if prov is None:
+            logger.info(
+                "SEEDED_BUNDLE skip %s/%s — no record-resolved provenance (never a guessed sha)",
+                repo, task,
+            )
+            continue
+        base = bundles[key]
+        if evidence_empty_reason(base) is not None:
+            logger.info(
+                "SEEDED_BUNDLE skip %s/%s — evidence-empty base bundle (not a documented signature)",
+                repo, task,
+            )
+            continue
+        for recipe_id, mutate in _BUNDLE_MUTATION_RECIPES:
+            result = mutate(base)
+            if result is None:
+                continue
+            mutated, finding = result
+            out.append(
+                BundleMutation(
+                    repo=repo,
+                    feature=str(prov["feature"]),
+                    task=task,
+                    sha=str(prov["sha"]),
+                    run=str(prov.get("run", "seeded_bundle")),
+                    bundle=mutated,
+                    finding=finding,
+                    recipe_id=recipe_id,
+                )
+            )
+    return out
+
+
+def _discover_bundle_mutations(
+    config: GenerateConfig, source_tasks: list[SourceTask]
+) -> list[BundleMutation]:
+    """Generation-run seam: wire the ``seeded_bundle`` input from the census-safe final-turn
+    bundle discovery + the record-resolved provenance of the discovered known-green source tasks.
+
+    Provenance comes ONLY from ``source_tasks`` (each carries a record-resolved approved sha +
+    feature — the honesty law already applied by ``qav.discover``), so a bundle only augments when
+    its task is a genuine known-green with resolved coordinates; gold-negative source tasks are
+    excluded (belt-and-braces over the downstream check)."""
+    corpus_roots = {k: Path(v) for k, v in config.corpus_roots.items()}
+    artifacts = discover_final_turn_bundles(corpus_roots)
+    bundles = {key: art.bundle for key, art in artifacts.items()}
+    provenance = {
+        (src.repo, src.task): {"feature": src.feature, "sha": src.sha, "run": "seeded_bundle"}
+        for src in source_tasks
+        if (src.repo, src.task) not in GOLD_SOURCE_TASKS
+    }
+    return build_bundle_mutations(bundles, provenance)
+
+
+# --------------------------------------------------------------------------------------
 # Ratified-outcomes ingestion — the harvest labels (census §2, Rich 2026-07-21).
 #
 # THE POLICY IS LAW: a bundle is labeled ONLY from a committed record. Undecidable/ambiguous
@@ -812,6 +979,11 @@ def run_generation(
     if source_tasks is None and config.mode in ("seeded_defect", "both"):
         source_tasks = _discover_source_tasks(config)  # pragma: no cover - generation run
     source_tasks = source_tasks or []
+    # seeded_bundle input: an injected list (tests) is used verbatim; ``None`` + a seeded mode
+    # discovers the augmentation candidates from the REAL final-turn bundles keyed to the
+    # record-resolved provenance of the known-green source tasks (PLAN §2 capped augmentation).
+    if bundle_mutations is None and config.mode in ("seeded_defect", "both"):
+        bundle_mutations = _discover_bundle_mutations(config, source_tasks)
     bundle_mutations = bundle_mutations or []
     # outcomes: an injected dict (tests) is used verbatim; ``None`` + a harvest mode loads the
     # ratified, schema-validated outcomes yaml from config (queued/flagged skipped + counted).
