@@ -1,0 +1,516 @@
+# QAV curation — your answers. Fill answer: for each bundle. Same order as pack-2026-07-21.md.
+#
+# answer:   approve | reject | skip        (skip is always legitimate)
+# dc_class: DC-03 | DC-05 | DC-08 | DC-12 | DC-14   (ONLY when answer: reject)
+# note:     optional free text — a one-line locus is gold on a reject
+#
+# Nothing here is a proposed label. Every answer: below is TODO until you write it.
+# The labels are yours; this file only records them.
+
+version: 1
+curated_by: rich
+date: 2026-07-21
+answers:
+  # ===== Group 1/15 — api_test — REST endpoint features (stats / uptime / version) =====
+  - repo: api_test
+    task: TASK-STAT-001
+    path: api_test/.guardkit/worktrees/FEAT-AE43/.guardkit/autobuild/TASK-STAT-001/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: api_test
+    task: TASK-UPT-001
+    path: api_test/.guardkit/worktrees/FEAT-AE43/.guardkit/autobuild/TASK-UPT-001/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: api_test
+    task: TASK-VER-001
+    path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-VER-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 2/15 — guardkit — HARV memory-harvest publisher =====
+  - repo: guardkit
+    task: TASK-HARV-002
+    path: guardkit/.guardkit/worktrees/FEAT-0E6D/docs/history/feat-harv-prefix-run-2026-06-26/autobuild-evidence/TASK-HARV-002/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-HARV-004
+    path: guardkit/.guardkit/worktrees/FEAT-0E6D/docs/history/feat-harv-prefix-run-2026-06-26/autobuild-evidence/TASK-HARV-004/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 3/15 — nats-core — MEP memory-episode publisher =====
+  - repo: nats-core
+    task: TASK-MEP-001
+    path: nats-core/.guardkit/autobuild/TASK-MEP-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: nats-core
+    task: TASK-MEP-002
+    path: nats-core/.guardkit/autobuild/TASK-MEP-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: nats-core
+    task: TASK-MEP-003
+    path: nats-core/.guardkit/autobuild/TASK-MEP-003/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: nats-core
+    task: TASK-MEP-004
+    path: nats-core/.guardkit/autobuild/TASK-MEP-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: nats-core
+    task: TASK-MEP-005
+    path: nats-core/.guardkit/autobuild/TASK-MEP-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 4/15 — study-tutor — VS2 streaming-voice feature =====
+  - repo: study-tutor
+    task: TASK-VS2-001
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-001/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-002
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-002/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-003
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-003/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-004
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-005
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-006
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-006/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-007
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-007/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VS2-008
+    path: study-tutor/.guardkit/autobuild/TASK-VS2-008/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 5/15 — study-tutor — VOX server-voice feature =====
+  - repo: study-tutor
+    task: TASK-VOX-001
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-002
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-002/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-003
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-003/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-004
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-005
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-006
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-006/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-VOX-007
+    path: study-tutor/.guardkit/autobuild/TASK-VOX-007/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 6/15 — forge — MP Mode-P planning wave (FEAT-3ED2) =====
+  - repo: forge
+    task: TASK-MP-001
+    path: forge/.guardkit/autobuild/TASK-MP-001/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-002
+    path: forge/.guardkit/autobuild/TASK-MP-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-003
+    path: forge/.guardkit/autobuild/TASK-MP-003/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-004A
+    path: forge/.guardkit/autobuild/TASK-MP-004A/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-004B
+    path: forge/.guardkit/autobuild/TASK-MP-004B/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-005
+    path: forge/.guardkit/autobuild/TASK-MP-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-006
+    path: forge/.guardkit/autobuild/TASK-MP-006/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-007
+    path: forge/.guardkit/autobuild/TASK-MP-007/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-008
+    path: forge/.guardkit/autobuild/TASK-MP-008/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: forge
+    task: TASK-MP-009
+    path: forge/.guardkit/autobuild/TASK-MP-009/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 7/15 — jarvis — JNB notification bridge (FEAT-28FF) =====
+  - repo: jarvis
+    task: TASK-JNB-001
+    path: jarvis/.guardkit/autobuild/TASK-JNB-001/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-002
+    path: jarvis/.guardkit/autobuild/TASK-JNB-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-003
+    path: jarvis/.guardkit/autobuild/TASK-JNB-003/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-005
+    path: jarvis/.guardkit/autobuild/TASK-JNB-005/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-006
+    path: jarvis/.guardkit/autobuild/TASK-JNB-006/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-007
+    path: jarvis/.guardkit/autobuild/TASK-JNB-007/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: jarvis
+    task: TASK-JNB-008
+    path: jarvis/.guardkit/autobuild/TASK-JNB-008/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 8/15 — fleet-memory — ABL5 fixture tooling =====
+  - repo: fleet-memory
+    task: TASK-ABL5-001
+    path: fleet-memory/.guardkit/autobuild/TASK-ABL5-001/coach_evidence_turn_8.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 9/15 — guardkit — ABL1 retrieval-arm switch (FEAT-ABL-001) =====
+  - repo: guardkit
+    task: TASK-ABL1-001
+    path: guardkit/.guardkit/worktrees/FEAT-ABL-001/.guardkit/autobuild/TASK-ABL1-001/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-ABL1-002
+    path: guardkit/.guardkit/worktrees/FEAT-ABL-001/.guardkit/autobuild/TASK-ABL1-002/coach_evidence_turn_4.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 10/15 — forge — MP-011 serve-boot wiring fix =====
+  - repo: forge
+    task: TASK-MP-011
+    path: forge/.guardkit/autobuild/TASK-MP-011/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 11/15 — guardkit — QAV Phase-0 verifier gates (FEAT-10AC / FEAT-0E6D) =====
+  - repo: guardkit
+    task: TASK-QAV-001
+    path: guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-001/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-QAV-002
+    path: guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-QAV-003
+    path: guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-003/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-QAV-004
+    path: guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: guardkit
+    task: TASK-QAV-006
+    path: guardkit/.guardkit/worktrees/FEAT-0E6D/.guardkit/autobuild/TASK-QAV-006/coach_evidence_turn_4.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 12/15 — specialist-agent — DFEM emitter-delta wave (FEAT-DF12) =====
+  - repo: specialist-agent
+    task: TASK-DFEM-001
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-001/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-002
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-003
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-003/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-004
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-005
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-006
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-006/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-007
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-007/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-008
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-008/coach_evidence_turn_2.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-009
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-009/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-010
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-010/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: specialist-agent
+    task: TASK-DFEM-011
+    path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-011/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 13/15 — study-tutor — KCA3 Keycloak auth rollout A3 (FEAT-AUTH-003) =====
+  - repo: study-tutor
+    task: TASK-KCA3-001
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA3-002
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-002/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA3-003
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-003/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA3-004
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-004/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA3-005
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA3-006
+    path: study-tutor/.guardkit/autobuild/TASK-KCA3-006/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 14/15 — study-tutor — KCA2 Keycloak auth rollout A2 (FEAT-AUTH-002) =====
+  - repo: study-tutor
+    task: TASK-KCA2-001
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA2-002
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-002/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA2-003
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-003/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA2-004
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-004/coach_evidence_turn_5.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA2-005
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KCA2-006
+    path: study-tutor/.guardkit/autobuild/TASK-KCA2-006/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+
+  # ===== Group 15/15 — study-tutor — KC Keycloak core auth (live-gated) =====
+  - repo: study-tutor
+    task: TASK-KC-001
+    path: study-tutor/.guardkit/autobuild/TASK-KC-001/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KC-002
+    path: study-tutor/.guardkit/autobuild/TASK-KC-002/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KC-003
+    path: study-tutor/.guardkit/autobuild/TASK-KC-003/coach_evidence_turn_3.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KC-004
+    path: study-tutor/.guardkit/autobuild/TASK-KC-004/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
+  - repo: study-tutor
+    task: TASK-KC-005
+    path: study-tutor/.guardkit/autobuild/TASK-KC-005/coach_evidence_turn_1.json
+    answer: TODO            # approve | reject | skip
+    dc_class: TODO-if-reject
+    note:
