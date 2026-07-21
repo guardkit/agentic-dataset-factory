@@ -603,3 +603,137 @@ def test_seeded_bundle_byte_identical_mutations_dedup(tmp_path):
     # identical serialized bundle -> identical content-addressed row_id -> the 2nd is deduped
     assert summary.seeded_bundle_written == 1
     assert summary.deduped >= 1
+
+
+# --------------------------------------------------------------------------------------
+# THE EVIDENCE-DIVERGENCE GUARD — the render-collapse poison path is structurally closed.
+#
+# Proven (receipts/render-collapse-rootcause-2026-07-21.md): the current regeneration replay
+# is SOURCE-BLIND — a mutated worktree's bundle renders byte-identical to its task's no-op
+# control bundle (gather_evidence partial_gate_abort replays the static record). Write-order
+# then let a reject recipe claim the shared row_id first and bank a GREEN bundle wearing a
+# reject label. The guard regenerates the CONTROL first per task, content-hashes it, and
+# REFUSES any reject candidate whose regenerated bundle hashes equal to that baseline
+# (reason "evidence_invariant_injection") — before any teacher call. Controls are unaffected.
+# --------------------------------------------------------------------------------------
+_STATIC_REPLAY = {
+    "honesty": {"discrepancies": []},
+    "gathering_status": "partial_gate_abort",  # the proven collapse shape — evidence-BEARING
+    "tests": {"passed": True},
+    "profile_name": "static-replay",
+}
+
+
+class SourceBlindRegenerator:
+    """Replays ONE static bundle for every worktree — the render-collapse regeneration shape
+    (mutated and control worktrees render byte-identical; worktree contents irrelevant)."""
+
+    def __init__(self, base: dict | None = None):
+        self.base = dict(base or _STATIC_REPLAY)
+        self.calls = 0
+
+    def regenerate(self, worktree: Path) -> dict:
+        self.calls += 1
+        return dict(self.base)
+
+
+class DivergentRegenerator:
+    """Control worktree -> green bundle; mutated worktree -> a genuinely DIFFERENT bundle
+    (the planted defect surfaced in the evidence) — the healthy-regeneration shape."""
+
+    def __init__(self):
+        self.calls = 0
+
+    def regenerate(self, worktree: Path) -> dict:
+        self.calls += 1
+        if "R-CONTROL-noop" in str(worktree):
+            return {**_GREEN, "profile_name": "control-green"}
+        return {
+            **_GREEN,
+            "gathering_status": "partial_gate_abort",
+            "tests": {"passed": False},
+            "profile_name": "mutated-red",
+        }
+
+
+def test_source_blind_reject_refused_control_still_banks(tmp_path):
+    cfg = _cfg(tmp_path)
+    teacher = StubTeacher()
+    summary = _run(
+        cfg, [_producer_task()], teacher=teacher,
+        regen=SourceBlindRegenerator(), emit_gold_negatives=False,
+    )
+    # the reject candidate (R-DC03-producer anchors this fixture) is REFUSED: its bundle is
+    # byte-identical to the task's no-op control bundle — the defect never surfaced.
+    assert summary.evidence_invariant_rejected == 1
+    assert summary.seeded_code_written == 0
+    # the CONTROL still banks — its approve label describes the real record.
+    assert summary.seeded_control_written == 1
+    rows = [json.loads(l) for l in (tmp_path / "out" / "train.jsonl").read_text().splitlines()]
+    assert len(rows) == 1
+    assert extract_label(rows[0])["verdict"] == "approve"
+    assert rows[0]["metadata"]["injection_recipe"] == "R-CONTROL-noop"
+    validate_row(rows[0])
+    # NO green bundle wearing a reject label anywhere — the poison class is impossible.
+    # The refusal is loud in rejected.jsonl with the exact reason + the shared content hash.
+    rej = [json.loads(l) for l in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+    assert len(rej) == 1
+    assert rej[0]["reason"] == "evidence_invariant_injection"
+    assert rej[0]["injection_recipe"] == "R-DC03-producer"
+    assert rej[0]["bundle_content_sha256"]
+    # refused BEFORE the teacher: the only teacher call is the control's own rationale.
+    assert teacher.calls == 1
+    # the refusal is NOT a dedup event — it never reached the writer.
+    assert summary.deduped == 0
+
+
+def test_divergent_reject_banks_normally(tmp_path):
+    cfg = _cfg(tmp_path)
+    summary = _run(
+        cfg, [_producer_task()], regen=DivergentRegenerator(), emit_gold_negatives=False,
+    )
+    # genuinely different evidence -> the guard stays silent and the reject banks.
+    assert summary.evidence_invariant_rejected == 0
+    assert summary.seeded_code_written == 1
+    assert summary.seeded_control_written == 1
+    rows = [json.loads(l) for l in (tmp_path / "out" / "train.jsonl").read_text().splitlines()]
+    verdicts = sorted(extract_label(r)["verdict"] for r in rows)
+    assert verdicts == ["approve", "reject"]
+    reject = next(r for r in rows if extract_label(r)["verdict"] == "reject")
+    # the banked reject carries its OWN divergent evidence, not the control's.
+    assert "mutated-red" in json.dumps(reject)
+    for r in rows:
+        validate_row(r)
+    assert (tmp_path / "out" / "rejected.jsonl").read_text().strip() == ""
+
+
+def test_source_blind_refusal_covers_every_reject_leg_of_a_task(tmp_path):
+    # two anchoring reject recipes on one task (the sibling fixture) — BOTH refused, one control.
+    cfg = _cfg(tmp_path)
+    src = SourceTask(
+        repo="guardkit", feature="F", task="TASK-SIB", sha="s",
+        files={
+            "guardkit/orchestrator/quality_gates/coach_validator.py": _PRODUCER_SRC,
+            "guardkit/orchestrator/bdd_oracle.py": (
+                "def invoke(task_id, worktree_path):\n"
+                "    run_bdd_for_task(task_id, worktree_path, python_executable=None)\n"
+            ),
+        },
+    )
+    summary = _run(cfg, [src], regen=SourceBlindRegenerator(), emit_gold_negatives=False)
+    assert summary.evidence_invariant_rejected == 2
+    assert summary.seeded_code_written == 0
+    assert summary.seeded_control_written == 1
+
+
+def test_evidence_empty_still_wins_over_divergence_guard(tmp_path):
+    # a source-blind POISON regenerator (identical AND evidence-empty bundles): the evidence-empty
+    # pre-gate fires first — the more fundamental refusal — and the guard counter stays zero.
+    cfg = _cfg(tmp_path)
+    summary = _run(
+        cfg, [_producer_task()], regen=PoisonRegenerator(), emit_gold_negatives=False,
+    )
+    assert summary.evidence_invariant_rejected == 0
+    assert summary.evidence_empty_rejected == 2  # the reject leg AND the control leg
+    rej = [json.loads(l) for l in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+    assert all(r["reason"] == "evidence_empty_bundle" for r in rej)

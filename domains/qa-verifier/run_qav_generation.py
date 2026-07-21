@@ -193,11 +193,13 @@ def main(argv: list[str] | None = None) -> int:
         "DONE seeded_code=%s control=%s seeded_bundle=%s harvest=%s gold=%s "
         "harvest_skipped=%s harvest_bundle_not_found=%s "
         "teacher_refused=%s coach_rejected=%s cue_rejected=%s evidence_empty_rejected=%s "
+        "evidence_invariant_rejected=%s "
         "train=%s eval_qav=%s manifest_finalized=%s balance_ok=%s approve_share=%s%s",
         summary.seeded_code_written, summary.seeded_control_written, summary.seeded_bundle_written,
         summary.harvest_written, summary.gold_negatives_written,
         summary.harvest_outcomes_skipped, summary.harvest_bundle_not_found, summary.teacher_refused,
         summary.coach_rejected, summary.cue_rejected, summary.evidence_empty_rejected,
+        summary.evidence_invariant_rejected,
         summary.train, summary.eval_qav, summary.manifest_finalized, summary.manifest_balance_ok,
         summary.manifest_approve_share,
         (" balance_violations=" + "; ".join(summary.manifest_balance_violations)

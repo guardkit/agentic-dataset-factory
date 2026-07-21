@@ -384,6 +384,34 @@ def evidence_empty_reason(bundle: dict[str, Any]) -> str | None:
     )
 
 
+# --------------------------------------------------------------------------------------
+# THE EVIDENCE-DIVERGENCE GUARD — the render-collapse poison-path closure (2026-07-21).
+#
+# Proven (receipts/render-collapse-rootcause-2026-07-21.md): on the current corpus the
+# regeneration replay is SOURCE-BLIND — guardkit gather_evidence short-circuits at
+# ``partial_gate_abort`` and replays the static task-work record, so a mutated worktree's
+# bundle comes out BYTE-IDENTICAL to its task's no-op control bundle. Write-order then let a
+# reject recipe claim the shared row_id first and bank a GREEN bundle wearing a reject label
+# (the growth-cycle-1 corpus carried 4 such rows) — the exact false-BLOCK poison QAV exists to
+# prevent. The guard makes the class STRUCTURALLY IMPOSSIBLE: the control bundle is regenerated
+# FIRST per task and content-hashed; any seeded REJECT candidate whose regenerated bundle
+# hashes equal to that control baseline is REFUSED to rejected.jsonl with reason
+# ``evidence_invariant_injection`` — the planted defect did not surface in the evidence, so no
+# reject label may ride it. Controls themselves are unaffected (their approve label describes
+# the real record). Deterministic; runs BEFORE any teacher call (no wasted GPU).
+# --------------------------------------------------------------------------------------
+EVIDENCE_INVARIANT_REASON = "evidence_invariant_injection"
+
+
+def bundle_content_hash(bundle: dict[str, Any]) -> str:
+    """Canonical content hash of a serialized bundle — the byte-identity surface the
+    render-collapse receipt proved (sorted-key JSON, the same canonicalization the row_id
+    user-message rendering uses). Two bundles hash equal iff their evidence is identical."""
+    return hashlib.sha256(
+        json.dumps(bundle, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
 def cue_audit(bundle: dict[str, Any]) -> list[str]:
     """Deterministic surface-cue scan (reusing ``coach-agent/audit_cue_leakage.py``
     conventions) — the ``seeded_bundle`` gate and a cheap check on every seeded row.
@@ -861,6 +889,10 @@ class GenerationSummary:
     coach_rejected: int = 0
     cue_rejected: int = 0
     evidence_empty_rejected: int = 0  # regenerated bundle had no usable evidence (loudness law)
+    # THE EVIDENCE-DIVERGENCE GUARD: seeded reject candidates whose regenerated bundle was
+    # byte-identical to their task's no-op control bundle — the defect never surfaced in the
+    # evidence, so the reject label was refused (render-collapse poison-path closure).
+    evidence_invariant_rejected: int = 0
     schema_rejected: int = 0
     anchor_skipped: int = 0  # recipe anchor absent from a source task (loud, not silent)
     gold_source_skipped: int = 0  # source tasks excluded as gold-negative sources
@@ -894,11 +926,17 @@ def _gate_and_build(
     teacher: ModelClient,
     coach: CoachClient,
     summary: GenerationSummary,
+    control_bundle_hash: str | None = None,
 ) -> tuple[str, dict[str, Any] | None, dict[str, Any] | None]:
     """Run the Coach gate (schema + rationale-consistency + cue-audit) for one candidate row.
 
     Returns ``("accepted", row, None)`` or ``("rejected", None, reject_record)``. Refusals and
-    rejections are loud RESULTS (recorded), never retries or silent degrades (honesty law 3)."""
+    rejections are loud RESULTS (recorded), never retries or silent degrades (honesty law 3).
+
+    ``control_bundle_hash`` (seeded_code REJECT candidates only) arms the evidence-divergence
+    guard: a reject candidate whose bundle content-hash equals its task's no-op CONTROL bundle
+    hash is refused as ``evidence_invariant_injection`` — the planted defect did not surface in
+    the evidence, so no reject label may ride it. Controls/approves never pass a hash here."""
     reject_base = {
         "repo": provenance["repo"], "task": provenance["task"],
         "generation_mode": generation_mode, "injection_recipe": injection_recipe,
@@ -913,6 +951,33 @@ def _gate_and_build(
         return "rejected", None, {
             **reject_base, "reason": "evidence_empty_bundle", "detail": empty,
             "gathering_status": bundle.get("gathering_status"),
+        }
+    # THE EVIDENCE-DIVERGENCE GUARD (deterministic) — render-collapse poison-path closure.
+    # Ordered AFTER the evidence-empty gate (an evidence-empty replay is rejected for the more
+    # fundamental reason) and BEFORE any teacher call (a refused candidate costs zero model legs).
+    # Belt-and-braces verdict check: only a REJECT label can be an evidence-invariant injection;
+    # an approve/control describes the real record and is never refused here.
+    if (
+        control_bundle_hash is not None
+        and label.get("verdict") == "reject"
+        and bundle_content_hash(bundle) == control_bundle_hash
+    ):
+        summary.evidence_invariant_rejected += 1
+        logger.warning(
+            "EVIDENCE-DIVERGENCE GUARD refusal %s/%s recipe=%s — regenerated bundle is "
+            "byte-identical to the task's no-op control bundle (content sha256 %s); the planted "
+            "defect never surfaced in the evidence, so the reject label may not ride it",
+            provenance["repo"], provenance["task"], injection_recipe, control_bundle_hash[:16],
+        )
+        return "rejected", None, {
+            **reject_base,
+            "reason": EVIDENCE_INVARIANT_REASON,
+            "detail": (
+                "regenerated bundle content-hash equals the task's no-op CONTROL bundle "
+                "content-hash — the injected defect did not surface in the evidence, so no "
+                "reject label may ride it (render-collapse poison-path closure)"
+            ),
+            "bundle_content_sha256": control_bundle_hash,
         }
     # cue-audit (deterministic) — the seeded_bundle gate, cheap on every seeded row.
     cue = cue_audit(bundle)
@@ -1014,6 +1079,14 @@ def run_generation(
                 config, writer, summary, bundle_mutations,
                 teacher=teacher, coach=coach, schema_sha=schema_sha,
             )
+            # THE EVIDENCE-DIVERGENCE GUARD refusal count — loud in the summary, always.
+            if summary.evidence_invariant_rejected:
+                logger.warning(
+                    "EVIDENCE-DIVERGENCE GUARD: %d seeded reject candidate(s) REFUSED as %s — "
+                    "their regenerated bundles were byte-identical to their task's no-op control "
+                    "bundle (no reject label may ride evidence the defect never reached)",
+                    summary.evidence_invariant_rejected, EVIDENCE_INVARIANT_REASON,
+                )
 
         # --- harvest (inert-clean when no outcomes supplied) ------------------------------
         if config.mode in ("harvest", "both") and outcomes:
@@ -1077,6 +1150,8 @@ def _run_seeded_code(
 ) -> None:
     recipe_ids = _weighted_recipe_ids(config)
     for src in source_tasks:
+        if _seeded_limit_hit(config, writer):
+            return
         if (src.repo, src.task) in GOLD_SOURCE_TASKS:
             summary.gold_source_skipped += 1
             logger.info("SKIP seeded source %s/%s — gold-negative source task", src.repo, src.task)
@@ -1085,6 +1160,23 @@ def _run_seeded_code(
             "repo": src.repo, "feature": src.feature, "task": src.task,
             "run": src.run, "sha": src.sha,
         }
+        # THE EVIDENCE-DIVERGENCE GUARD baseline: regenerate the task's no-op CONTROL bundle
+        # FIRST (identical machinery — inject_control through the same worktree layout) and
+        # content-hash it. Every reject recipe below is compared against this baseline in
+        # _gate_and_build; a byte-identical reject bundle is refused (the defect never surfaced
+        # in the evidence). The control ROW itself is still gated/written LAST from this same
+        # single regeneration — one control regen per task, exactly as before.
+        control = inject_control(dict(src.files))
+        control_worktree = _materialize_worktree(
+            scratch_dir, src.repo, src.task, control.recipe_id, control.mutated_files,
+            record_dir=src.record_dir,
+        )
+        try:
+            control_bundle = regenerator.regenerate(control_worktree)
+        finally:
+            shutil.rmtree(control_worktree, ignore_errors=True)
+        validate_bundle(control_bundle)
+        control_hash = bundle_content_hash(control_bundle)
         # Reject-side: each weighted recipe (anchor-absent -> loud skip, never a silent no-op).
         for recipe_id in recipe_ids:
             if _seeded_limit_hit(config, writer):
@@ -1100,13 +1192,15 @@ def _run_seeded_code(
                 dc_class=result.dc_class, injection_recipe=recipe_id,
                 teacher=teacher, coach=coach, regenerator=regenerator,
                 scratch_dir=scratch_dir, schema_sha=schema_sha,
+                control_bundle_hash=control_hash,
             )
             if row:
                 summary.seeded_code_written += 1
-        # Seeded-control green: the identical machinery with a no-op injection.
+        # Seeded-control green: the identical machinery with a no-op injection, built from the
+        # SAME regeneration that anchored the guard baseline (never re-regenerated — the guard
+        # compares against exactly the bundle the control row carries).
         if _seeded_limit_hit(config, writer):
             return
-        control = inject_control(dict(src.files))
         approve_label = {"verdict": "approve", "findings": [], "ground_truth_source": "seeded"}
         row = _seeded_row_from_injection(
             config, writer, summary, src, provenance, control,
@@ -1114,6 +1208,7 @@ def _run_seeded_code(
             dc_class=None, injection_recipe=control.recipe_id,
             teacher=teacher, coach=coach, regenerator=regenerator,
             scratch_dir=scratch_dir, schema_sha=schema_sha,
+            pre_regenerated_bundle=control_bundle,
         )
         if row:
             summary.seeded_control_written += 1
@@ -1136,17 +1231,27 @@ def _seeded_row_from_injection(
     regenerator: BundleRegenerator,
     scratch_dir: Path,
     schema_sha: str,
+    control_bundle_hash: str | None = None,
+    pre_regenerated_bundle: dict[str, Any] | None = None,
 ) -> bool:
     """Materialise the mutated worktree, regenerate the REAL bundle, gate + write. Returns True
-    iff a fresh (non-duplicate) row was written."""
-    worktree = _materialize_worktree(
-        scratch_dir, src.repo, src.task, result.recipe_id, result.mutated_files,
-        record_dir=src.record_dir,
-    )
-    try:
-        bundle = regenerator.regenerate(worktree)
-    finally:
-        shutil.rmtree(worktree, ignore_errors=True)
+    iff a fresh (non-duplicate) row was written.
+
+    ``pre_regenerated_bundle`` (the control leg) skips materialise+regenerate and gates the
+    already-regenerated bundle — the evidence-divergence guard's baseline regeneration IS the
+    control row's bundle, never a second draw. ``control_bundle_hash`` (reject legs) arms the
+    guard in ``_gate_and_build``."""
+    if pre_regenerated_bundle is not None:
+        bundle = pre_regenerated_bundle
+    else:
+        worktree = _materialize_worktree(
+            scratch_dir, src.repo, src.task, result.recipe_id, result.mutated_files,
+            record_dir=src.record_dir,
+        )
+        try:
+            bundle = regenerator.regenerate(worktree)
+        finally:
+            shutil.rmtree(worktree, ignore_errors=True)
     validate_bundle(bundle)
     family = _family_of(injection_recipe, generation_mode)
     split = assign_split(
@@ -1157,6 +1262,7 @@ def _seeded_row_from_injection(
         bundle=bundle, label=verdict_label, provenance=provenance, split=split,
         generation_mode=generation_mode, dc_class=dc_class, injection_recipe=injection_recipe,
         bundle_schema_sha=schema_sha, teacher=teacher, coach=coach, summary=summary,
+        control_bundle_hash=control_bundle_hash,
     )
     if status == "accepted" and row is not None:
         if writer.write_row(row):
