@@ -19,3 +19,14 @@ corpus growth, weeks-scale), which is the same flywheel the G3 architect track f
 | C. Park QAV | Bank the clean ~30-row corpus + the proven pipeline; revisit when the estate's history is richer. | — |
 
 **Reply with a letter.**
+
+---
+
+**RATIFIED (Rich, 2026-07-21 night): Option A.** The auto-GO floor resets to the pilot tier:
+`total ≥ 250` with the frozen laws PASSING (balance band ⇒ ~100+ real rejects; contamination;
+ugly-green floor). All remaining levers land: seeded_bundle provenance completion · the
+deep-regeneration lane (G2's evidenced multi-layer fix — the evidence-divergence guard stands
+as the permanent tripwire) · curation card #2. The stall-safe stands unchanged: a <10% cycle
+below floor = a fresh plateau report, never silent grinding. At the floor the pilot tune fires
+per the DCL-pilot runbook pattern and the frozen exam grades it; Rich sees the verdict.
+1000 remains the v2 target fed by organic factory growth.
