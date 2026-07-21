@@ -1,3 +1,6 @@
+# Read-only evidence sweeps (Mac tarball unpack etc.) — never committed
+incoming/
+
 # Python
 __pycache__/
 *.py[cod]

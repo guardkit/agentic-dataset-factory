@@ -1,0 +1,210 @@
+# QAV HARVEST OUTCOMES — the committed curator-outcomes DATA file
+# =================================================================
+# Ratification: THE LABELING POLICY (census §2), Rich 2026-07-21 — LAW.
+#   Labels come ONLY from committed records per rules A1 (approve) / R1 (reject).
+#   A2 approved-plus-manual-fix  -> EXCLUDED (not coach_correct).
+#   A3 PO-002 reviewer-in-loop   -> QUEUED (autobuild:false; different approve semantics).
+#   U2 DD4F wiring-fix task-id   -> stays flagged-blank (never synthesised).
+#   merge/FF sha                 -> RATIFIED as the approve provenance sha (no per-task
+#                                   approved-sha source of record exists; the approve held as
+#                                   of merge).
+#   Undecidable                  -> EXCLUDED or QUEUED, NEVER guessed.
+#
+# This file is the `outcomes` input to src/qav/harvest.py::harvest(), keyed by (repo, task).
+# Only the `approve` and `reject` sections below are CONSUMABLE labels. The `queued` section
+# is NOT consumable — those rows carry no evidence-derived label and await Rich's curation.
+#
+# Banking != training: these rows are DF-008-private DATA. No tune trains in this lane.
+#
+# Provenance model per label:
+#   ground_truth_source / feature / run / sha / finding  -> the Outcome dataclass fields
+#     (src/qav/harvest.py::Outcome; harvest() builds provenance quintet {repo,feature,task,run,sha}).
+#   provenance.record_path  -> the on-disk committed record the label is READ FROM.
+#   provenance.rule         -> the policy rule (A1 / R1) that authorised the label.
+#   bundle_path             -> the discovered final-turn coach_evidence bundle the label attaches
+#                              to (present = harvestable today; null = reconstructed, no verbatim bundle).
+#
+# Union basis: GB10 census 82 finals (run_logs/qav-harvest-census-2026-07-21.jsonl) UNIONED with
+# the Mac sweep (incoming/, 147 coach_evidence files). Union result: 0 new tasks, 0 new bundles,
+# 0 divergences — every Mac final-turn bundle is a byte-duplicate of a GB10 final. See
+# receipts/harvest-union-census-2026-07-21.md.
+
+# =====================================================================================
+# APPROVE labels (verdict=approve, ground_truth_source=coach_correct, generation_mode=harvest)
+# Rule A1 — Autobuild-approved-and-held: (repo,task) carries tasks[].decision=="approved" in a
+# committed merge_summary.json AND no manual-fix commit AND the final-turn bundle is discovered.
+# =====================================================================================
+approve:
+  - repo: guardkit
+    task: TASK-BDDW-001
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-E2CB
+    run: "autobuild/FEAT-E2CB"
+    sha: "917bcef7"          # FF merge sha (RATIFIED approve provenance sha)
+    split: train
+    ugly_green: true          # advisory blemishes present (census jsonl)
+    bundle_path: guardkit/.guardkit/worktrees/FEAT-E2CB/.guardkit/autobuild/TASK-BDDW-001/coach_evidence_turn_1.json
+    provenance:
+      record_path: guardkit/.guardkit/archive/FEAT-E2CB/merge_summary.json
+      sha: "917bcef7"
+      rule: A1
+
+  - repo: guardkit
+    task: TASK-BDDW-002
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-E2CB
+    run: "autobuild/FEAT-E2CB"
+    sha: "917bcef7"
+    split: train
+    ugly_green: true
+    bundle_path: guardkit/.guardkit/worktrees/FEAT-E2CB/.guardkit/autobuild/TASK-BDDW-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: guardkit/.guardkit/archive/FEAT-E2CB/merge_summary.json
+      sha: "917bcef7"
+      rule: A1
+
+# =====================================================================================
+# REJECT labels (verdict=reject, generation_mode=gold_negative, split=eval_qav by contract)
+# Rule R1 — Documented gold negative: named in SPEC-qav-gold-negatives.md with a full
+# provenance dict + a committed retro on disk + a stated DC class + a *_caught source.
+# These are the FEAT-EVAL-QAV must-catch holdout — NEVER in any training manifest.
+# =====================================================================================
+reject:
+  - repo: study-tutor          # GN-1
+    task: TASK-SMP2-07
+    verdict: reject
+    ground_truth_source: operator_caught
+    feature: FEAT-SMP-002
+    run: reconstructed
+    sha: "54ab79fd"            # retro commit
+    dc_class: DC-08
+    finding:
+      class: DC-08
+      locus: "bdd=null on the step-def authoring task itself (no TASK-SMP2-07_junit.xml); approval leaned on Player-self-reported scenario counts — absent signal != pass"
+    reconstruction_fidelity: reconstructed
+    bundle_path: null
+    provenance:
+      record_path: guardkit/docs/retros/2026-07-04-autobuild-coach-missed-undefined-bdd-step.md
+      sha: "54ab79fd"
+      rule: R1
+
+  - repo: study-tutor          # GN-2
+    task: TASK-SMP3-06
+    verdict: reject
+    ground_truth_source: operator_caught
+    feature: FEAT-SMP-003
+    run: reconstructed
+    sha: "99bf79d5"            # retro commit
+    dc_class: DC-03
+    finding:
+      class: DC-03
+      locus: "cli/main.py:serve + _build_nats_runtime — MCPAdapter(...) call sites pass retired kwargs; only injected-dependency unit test updated (validates class contract, never call sites); runtime_parity absent"
+    reconstruction_fidelity: reconstructed
+    bundle_path: null
+    provenance:
+      record_path: guardkit/docs/retros/2026-07-04-autobuild-signature-change-missed-production-callsites.md
+      sha: "99bf79d5"
+      rule: R1
+
+  - repo: guardkit             # GN-3 — verbatim bundle survives on disk
+    task: TASK-QAV-005
+    verdict: reject
+    ground_truth_source: merge_review_caught
+    feature: FEAT-10AC
+    run: "run-3"
+    sha: "888906f2"            # merge sha
+    dc_class: DC-03
+    finding:
+      class: DC-03
+      locus: "gather_evidence hardcodes behavioural_oracle=None while _apply_behavioural_oracle_guard ships — runner-without-producer; fs-01 AC soft-pedaled to match"
+    reconstruction_fidelity: verbatim
+    bundle_path: guardkit/.guardkit/worktrees/FEAT-10AC/.guardkit/autobuild/TASK-QAV-005/coach_evidence_turn_2.json
+    provenance:
+      record_path: guardkit/docs/retro/qa-verifier-state-consolidation-2026-07-04.md
+      sha: "888906f2"
+      rule: R1
+
+  - repo: forge                # GN-4 — U2: task-id flagged-blank, never synthesised
+    task: null                 # U2 — <wiring-fix task id from forge tracker>: FLAGGED-BLANK per ratification
+    task_id_flag: "U2 — awaiting Rich: forge-tracker wiring-fix task id; do NOT synthesise"
+    verdict: reject
+    ground_truth_source: merge_review_caught
+    feature: FEAT-DD4F
+    run: "n/a (fix commit)"
+    sha: "1ad98c0"            # fix commit sha
+    dc_class: DC-03
+    finding:
+      class: DC-03
+      locus: "serve-boot shim -> three composition-fn calls with nonexistent kwargs, TypeError swallowed by DDR-007 soft-fail; MP-011 pin tests are permissive *args/**kwargs fakes codifying the wrong contract"
+    reconstruction_fidelity: reconstructed
+    bundle_path: null
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "1ad98c0"
+      rule: R1
+
+# =====================================================================================
+# QUEUED — NOT consumable labels. Held for Rich's curation; never guessed.
+# =====================================================================================
+queued:
+  # --- A1-blocked: merge_summary approves whose bundles DO NOT EXIST on disk ---
+  # PRV presence-confirm (the one the census owed) = NEGATIVE. FEAT-70A4 merge_summary lists
+  # TASK-PRV-001..007 all decision=approved, but ZERO coach_evidence bundles exist for any
+  # TASK-PRV task on GB10 corpus OR the Mac sweep. A1's join (bundle must be discovered) FAILS.
+  # The census's "7 probable approves" are therefore DISCONFIRMED -> queued, not labelable.
+  - reason: "A1-blocked — merge_summary approved but no discovered bundle (PRV presence-confirm NEGATIVE)"
+    repo: study-tutor
+    feature: FEAT-70A4
+    record_path: study-tutor/.guardkit/archive/FEAT-70A4/merge_summary.json
+    tasks: [TASK-PRV-001, TASK-PRV-002, TASK-PRV-003, TASK-PRV-004, TASK-PRV-005, TASK-PRV-006, TASK-PRV-007]
+
+  # --- A3: reviewer-in-loop "completed" (autobuild:false) — different approve semantics ---
+  - reason: "A3 — reviewer-in-loop completed, not an autobuild coach 'approved' decision; no bundles exist"
+    repo: study-tutor
+    feature: FEAT-PO-002
+    record_path: study-tutor/.guardkit/archive/FEAT-PO-002/merge_summary.json
+    tasks: [TASK-PO02-001, TASK-PO02-002, TASK-PO02-003, TASK-PO02-004, TASK-PO02-005, TASK-PO02-006, TASK-PO02-007]
+
+  # --- Mac-NEW outcome records (GB10 lacked these merge summaries). Mined per task instr.
+  #     None yields a labelable approve: no tasks[].decision=="approved" field AND
+  #     per-task autobuild artifacts explicitly not committed -> zero bundles to join. ---
+  - reason: "Mac-new record; manual /task-work (not /feature-build), no autobuild, no bundles, no per-task decision field"
+    repo: guardkit
+    feature: FEAT-ATR
+    record_path: guardkit/.guardkit/archive/FEAT-ATR/merge_summary.json   # (incoming/ only — Mac-new)
+    tasks: [TASK-ATR-001, TASK-ATR-002, TASK-ATR-003]
+
+  - reason: "Mac-new record; squash feature-merge (tasks_merged list, no decision field); autobuild artifacts intentionally not committed -> zero bundles"
+    repo: study-tutor
+    feature: FEAT-PH1-002
+    record_path: study-tutor/.guardkit/archive/FEAT-PH1-002/merge_summary.json   # (incoming/ only — Mac-new)
+    tasks: [TASK-DSP-001, TASK-DSP-002, TASK-DSP-003, TASK-DSP-004, TASK-DSP-005, TASK-DSP-006, TASK-DSP-007]
+
+  - reason: "Mac-new record; squash feature-merge (tasks_merged list, no decision field); autobuild artifacts intentionally not committed -> zero bundles"
+    repo: study-tutor
+    feature: FEAT-PH1-003
+    record_path: study-tutor/.guardkit/archive/FEAT-PH1-003/merge_summary.json   # (incoming/ only — Mac-new)
+    tasks: [TASK-DTL-001, TASK-DTL-002, TASK-DTL-003, TASK-DTL-004, TASK-DTL-005]
+
+  # --- A2: approved-plus-manual-fix -> EXCLUDED (not coach_correct); also not in discovered set ---
+  - reason: "A2 — approve required a human seam/identity fix (not coach_correct); FEAT-C332 bundles not in discovered set anyway"
+    repo: guardkit
+    feature: FEAT-C332
+    record_path: guardkit/.guardkit/archive/FEAT-C332/merge_summary.json
+    tasks: [QAWE-002, QAWE-004]
+
+  # --- U1: recipe-seed only, no committed retro path -> cannot join to a run record ---
+  - reason: "U1 — named only as a recipe seed in GOAL.md; no committed retro path to join"
+    repo: null
+    feature: FEAT-FMDR-004
+    record_path: null
+    tasks: [FEAT-FMDR-004]
+
+  # --- U4: the 69 discovered final-turn bundles with NO committed outcome (82 - 2 approve -
+  #     1 in-scope GN-3 bundle - 10 non-discovered... ) stay UNLABELED. harvest() skips them
+  #     by the provenance rule. They are Rich's curation raw material; NEVER auto-approved. ---
+  - reason: "U4 — discovered final-turn bundles with no committed outcome; UNLABELED, harvest() skips; Rich curation only"
+    count: 79   # of the 82 GB10 finals, only 3 carry an evidence-derived label on disk (2 BDDW approve + GN-3 verbatim); the other 79 have no committed outcome
+    note: "The union adds 0 to this pool — every Mac final is a byte-duplicate of a GB10 final."
