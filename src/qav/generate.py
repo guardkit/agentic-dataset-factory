@@ -63,14 +63,14 @@ from qav.contracts import (
     validate_bundle,
 )
 from qav.gold_negatives import GOLD_NEGATIVES, build_gold_negative_rows
-from qav.harvest import Outcome, harvest as harvest_transform
+from qav.harvest import BUNDLE_GLOB, BundleArtifact, Outcome, build_harvest_row
 from qav.injector import (
     BundleRegenerator,
     InjectionResult,
     inject,
     inject_control,
 )
-from qav.manifest import build_manifest, validate_manifest
+from qav.manifest import build_manifest, check_balance, validate_manifest
 from qav.recipes import RECIPES, AnchorNotFound
 
 logger = logging.getLogger(__name__)
@@ -247,6 +247,11 @@ class GenerateConfig:
     # setup time in a real run; recorded here so the driver/runbook can thread it.
     interpreters: dict[str, str] = field(default_factory=dict)
     dataset_id: str = "qav-phase1-train-v1"
+    # Path to the ratified harvest-outcomes yaml (census §2 labeling policy). ``None`` => the
+    # harvest path is inert-clean (no committed outcome file => no harvested rows). The file
+    # carries ONLY committed-record labels; the loader schema-validates it (loud on malformed)
+    # and consumes only ``disposition: consumable`` entries (queued/flagged are skipped + counted).
+    harvest_outcomes_path: str | None = None
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "GenerateConfig":
@@ -271,6 +276,7 @@ class GenerateConfig:
             bundle_schema_sha=corpus.get("bundle_schema_sha", PINNED_BUNDLE_SCHEMA_SHA),
             interpreters={str(k): str(v) for k, v in (data.get("interpreters", {}) or {}).items()},
             dataset_id=gen.get("dataset_id", "qav-phase1-train-v1"),
+            harvest_outcomes_path=gen.get("harvest_outcomes"),
         )
 
 
@@ -506,6 +512,155 @@ def _author_think(teacher: ModelClient, bundle: dict[str, Any], label: dict[str,
 
 
 # --------------------------------------------------------------------------------------
+# Census-safe bundle discovery — the harvest path's ONLY discovery seam.
+#
+# The bare ``qav.harvest.discover_bundles`` walks a repo's ``.guardkit`` tree with rglob and
+# keys the final-turn winner by ``(repo, task = immediate-parent-dir-name)``. Two documented
+# footguns (census §3, ``receipts/harvest-s1-census-2026-07-21.md``) make it WRONG for a real
+# harvest run:
+#   (1) JARVIS WORKTREE PATHS. Agent worktrees nested under ``.claude/worktrees/`` carry
+#       duplicate bundle copies; on an rglob tie-break a ``.claude/worktrees/…`` path can WIN
+#       and be recorded as the final-turn winner (the census's 82 came out clean ONLY because
+#       it skipped them — the MacBook one-paste uses the same ``! -path '*/.claude/worktrees/*'``
+#       filter). ``.guardkit/worktrees/`` is a LEGITIMATE record location and is NOT skipped.
+#   (2) SAME-TASK-ID MERGE ACROSS FEATURES. Keying on the bare task-dir name silently merges
+#       same-task bundles from different features/evidence-variants into one winner. We keep the
+#       deterministic highest-turn (then lexical-path) tie-break, matching the census.
+# The harvest path calls THIS function, never the bare one.
+# --------------------------------------------------------------------------------------
+HARVEST_SKIP_PATH_SUBSTRING = ".claude/worktrees"
+
+
+def discover_final_turn_bundles(
+    corpus_roots: dict[str, Path], *, skip_substring: str = HARVEST_SKIP_PATH_SUBSTRING
+) -> dict[tuple[str, str], BundleArtifact]:
+    """The census discovery method: one final-turn ``BundleArtifact`` per ``(repo, task)``,
+    SKIPPING ``.claude/worktrees`` jarvis-duplicate paths. Deterministic: highest turn wins, then
+    lexical path (so a re-run never flips winners). Mirrors the S1 census source of record
+    (``run_logs/qav-harvest-census-2026-07-21.jsonl``)."""
+    best: dict[tuple[str, str], BundleArtifact] = {}
+    for repo, root in corpus_roots.items():
+        for path in sorted(Path(root).rglob(BUNDLE_GLOB)):
+            if skip_substring in path.as_posix():
+                continue  # jarvis worktree duplicate — footgun (1)
+            try:
+                bundle = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            if not isinstance(bundle, dict):
+                continue
+            try:
+                turn = int(path.stem.rsplit("_", 1)[1])
+            except (IndexError, ValueError):
+                turn = 0
+            task = path.parent.name
+            key = (repo, task)
+            art = BundleArtifact(repo, task, turn, path, bundle)
+            prev = best.get(key)
+            if prev is None or turn > prev.turn or (turn == prev.turn and str(path) < str(prev.path)):
+                best[key] = art
+    return best
+
+
+# --------------------------------------------------------------------------------------
+# Ratified-outcomes ingestion — the harvest labels (census §2, Rich 2026-07-21).
+#
+# THE POLICY IS LAW: a bundle is labeled ONLY from a committed record. Undecidable/ambiguous
+# outcomes are ``queued``/``flagged`` in the yaml — skipped here with a logged count, NEVER
+# guessed. The verdict is never model-derived; the yaml carries it, and the teacher only authors
+# the <think> against it (mirroring the seeded label-fixed law).
+# --------------------------------------------------------------------------------------
+_CONSUMABLE = "consumable"
+_OUTCOME_DISPOSITIONS = frozenset({_CONSUMABLE, "queued", "flagged"})
+_OUTCOME_REQUIRED_KEYS = frozenset(
+    {"repo", "feature", "task", "run", "sha", "ground_truth_source", "disposition"}
+)
+_APPROVE_SOURCE = "coach_correct"
+
+
+@dataclass
+class LoadedOutcomes:
+    """Result of ingesting the harvest-outcomes yaml: the consumable ``Outcome`` objects keyed
+    ``(repo, task)`` + the count of non-consumable (queued/flagged) entries skipped."""
+
+    outcomes: dict[tuple[str, str], Outcome]
+    skipped: int
+    skipped_keys: list[tuple[str, str]] = field(default_factory=list)
+
+
+class OutcomesSchemaError(ValueError):
+    """The harvest-outcomes yaml is malformed — loud, never silently degraded."""
+
+
+def load_harvest_outcomes(path: str | Path | None) -> LoadedOutcomes:
+    """Load + schema-validate the ratified harvest-outcomes yaml, returning ONLY the consumable
+    labels as ``Outcome`` objects (queued/flagged skipped + counted). ``None``/missing path =>
+    empty (inert-clean). Loud (``OutcomesSchemaError``) on any structural malformation — a bad
+    label file must fail the run, never quietly drop rows."""
+    if path is None:
+        return LoadedOutcomes({}, 0)
+    p = Path(path)
+    if not p.exists():
+        raise OutcomesSchemaError(f"harvest-outcomes path does not exist: {p}")
+    try:
+        data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise OutcomesSchemaError(f"harvest-outcomes yaml is not parseable: {exc}") from exc
+    if not isinstance(data, dict):
+        raise OutcomesSchemaError("harvest-outcomes yaml must be a mapping with a top-level 'outcomes'")
+    if data.get("version") != 1:
+        raise OutcomesSchemaError(f"unsupported harvest-outcomes version {data.get('version')!r} (want 1)")
+    entries = data.get("outcomes")
+    if not isinstance(entries, list):
+        raise OutcomesSchemaError("harvest-outcomes 'outcomes' must be a list")
+
+    outcomes: dict[tuple[str, str], Outcome] = {}
+    skipped = 0
+    skipped_keys: list[tuple[str, str]] = []
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise OutcomesSchemaError(f"outcomes[{i}] must be a mapping, got {type(entry).__name__}")
+        missing = _OUTCOME_REQUIRED_KEYS - set(entry)
+        if missing:
+            raise OutcomesSchemaError(f"outcomes[{i}] missing keys {sorted(missing)}")
+        disposition = entry["disposition"]
+        if disposition not in _OUTCOME_DISPOSITIONS:
+            raise OutcomesSchemaError(
+                f"outcomes[{i}] disposition {disposition!r} not in {sorted(_OUTCOME_DISPOSITIONS)} "
+                "(undecidable => queued/flagged, NEVER guessed)"
+            )
+        repo, task = str(entry["repo"]), str(entry["task"])
+        if disposition != _CONSUMABLE:
+            skipped += 1
+            skipped_keys.append((repo, task))
+            logger.info(
+                "HARVEST OUTCOME SKIP %s/%s — disposition=%s (%s)",
+                repo, task, disposition, entry.get("note", "held for curation"),
+            )
+            continue
+        source = entry["ground_truth_source"]
+        finding = entry.get("finding")
+        # Reject-side labels require a finding carrying a DC class (R1); an approve does not.
+        if source != _APPROVE_SOURCE and not isinstance(finding, dict):
+            raise OutcomesSchemaError(
+                f"outcomes[{i}] ({repo}/{task}) is a reject source {source!r} but carries no finding"
+            )
+        if (repo, task) in outcomes:
+            raise OutcomesSchemaError(f"duplicate consumable outcome for {(repo, task)}")
+        try:
+            outcomes[(repo, task)] = Outcome(
+                ground_truth_source=source,
+                feature=str(entry["feature"]),
+                run=str(entry["run"]),
+                sha=str(entry["sha"]),
+                finding={str(k): str(v) for k, v in finding.items()} if isinstance(finding, dict) else None,
+            )
+        except RowValidationError as exc:  # bad ground_truth_source / seeded => loud
+            raise OutcomesSchemaError(f"outcomes[{i}] ({repo}/{task}) invalid: {exc}") from exc
+    return LoadedOutcomes(outcomes, skipped, skipped_keys)
+
+
+# --------------------------------------------------------------------------------------
 # Summary.
 # --------------------------------------------------------------------------------------
 @dataclass
@@ -515,6 +670,8 @@ class GenerationSummary:
     seeded_bundle_written: int = 0
     seeded_bundle_capped: int = 0  # candidates dropped by the ≤cap share rule
     harvest_written: int = 0
+    harvest_outcomes_skipped: int = 0  # queued/flagged yaml entries (undecidable, never guessed)
+    harvest_bundle_not_found: int = 0  # a consumable label with no skip-filtered bundle on disk
     gold_negatives_written: int = 0
     teacher_refused: int = 0
     coach_rejected: int = 0
@@ -526,6 +683,15 @@ class GenerationSummary:
     deduped: int = 0
     train: int = 0
     eval_qav: int = 0
+    # Manifest finalize verdict (honesty §2). validate_manifest gates ONLY the embedded
+    # contamination check — NOT balance; balance (approve_share 0.5±0.10 + ugly-green floor) is
+    # the separate advisory ``check_balance`` gate the finalize path records but never crashes on.
+    # So a low-N approve-heavy set (round 4's approve-2/reject-0) DOES finalize; the imbalance is
+    # recorded here + logged loudly, rows are banked, and the manifest is written honestly.
+    manifest_finalized: bool = False
+    manifest_balance_ok: bool = True
+    manifest_balance_violations: list[str] = field(default_factory=list)
+    manifest_approve_share: float = 0.0
 
 
 # --------------------------------------------------------------------------------------
@@ -619,7 +785,6 @@ def run_generation(
     source_tasks: list[SourceTask] | None = None,
     bundle_mutations: list[BundleMutation] | None = None,
     outcomes: dict[tuple[str, str], Outcome] | None = None,
-    think_by_task: dict[str, str] | None = None,
     emit_gold_negatives: bool = True,
     write_manifest: bool = True,
     created: str = "unset",
@@ -628,8 +793,10 @@ def run_generation(
     """Run the offline QAV generation. ``teacher``/``coach``/``regenerator`` are injected
     (stubs in tests). ``source_tasks``/``bundle_mutations``/``outcomes`` are the pipeline
     inputs; when a seeded pipeline's input is ``None`` the engine discovers it from the config
-    (a generation-run path, never reached by tests) or runs inert (``bundle_mutations``/
-    ``outcomes`` default to empty)."""
+    (``source_tasks`` via the corpus walk; ``outcomes`` via the ratified harvest-outcomes yaml) or
+    runs inert (``bundle_mutations`` defaults to empty; an absent outcomes file harvests nothing).
+    The harvest ``<think>`` is authored by the injected ``teacher`` against the fixed ratified
+    label — never model-derived."""
     summary = GenerationSummary()
     scratch_dir = Path(config.scratch_dir)
     schema_sha = config.bundle_schema_sha
@@ -638,6 +805,12 @@ def run_generation(
         source_tasks = _discover_source_tasks(config)  # pragma: no cover - generation run
     source_tasks = source_tasks or []
     bundle_mutations = bundle_mutations or []
+    # outcomes: an injected dict (tests) is used verbatim; ``None`` + a harvest mode loads the
+    # ratified, schema-validated outcomes yaml from config (queued/flagged skipped + counted).
+    if outcomes is None and config.mode in ("harvest", "both"):
+        loaded = load_harvest_outcomes(config.harvest_outcomes_path)
+        outcomes = loaded.outcomes
+        summary.harvest_outcomes_skipped += loaded.skipped
     outcomes = outcomes or {}
 
     with OutputWriter(config.output_dir) as writer:
@@ -653,9 +826,9 @@ def run_generation(
                 teacher=teacher, coach=coach, schema_sha=schema_sha,
             )
 
-        # --- harvest transform (inert-clean when no outcomes supplied) --------------------
+        # --- harvest (inert-clean when no outcomes supplied) ------------------------------
         if config.mode in ("harvest", "both") and outcomes:
-            _run_harvest(config, writer, summary, outcomes, think_by_task or {})
+            _run_harvest(config, writer, summary, outcomes, teacher=teacher, coach=coach)
 
         # --- gold negatives: ALWAYS eval_qav, the must-catch holdout ----------------------
         if emit_gold_negatives:
@@ -677,12 +850,26 @@ def run_generation(
                 train_file_path=str(Path(config.output_dir) / "train.jsonl"),
                 bundle_schema_shas=None,
             )
-            # MUST pass or the run fails loud (contamination embedded, OUTPUT-CONTRACT §5).
+            # MUST pass or the run fails loud (contamination embedded, OUTPUT-CONTRACT §5). This
+            # is the ONLY hard finalize gate — it does NOT enforce balance.
             validate_manifest(manifest)
+            # Balance is the SEPARATE advisory gate (check_balance): recorded honestly + logged
+            # loudly, but it never crashes the run and never drops the already-banked rows. A low-N
+            # approve-heavy set finalizes with a recorded balance refusal, not a silent skip.
+            report = manifest["balance_report"]
+            summary.manifest_approve_share = report["approve_share"]
+            summary.manifest_balance_violations = check_balance(report)
+            summary.manifest_balance_ok = not summary.manifest_balance_violations
+            if summary.manifest_balance_violations:
+                logger.warning(
+                    "MANIFEST BALANCE ADVISORY FAIL (rows banked + manifest written honestly): %s",
+                    "; ".join(summary.manifest_balance_violations),
+                )
             manifest_paths = {Path(config.output_dir) / "manifest.json", Path(config.manifest_path)}
             for mp in manifest_paths:
                 mp.parent.mkdir(parents=True, exist_ok=True)
                 mp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+            summary.manifest_finalized = True
 
     return summary
 
@@ -848,37 +1035,87 @@ def _run_harvest(
     writer: OutputWriter,
     summary: GenerationSummary,
     outcomes: dict[tuple[str, str], Outcome],
-    think_by_task: dict[str, str],
+    *,
+    teacher: ModelClient,
+    coach: CoachClient,
 ) -> None:
-    """Harvest real bundles + post-hoc curator outcomes. Gold-negative source tasks and rows
-    whose (repo, task) is a gold source are excluded; split is assigned per (repo, task,
-    'harvest') so a task's harvested rows never straddle the split."""
+    """Harvest real committed bundles + ratified post-hoc outcomes (census §2). For each
+    consumable label: locate the task's final-turn bundle via the CENSUS-SAFE, skip-filtered
+    discovery (never the bare ``discover_bundles``), run the evidence-empty pre-gate (the SAME
+    loudness law as the seeded path, before any teacher call), have the teacher author the
+    ``<think>`` AGAINST the fixed ratified label (never model-derived), Coach-gate the row, then
+    build it via ``build_harvest_row`` and write. Rejects route to ``rejected.jsonl`` with a
+    reason, exactly as the seeded path does — a missing bundle, an evidence-empty regeneration, a
+    teacher refusal, a schema failure, or a Coach revise is a loud RESULT, never a crash or a
+    silent drop. Gold-negative source tasks are excluded; split is assigned per
+    ``(repo, task, 'harvest')`` so a task's harvested rows never straddle the split.
+
+    NOTE: the seeded cue-audit is deliberately NOT run here — these are AUTHENTIC serialized
+    bundles, not injected/mutated ones, so a real ``"..."`` truncation or an incidental keyword in
+    genuine evidence must not be treated as a synthetic cue-leak (cue-audit is the seeded_bundle
+    gate). The evidence-empty pre-gate DOES apply — a poison regeneration is poison in any mode."""
     corpus_roots = {k: Path(v) for k, v in config.corpus_roots.items()}
     clean_outcomes = {
         key: oc for key, oc in outcomes.items() if key not in GOLD_SOURCE_TASKS
     }
     summary.gold_source_skipped += len(outcomes) - len(clean_outcomes)
-    for row in harvest_transform(corpus_roots, clean_outcomes, think_by_task=think_by_task):
-        prov = row["metadata"]["provenance"]
+    if not clean_outcomes:
+        return
+    index = discover_final_turn_bundles(corpus_roots)  # census-safe: skips .claude/worktrees
+    for (repo, task), outcome in sorted(clean_outcomes.items()):
+        reject_base = {"repo": repo, "task": task, "generation_mode": "harvest", "injection_recipe": None}
+        art = index.get((repo, task))
+        if art is None:
+            summary.harvest_bundle_not_found += 1
+            logger.info("HARVEST no bundle on disk for %s/%s — excluded (loud, never fabricated)", repo, task)
+            writer.write_rejected({
+                **reject_base, "reason": "bundle_not_found",
+                "detail": "no skip-filtered final-turn bundle for (repo, task) under the corpus roots",
+            })
+            continue
+        # The verdict is FIXED by the ratified label — never model-derived (mirrors _verdict_for /
+        # the seeded label-fixed law). Approve => coach_correct; every other in-scope source rejects.
+        verdict = "approve" if outcome.ground_truth_source == _APPROVE_SOURCE else "reject"
+        label = {
+            "verdict": verdict,
+            "findings": [outcome.finding] if verdict == "reject" and outcome.finding else [],
+            "ground_truth_source": outcome.ground_truth_source,
+        }
+        # evidence-empty pre-gate — THE LOUDNESS LAW, before any teacher call (same as seeded).
+        empty = evidence_empty_reason(art.bundle)
+        if empty:
+            summary.evidence_empty_rejected += 1
+            writer.write_rejected({
+                **reject_base, "reason": "evidence_empty_bundle", "detail": empty,
+                "gathering_status": art.bundle.get("gathering_status"),
+            })
+            continue
+        # teacher authors ONLY the <think> against the fixed label; empty output = a refusal RESULT.
+        think = _author_think(teacher, art.bundle, label)
+        if not think:
+            summary.teacher_refused += 1
+            writer.write_rejected({**reject_base, "reason": "teacher_refusal"})
+            continue
+        # split per (repo, task, 'harvest') — never straddles; build the canonical harvest row.
         split = assign_split(
-            prov["repo"], prov["task"], "harvest",
-            holdout_fraction=config.holdout_fraction, seed=config.seed,
+            repo, task, "harvest", holdout_fraction=config.holdout_fraction, seed=config.seed
         )
-        # Re-stamp split + row_id-independent metadata (harvest built them at split=train).
-        if row["metadata"]["split"] != split:
-            row = _restamp_split(row, split)
+        try:
+            row = build_harvest_row(art, outcome, think=think, split=split)
+        except RowValidationError as exc:
+            summary.schema_rejected += 1
+            writer.write_rejected({**reject_base, "reason": "schema_invalid", "detail": str(exc)})
+            continue
+        # Coach gate — rationale-consistency only (NOT a content re-judgment; the label is fixed).
+        cv = coach.assess(art.bundle, think, label)
+        if not cv.accepted:
+            summary.coach_rejected += 1
+            writer.write_rejected({**reject_base, "reason": "coach_rejected", "coach_reasons": cv.reasons})
+            continue
         if writer.write_row(row):
             summary.harvest_written += 1
         else:
             summary.deduped += 1
-
-
-def _restamp_split(row: dict[str, Any], split: str) -> dict[str, Any]:
-    """Return the row with its split re-stamped (row_id is content-addressed on the user
-    message, which is unchanged, so it stays valid)."""
-    row = json.loads(json.dumps(row))  # deep copy
-    row["metadata"]["split"] = split
-    return row
 
 
 def _discover_source_tasks(config: GenerateConfig) -> list[SourceTask]:  # pragma: no cover - generation run

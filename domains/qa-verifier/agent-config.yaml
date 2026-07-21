@@ -36,6 +36,10 @@ generation:
   seed: qav-phase1           # split RNG seed (recorded so the split is reproducible)
   scratch_dir: output/qa-verifier/_scratch   # per-recipe worktrees; cleaned up per row
   dataset_id: qav-phase1-train-v1
+  # Ratified harvest labels (census §2, Rich 2026-07-21). Consumed only in mode: harvest|both.
+  # Labels come ONLY from committed records; queued/flagged entries are skipped + counted, never
+  # guessed. Unset => the harvest path is inert-clean (no harvested rows).
+  harvest_outcomes: domains/qa-verifier/harvest-outcomes.yaml
   # limit: 4                 # PILOT CAP — uncomment for a spike; remove for the full run
   recipes:                   # PLAN §3 table; weights = GOAL.md reject shares
     R-DC03-callsite: 0.10

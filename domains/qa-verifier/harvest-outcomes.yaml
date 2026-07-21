@@ -1,0 +1,84 @@
+# QAV harvest outcomes — the ratified labels (census §2, Rich 2026-07-21). THE POLICY IS LAW.
+#
+# A bundle is labeled ONLY from a committed record. Undecidable/ambiguous outcomes are carried
+# here as `disposition: queued` (held for Rich's curation) or `disposition: flagged` (a named
+# field is unfilled) — they are SKIPPED at load with a logged count and NEVER guessed into a label.
+# The verdict is never model-derived: the teacher only authors the <think> against this fixed label.
+#
+# Schema (loud on any malformation — qav.generate.load_harvest_outcomes):
+#   version: 1
+#   outcomes: [ {repo, feature, task, run, sha, ground_truth_source, disposition, [finding], [note]} ]
+#     - ground_truth_source: coach_correct (approve) | operator_caught | merge_review_caught |
+#       live_gate_caught (reject sources REQUIRE a finding: {class: DC-xx, locus: <str>})
+#     - disposition: consumable (labeled + harvested) | queued | flagged (skipped + counted)
+#
+# Provenance note (census cap 3): there is NO per-task approved-sha or run-id source of record.
+# By the A1 rule, `sha` = the feature's committed merge/FF sha and `feature` = its feature_id;
+# `run` encodes the committed archive record dir. This is defensible-but-not-exact and is Rich's
+# open call for training provenance (see the S2 return / receipt).
+
+version: 1
+
+outcomes:
+  # --- A1 CONSUMABLE — autobuild-approved-and-held, no manual-fix commit (approve/coach_correct).
+  # Grounded verbatim in guardkit/.guardkit/archive/FEAT-E2CB/merge_summary.json:
+  #   feature_id=FEAT-E2CB, merged_commit=917bcef7, tasks[].decision="approved" for both.
+  # Both final-turn bundles are on disk, schema-valid, not evidence-empty, and ugly-green.
+  - repo: guardkit
+    feature: FEAT-E2CB
+    task: TASK-BDDW-001
+    run: archive/FEAT-E2CB
+    sha: "917bcef7"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    note: "merge_summary tasks[].decision=approved; no manual-fix commit (A1)"
+  - repo: guardkit
+    feature: FEAT-E2CB
+    task: TASK-BDDW-002
+    run: archive/FEAT-E2CB
+    sha: "917bcef7"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    note: "merge_summary tasks[].decision=approved; no manual-fix commit (A1)"
+
+  # --- A2 EXCLUDE (queued) — approve required a human seam/identity fix, so NOT coach_correct.
+  - repo: guardkit
+    feature: FEAT-C332
+    task: TASK-QAWE-002
+    run: archive/FEAT-C332
+    sha: "b0951346"
+    ground_truth_source: coach_correct
+    disposition: queued
+    note: "A2 — approve did not hold unaided (manual fix b0951346); also not in the discovered set"
+  - repo: guardkit
+    feature: FEAT-C332
+    task: TASK-QAWE-004
+    run: archive/FEAT-C332
+    sha: "44dbe63d"
+    ground_truth_source: coach_correct
+    disposition: queued
+    note: "A2 — approve did not hold unaided (manual fix 44dbe63d)"
+
+  # --- A3 QUEUE — study-tutor FEAT-PO-002: autobuild:false, status completed, a DIFFERENT approve
+  # semantics than an autobuild coach `approved` decision. Held for Rich's curation, never A1-approved.
+  - repo: study-tutor
+    feature: FEAT-PO-002
+    task: PO02-001
+    run: archive/FEAT-PO-002
+    sha: "unresolved"
+    ground_truth_source: coach_correct
+    disposition: queued
+    note: "A3 — reviewer-in-loop 'completed', not an autobuild coach approve; curate before labeling"
+
+  # --- A1 PROBABLE (queued) — study-tutor FEAT-70A4 TASK-PRV-001..007: merge-approved, but pending
+  # the one-line presence-confirm that each PRV bundle is among study-tutor's 32 discovered finals
+  # (census §5). Promote to consumable once confirmed; queued (not guessed) until then. One shown; the
+  # remaining six follow the same rule and are held together.
+  - repo: study-tutor
+    feature: FEAT-70A4
+    task: TASK-PRV-001
+    run: archive/FEAT-70A4
+    sha: "unresolved"
+    ground_truth_source: coach_correct
+    disposition: queued
+    note: "A1-probable — pending PRV presence-confirm among study-tutor's 32 finals (census §5)"
