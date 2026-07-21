@@ -105,6 +105,35 @@ interpreters:
   fleet_memory: /home/richardwoollcott/Projects/appmilla_github/fleet-memory/.venv/bin/python
   specialist_agent: /home/richardwoollcott/Projects/appmilla_github/specialist-agent/.venv/bin/python
 
+# DEEP-REGENERATION bridge config (render-collapse layers 1+2+4, 2026-07-21). Threaded to the
+# qav_regenerate_bridge so guardkit gather_evidence REACHES + RUNS the mutated worktree's tests
+# (the render-collapse root cause was that it never did — a spurious arch gate aborted it, and the
+# oracle then misdetected the stack as node). See receipts/render-collapse-rootcause §"SPIKE".
+regeneration:
+  # LAYER 1 — profile-gate. ``integration``'s quality-gate profile REQUIRES tests + plan_audit but
+  # NOT arch_review/coverage — exactly the gates the materialized task_work_results record carries
+  # (the approved-green tasks record tests_passing + a skipped plan_audit and NO arch result — arch
+  # runs in a separate guardkit phase). With ``feature`` (the default) the missing arch gate makes
+  # all_gates_passed=false → gather_evidence aborts at partial_gate_abort and NEVER runs the
+  # worktree tests (the source-blind replay). ``integration`` lets it proceed to the independent
+  # test run. This is the SANCTIONED profile-selection path, NOT skip_arch_review (render-collapse
+  # proved skip_arch_review alone net-harmful: it defeats dedup by timing noise). No guardkit code
+  # change — the task_type is threaded into the task dict guardkit already resolves the profile from.
+  task_type: integration
+  test_timeout: 1800
+  # LAYER 2 — per-repo stack pin (the interpreters-map pattern). An explicit pytest command pins the
+  # worktree test substrate so the oracle never MISDETECTS node/npm on a Python repo (the
+  # returncode-127 wall). The command MUST start with ``pytest`` so guardkit runs it under the repo's
+  # pinned venv interpreter. LAYER 4 — the scope MUST (a) include the active recipes' mutated-file
+  # tests so a planted DC-03/DC-05 defect surfaces as a real failing test, and (b) stay GREEN on the
+  # no-op control (so the control's approve label is honest). guardkit is the only repo with active
+  # seeded_code recipes on the current corpus (study_tutor recipes don't anchor; the other roots are
+  # harvest-only). The scope below is the one the 2026-07-21 SPIKE validated: control clean-green,
+  # R-DC03-mockseam surfaced 4 real FAILED tests, run-twice deterministic. BROADEN it (staying
+  # control-green) before enabling recipes whose targets live outside tests/orchestrator.
+  test_commands:
+    guardkit: "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider"
+
 output:
   dir: output/qa-verifier
   manifest: domains/qa-verifier/manifests/qav-phase1-train.manifest.json

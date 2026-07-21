@@ -80,11 +80,21 @@ class SubprocessBridgeRegenerator:
     task_id_default: str = "qav-seeded"
     timeout_seconds: float = 1800.0
     bundle_schema_sha: str = PINNED_BUNDLE_SCHEMA_SHA
+    # L2 deep-regeneration bridge config (render-collapse layers 1+2). ``regen_task_type`` selects
+    # the guardkit quality-gate profile whose required gates match the materialized record (layer 1
+    # — reach the worktree tests via the SANCTIONED profile, never skip_arch_review). ``test_commands``
+    # pins ``repo -> pytest command`` so the oracle never misdetects the stack (layer 2). Both are
+    # threaded to the bridge CLI; ``None``/absent => the bridge's pre-fix default (feature profile +
+    # guardkit auto-detection).
+    regen_task_type: str | None = None
+    test_commands: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_config(cls, config: Any, *, bridge_script: str | Path | None = None) -> "SubprocessBridgeRegenerator":
         """Build from a ``qav.generate.GenerateConfig`` — threads ``config.interpreters`` and
-        ``config.scratch_dir`` in, and resolves the guardkit-importing interpreter."""
+        ``config.scratch_dir`` in, resolves the guardkit-importing interpreter, and carries the
+        deep-regeneration profile-gate (``regen_task_type``) + per-repo stack pin (``test_commands``)
+        + independent-test timeout (``regen_test_timeout``)."""
         interpreters = {str(k): str(v) for k, v in dict(config.interpreters or {}).items()}
         return cls(
             interpreters=interpreters,
@@ -92,6 +102,11 @@ class SubprocessBridgeRegenerator:
             guardkit_interpreter=resolve_guardkit_interpreter(interpreters),
             bridge_script=bridge_script or DEFAULT_BRIDGE_SCRIPT,
             bundle_schema_sha=getattr(config, "bundle_schema_sha", PINNED_BUNDLE_SCHEMA_SHA),
+            timeout_seconds=float(getattr(config, "regen_test_timeout", 1800) or 1800),
+            regen_task_type=getattr(config, "regen_task_type", None),
+            test_commands={
+                str(k): str(v) for k, v in dict(getattr(config, "test_commands", {}) or {}).items()
+            },
         )
 
     def _repo_task(self, worktree: Path) -> tuple[str, str]:
@@ -134,9 +149,21 @@ class SubprocessBridgeRegenerator:
                 "--schema-sha", str(self.bundle_schema_sha),
                 "--out", str(out_path),
             ]
+            # LAYER 1: the profile-gate task_type (reach the worktree tests via the sanctioned
+            # profile whose required gates match the record; NOT skip_arch_review).
+            if self.regen_task_type:
+                cmd += ["--task-type", str(self.regen_task_type)]
+            # LAYER 2: the per-repo pinned pytest command (no stack misdetect). Absent => the
+            # bridge lets guardkit auto-detect (pre-fix behaviour, loud in the log).
+            test_command = self.test_commands.get(repo)
+            if test_command:
+                cmd += ["--test-command", str(test_command)]
+            cmd += ["--test-timeout", str(int(self.timeout_seconds))]
             logger.info(
-                "REGEN bridge: repo=%s task=%s worktree=%s venv_python=%s (bridge under %s)",
-                repo, task, worktree, target_interpreter, self.guardkit_interpreter,
+                "REGEN bridge: repo=%s task=%s worktree=%s venv_python=%s task_type=%s "
+                "test_command=%r (bridge under %s)",
+                repo, task, worktree, target_interpreter, self.regen_task_type,
+                test_command, self.guardkit_interpreter,
             )
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=self.timeout_seconds)

@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from qav.contracts import RowValidationError, extract_label, validate_row
+from qav.contracts import RowValidationError, extract_bundle, extract_label, validate_row
 from qav.generate import (
     BundleMutation,
     CoachVerdict,
@@ -459,6 +459,73 @@ def test_config_yaml_record_store_roots_default_empty(tmp_path):
         "domain: qa-verifier\ncorpus:\n  guardkit: /some/guardkit\n", encoding="utf-8"
     )
     assert GenerateConfig.from_yaml(yaml_path).record_store_roots == []
+
+
+# --------------------------------------------------------------------------------------
+# L2 deep-regeneration — the regeneration: block (layers 1+2) loads into the config, and the
+# engine SCRUBS every regenerated bundle before it is banked (layer 3).
+# --------------------------------------------------------------------------------------
+def test_config_yaml_loads_regeneration_block(tmp_path):
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text(
+        "domain: qa-verifier\n"
+        "corpus:\n  guardkit: /some/guardkit\n"
+        "regeneration:\n"
+        "  task_type: integration\n"
+        "  test_timeout: 1200\n"
+        "  test_commands:\n"
+        "    guardkit: pytest tests/orchestrator -q\n",
+        encoding="utf-8",
+    )
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    assert cfg.regen_task_type == "integration"
+    assert cfg.test_commands == {"guardkit": "pytest tests/orchestrator -q"}
+    assert cfg.regen_test_timeout == 1200
+
+
+def test_config_yaml_regeneration_defaults(tmp_path):
+    # Absent block => pre-fix defaults (feature profile / auto-detect); never crashes.
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text("domain: qa-verifier\ncorpus:\n  guardkit: /g\n", encoding="utf-8")
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    assert cfg.regen_task_type is None
+    assert cfg.test_commands == {}
+    assert cfg.regen_test_timeout == 1800
+
+
+class _JitteryRegenerator(StubRegenerator):
+    """A regenerator whose bundle carries a non-deterministic ``duration_seconds`` + a pytest
+    timing/tmp tail (the render-collapse jitter surface) alongside a per-worktree-unique field."""
+
+    def regenerate(self, worktree: Path) -> dict:
+        b = super().regenerate(worktree)
+        b["independent_tests"] = {
+            "duration_seconds": 3.14159,  # wall-clock jitter -> must be scrubbed before banking
+            "raw_output": (
+                f"rootdir: {worktree}\n"
+                "--basetemp=/tmp/pytest-of-rich/pytest-777/coach0\n"
+                "========== 1 passed in 2.73s ==========\n"
+            ),
+        }
+        return b
+
+
+def test_engine_scrubs_regenerated_bundle_before_banking(tmp_path):
+    # The banked row's evidence bundle must be the SCRUBBED surface: no duration_seconds, timing +
+    # tmp path + worktree path normalized — so row_id is content-addressed on stable evidence.
+    cfg = _cfg(tmp_path)
+    _run(cfg, [_producer_task()], regen=_JitteryRegenerator(), emit_gold_negatives=False)
+    rows = [json.loads(line) for line in (tmp_path / "out" / "train.jsonl").read_text().splitlines()]
+    assert rows, "expected banked rows"
+    for r in rows:
+        validate_row(r)
+        bundle = extract_bundle(r)
+        it = bundle.get("independent_tests") or {}
+        assert "duration_seconds" not in it  # dropped
+        raw = it.get("raw_output", "")
+        assert "2.73s" not in raw and "<t>s" in raw  # timing normalized
+        assert "pytest-777" not in raw  # tmp path normalized
+        assert str(tmp_path) not in raw  # worktree absolute path normalized -> <worktree>
 
 
 # --------------------------------------------------------------------------------------

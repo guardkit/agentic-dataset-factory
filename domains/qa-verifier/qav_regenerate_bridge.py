@@ -33,6 +33,30 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - generation
         help="the TARGET repo's interpreter — pins the worktree pytest substrate (SIBTESTENV01)",
     )
     ap.add_argument("--schema-sha", default="", help="pinned bundle schema sha (provenance)")
+    ap.add_argument(
+        "--task-type", default=None,
+        help=(
+            "LAYER 1 (render-collapse deep-regeneration): the guardkit task_type whose quality-gate "
+            "PROFILE's required gates match what the materialized task_work_results record carries "
+            "(tests + plan_audit, NOT arch_review). Reaches the worktree tests via the SANCTIONED "
+            "profile-selection path instead of aborting at partial_gate_abort — NOT skip_arch_review "
+            "(which the render-collapse receipt proved net-harmful). Absent => guardkit's feature "
+            "default (pre-fix behaviour)."
+        ),
+    )
+    ap.add_argument(
+        "--test-command", default=None,
+        help=(
+            "LAYER 2: an explicit pytest command pinning the worktree test substrate so the oracle "
+            "never MISDETECTS the stack (node/npm on a Python repo — the returncode-127 wall). Must "
+            "start with 'pytest' so guardkit runs it under --venv-python. Absent => guardkit "
+            "auto-detects (pre-fix behaviour)."
+        ),
+    )
+    ap.add_argument(
+        "--test-timeout", type=int, default=300,
+        help="independent-test subprocess timeout (seconds) — CoachValidator.test_timeout",
+    )
     ap.add_argument("--out", required=True, help="path to write the serialized bundle JSON")
     args = ap.parse_args(argv)
 
@@ -44,12 +68,20 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - generation
         worktree_path=args.worktree,
         task_id=args.task_id,
         venv_python=args.venv_python,  # target repo interpreter pins the worktree pytest subprocess
+        # LAYER 2: pin the worktree test command (no stack misdetect). None => guardkit auto-detects.
+        test_command=args.test_command,
+        test_timeout=args.test_timeout,
         in_autobuild_context=False,
     )
+    # LAYER 1: thread the profile-gate task_type into the task dict gather_evidence resolves the
+    # profile from (guardkit _resolve_task_type reads task["task_type"]). None => feature default.
+    task: dict = {"acceptance_criteria": []}
+    if args.task_type:
+        task["task_type"] = args.task_type
     bundle = validator.gather_evidence(
         task_id=args.task_id,
         turn=1,
-        task={"acceptance_criteria": []},
+        task=task,
     )
     Path(args.out).write_text(json.dumps(bundle.to_dict(), ensure_ascii=False), encoding="utf-8")
     return 0

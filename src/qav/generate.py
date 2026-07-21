@@ -258,6 +258,25 @@ class GenerateConfig:
     # corpus ``.guardkit`` globs. Empty => pre-recovery behaviour (corpus globs only). Never a
     # corpus write — the store is a factory-owned copy of authentic records (S-B, 2026-07-21).
     record_store_roots: list[str] = field(default_factory=list)
+    # --- L2 deep-regeneration bridge config (render-collapse layers 1+2, 2026-07-21) -----------
+    # LAYER 1 (profile-gate): the guardkit task_type whose quality-gate PROFILE's REQUIRED gates
+    # match what the materialized task_work_results record actually carries — tests + plan_audit,
+    # but NOT arch_review (arch runs in a separate guardkit phase and is never captured in
+    # task_work_results, so the default ``feature`` profile requiring it aborts regeneration at
+    # ``partial_gate_abort`` before any worktree test runs). Threaded into the bridge's ``task``
+    # dict so gather_evidence resolves that profile. This is the SANCTIONED profile-selection path,
+    # NOT ``skip_arch_review`` (render-collapse proved skip_arch_review alone net-harmful). ``None``
+    # => the bridge default (feature) — i.e. pre-fix behaviour. No guardkit code change.
+    regen_task_type: str | None = None
+    # LAYER 2 (per-repo stack pin): ``repo -> pytest test command`` (the interpreters-map pattern).
+    # Pins the worktree test command so the oracle never MISDETECTS node/npm on a Python repo (the
+    # render-collapse ``returncode 127`` wall). Each command MUST start with ``pytest`` so guardkit
+    # runs it under the repo's pinned venv interpreter (coach_validator subprocess path). Its scope
+    # must include the mutated files' tests (layer 4) so a planted defect surfaces. Absent repo =>
+    # the bridge falls back to guardkit's own detection (pre-fix behaviour).
+    test_commands: dict[str, str] = field(default_factory=dict)
+    # Independent-test subprocess timeout (seconds) threaded to CoachValidator.test_timeout.
+    regen_test_timeout: int = 1800
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "GenerateConfig":
@@ -265,6 +284,7 @@ class GenerateConfig:
         gen = data.get("generation", {}) or {}
         out = data.get("output", {}) or {}
         corpus = data.get("corpus", {}) or {}
+        regen = data.get("regeneration", {}) or {}
         # The ``corpus:`` block mixes repo-name -> path entries with a few scalar/list config keys
         # (bundle_schema_sha, record_store_roots). Only the string-valued path entries are corpus
         # roots; excluding the non-repo keys keeps the discovery/harvest walks from iterating a
@@ -295,6 +315,11 @@ class GenerateConfig:
             record_store_roots=[
                 str(p) for p in (corpus.get("record_store_roots") or [])
             ],
+            regen_task_type=regen.get("task_type"),
+            test_commands={
+                str(k): str(v) for k, v in (regen.get("test_commands", {}) or {}).items()
+            },
+            regen_test_timeout=int(regen.get("test_timeout", 1800)),
         )
 
 
@@ -403,10 +428,51 @@ def evidence_empty_reason(bundle: dict[str, Any]) -> str | None:
 EVIDENCE_INVARIANT_REASON = "evidence_invariant_injection"
 
 
+# --------------------------------------------------------------------------------------
+# NON-DETERMINISM SCRUB — L2 layer 3 (render-collapse deep-regeneration, 2026-07-21).
+#
+# Once layers 1+2 (profile-gate + per-repo stack pin) let gather_evidence actually RUN the
+# worktree's pytest, the regenerated bundle carries genuine test evidence — but that evidence
+# is threaded with WALL-CLOCK JITTER and per-run RANDOM PATHS that differ between two runs of
+# the SAME mutated tree. Left un-scrubbed they poison the row surface two ways:
+#   (1) they split a re-run of one mutated tree into two "unique" row_ids (non-reproducible
+#       corpus), and
+#   (2) they let a source-blind reject bundle drift a hair off its control by timing alone,
+#       DEFEATING the evidence-divergence guard (render-collapse §"skip_arch_review alone is
+#       net-harmful": "defeat dedup by timing noise, minting 'unique' rows that carry identical
+#       evidence with divergent labels").
+# So the scrub runs at the ENGINE layer, on EVERY regenerated bundle, BEFORE both the guard's
+# content-hash AND the row_id user-message rendering (contracts.py is FROZEN — the scrub cannot
+# live there; it lives here, where the engine hands the regenerated bundle to build_row).
+#
+# THE DOCUMENTED FIELD LIST (drop = key removed recursively anywhere in the bundle):
+#   - ``duration_seconds`` — wall-clock float on IndependentTestResult / RuntimeParityResult /
+#     any nested timing dict (guardkit coach_validator.py:1518, 4914…). The field the receipt
+#     named (`0.0666` vs `0.0562`).
+# THE DOCUMENTED TEXT NORMALIZATIONS (value rewritten in place, signal preserved):
+#   Applied to every string value so failing-test NAMES/messages survive while the jitter that
+#   rides alongside them (pytest's timing summary, per-run --basetemp/tmp dirs, session hashes,
+#   memory addresses) is replaced by a stable token. The concrete pattern list is pinned in
+#   ``_NONDET_TEXT_SUBS`` and was fixed empirically against the two-run spike diff (receipt).
+# --------------------------------------------------------------------------------------
+# The scrub itself (the documented key-drop list + text normalizations + optional worktree-path
+# normalization) lives in ``qav.scrub`` — a single source of truth, hermetically unit-tested. It is
+# re-exported here because this engine module is where it is APPLIED (the two regeneration sites in
+# ``_run_seeded_code`` / ``_seeded_row_from_injection``, right after ``regenerator.regenerate``).
+from qav.scrub import (  # noqa: E402
+    NONDET_TEXT_SUBS,
+    NONDETERMINISTIC_BUNDLE_KEYS,
+    scrub_nondeterministic_bundle,
+)
+
+
 def bundle_content_hash(bundle: dict[str, Any]) -> str:
     """Canonical content hash of a serialized bundle — the byte-identity surface the
     render-collapse receipt proved (sorted-key JSON, the same canonicalization the row_id
-    user-message rendering uses). Two bundles hash equal iff their evidence is identical."""
+    user-message rendering uses). Two bundles hash equal iff their evidence is identical.
+
+    NOTE: callers hash the SCRUBBED bundle (``scrub_nondeterministic_bundle``) so wall-clock
+    jitter cannot split a re-run or slip a source-blind reject past the divergence guard."""
     return hashlib.sha256(
         json.dumps(bundle, sort_keys=True, ensure_ascii=False).encode("utf-8")
     ).hexdigest()
@@ -1224,6 +1290,12 @@ def _run_seeded_code(
         finally:
             shutil.rmtree(control_worktree, ignore_errors=True)
         validate_bundle(control_bundle)
+        # L2 layer 3: scrub wall-clock jitter / per-run paths BEFORE the divergence-guard hash
+        # AND before the control ROW is rendered (pre_regenerated_bundle below carries THIS scrubbed
+        # bundle, so the guard compares against exactly the bundle the control row banks).
+        control_bundle = scrub_nondeterministic_bundle(
+            control_bundle, worktree_path=str(control_worktree)
+        )
         control_hash = bundle_content_hash(control_bundle)
         # Reject-side: each weighted recipe (anchor-absent -> loud skip, never a silent no-op).
         for recipe_id in recipe_ids:
@@ -1300,6 +1372,9 @@ def _seeded_row_from_injection(
             bundle = regenerator.regenerate(worktree)
         finally:
             shutil.rmtree(worktree, ignore_errors=True)
+        # L2 layer 3: scrub non-determinism BEFORE the divergence-guard hash + row_id rendering
+        # (the pre_regenerated_bundle control leg is already scrubbed upstream in _run_seeded_code).
+        bundle = scrub_nondeterministic_bundle(bundle, worktree_path=str(worktree))
     validate_bundle(bundle)
     family = _family_of(injection_recipe, generation_mode)
     split = assign_split(

@@ -154,3 +154,118 @@ continues to bank 7 distinct rows via record-distinctness.
   `c0d749e`. This receipt is committed path-limited; **no code file was touched** by this lane.
 - No frozen file modified (`contracts.py` / recipe machinery/families/ids all byte-unchanged). No
   push. Datasets private (DF-008).
+
+---
+
+# APPENDIX — THE DEEP-REGENERATION FIX + SPIKE (L2 lane, 2026-07-21)
+
+> **THE 4-LAYER FIX IS BUILT AND THE SPIKE GATE IS GREEN.** The four layers this receipt named as
+> "out of frozen scope" are now implemented adf-side (zero guardkit code change) and PROVEN on ONE
+> task × ONE DC-03 recipe, run twice on the real path: the mutated bundle **DIVERGES** from the
+> control (the evidence-divergence guard passes it), carries **REAL failing-test evidence** of the
+> planted defect (4 real FAILED tests), and is **DETERMINISTIC** (identical `row_id` both runs).
+> `contracts.py` byte-frozen; the standing evidence-divergence guard **strengthened, never weakened**.
+
+## What each layer became (all adf-side; guardkit read-only, unchanged)
+
+1. **Spurious arch-gate → the sanctioned profile-select (NOT `skip_arch_review`).** The materialized
+   `task_work_results` for these approved-green tasks records `tests_passing:true` + a `skipped`
+   plan_audit and **no** arch result (arch runs in a separate guardkit phase). The default `feature`
+   profile *requires* arch → `all_gates_passed=false` → `partial_gate_abort` → the source-blind
+   replay. The fix threads a **`task_type`** into the bridge's `task` dict so guardkit resolves the
+   **`integration`** quality-gate profile, whose required gates (`tests` + `plan_audit`, **not**
+   arch/coverage) MATCH what the record actually carries. `all_gates_passed` becomes `true` honestly
+   and `gather_evidence` proceeds to run the worktree's independent tests. This is guardkit's own
+   sanctioned profile-selection surface (`_resolve_task_type(task["task_type"])`) — **no guardkit
+   code touched, and NOT `skip_arch_review`** (which this receipt proved net-harmful).
+2. **Per-repo stack pin (the interpreters-map pattern).** The oracle's node-misdetect
+   (`npm test` → rc 127) is cured by an explicit **`test_command`** pinned per repo in
+   `agent-config.yaml → regeneration.test_commands`, threaded to `CoachValidator(test_command=…)`.
+   Because it starts with `pytest`, guardkit runs it under the repo's pinned venv interpreter
+   (`--venv-python`), so the mutated **Python** suite actually runs.
+3. **Non-determinism scrub at the ENGINE layer.** `src/qav/scrub.py::scrub_nondeterministic_bundle`
+   (applied in `qav.generate` right after each `regenerator.regenerate`, BEFORE both the divergence
+   guard's content-hash AND the `row_id` rendering — `contracts.py` stays frozen). Documented field
+   list: **drop** `duration_seconds` (recursively); **normalize** pytest timing (`in 0.34s` →
+   `in <t>s`, the "slowest durations" rows), per-run `--basetemp`/`pytest-of-<user>` tmp dirs,
+   object-repr memory addresses, and (optionally, given the worktree path) the absolute scratch path
+   → `<worktree>`. Failing-test node ids / assertion messages / counts are left byte-identical, so a
+   reject keeps its real evidence while jitter can no longer split a re-run OR slip a source-blind
+   bundle past the guard by timing noise.
+4. **DC-03 surfacing via test scope.** With layers 1+2 the independent run executes; the pinned
+   command's scope is what decides whether a planted defect surfaces. Selection is now the **explicit
+   pinned command** (replacing guardkit's fragile auto-detection that misdetected node) — and the
+   spike verifies the scope includes the mutated file's tests: the DC-03 mocked-seam defect surfaced
+   as **4 real FAILED tests**.
+
+## THE SPIKE — one task, one DC-03 recipe, the real path run twice
+
+- Task **guardkit/TASK-QAWE-001 @ 799cefd0** (FEAT-C332); recipe **`R-DC03-mockseam`**;
+  `task_type=integration`; pinned command
+  `pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider`. Real guardkit
+  `gather_evidence` via the bridge; **zero model / GPU / fleet** (bundle regen is CPU/pytest only).
+  Scoped file map = 7920 files; run-record materialized from the corpus HEAD archive.
+- Every bundle scrubbed (layer 3) before hashing. Both mutated runs materialized at the **same**
+  production worktree path `<scratch>/guardkit/TASK-QAWE-001/R-DC03-mockseam` (the real path, twice).
+
+| leg | scrubbed bundle sha256 | row_id |
+|---|---|---|
+| CONTROL (no-op) | `9dffca510a7aa2a61c599f02db781b76b365427204d426a45d1f5e81284386b5` | — |
+| MUTATED run 1 | `543b29e3f79e60894e5c6fdc9a8e5abdebfe0ba985d7d45c4f482c1c4a21e73b` | `qav-6d166b8ec5c8cad4` |
+| MUTATED run 2 | `543b29e3f79e60894e5c6fdc9a8e5abdebfe0ba985d7d45c4f482c1c4a21e73b` | `qav-6d166b8ec5c8cad4` |
+
+- **(A) DIVERGENCE** — control `9dffca51…` ≠ mutated `543b29e3…`. The mutated bundle EARNS its
+  divergence with real evidence, so the standing evidence-divergence guard **passes** it (no refusal).
+- **(B) EVIDENCE** — `gathering_status=complete`; `quality_gates.all_gates_passed=true` (integration
+  profile); `independent_test_classification.failure_class="code"`; summary
+  **`4 failed, 1 passed`**, with the planted mocked-seam defect surfacing as real FAILED tests incl.
+  `…::test_mocked_authored_seam_reaches_mocked_seam_findings`,
+  `…::test_wired_symbol_yields_empty_findings_complete`,
+  `…::test_bundle_wiring_populated_for_dead_symbol`. The CONTROL over the same scope is clean-green
+  (its approve label is honest).
+- **(C) DETERMINISM** — run 1 == run 2, byte-for-byte; identical `row_id qav-6d166b8ec5c8cad4`. The
+  two-run raw diff (pre-scrub) was pure jitter (`in 2.73s` vs `in 2.75s`, `duration_seconds` 3.94 vs
+  3.70, tmp/basetemp suffix); the two-run **scrubbed** diff is EMPTY — the scrub's field list was
+  pinned empirically against exactly this diff.
+
+**Verdict: all three gates GREEN — the recipe class this receipt ruled "structurally unfit on the
+current regeneration" is now FIT under the 4-layer fix.** The lane's thesis (DC-03 source mutations
+surface once the tests actually run with correct scope) is validated, not assumed.
+
+## Guardkit-code-change sub-paths — probed, and NONE required (recorded per the lane guardrail)
+
+- Layer 1 needed only `task["task_type"]` — an existing gather_evidence input. No guardkit change.
+- Layer 2 needed only `CoachValidator(test_command=…, test_timeout=…)` — existing `__init__` params
+  (the explicit-command path is interpreter-pinned because it starts with `pytest`). No guardkit change.
+- Editable-install shadow was probed: guardkit is `-e`-installed at the corpus path, but the pinned
+  command runs `pytest` with `cwd=<worktree>` so a **test-file** mutation (the mocked-seam recipe)
+  is loaded from the worktree directly and surfaces regardless. (Source-package mutations to
+  guardkit's own `guardkit/` tree may be shadowed by the editable install; the spiked recipe mutates
+  a test file, sidestepping that — noted as the honest scope boundary for source-package DC classes.)
+
+## Layer-4 scope selection — the open tuning knob (honest limit)
+
+The pinned per-repo command applies to ALL that repo's recipes, but different recipes mutate
+different files. The config ships the SPIKE-validated `tests/orchestrator/...` scope (green control,
+mockseam surfaces); broadening it to cover other active recipes (staying control-green) is a per-repo
+tuning step, not a mechanism gap. guardkit is the only repo with active seeded_code recipes on the
+current corpus (study_tutor recipes don't anchor; the other roots are harvest-only), so this pin is
+sufficient today. Per-recipe scoping is the natural extension if the full DC-03/DC-05 recipe set is
+re-enabled.
+
+## Files (adf-side; path-limited commit; no push; contracts.py frozen)
+
+- `src/qav/scrub.py` (NEW) — the scrub + documented field list; hermetic tests `tests/test_qav_scrub.py`.
+- `src/qav/generate.py` — `GenerateConfig` regeneration fields + scrub applied at the two
+  regeneration sites (import from `qav.scrub`; the inline copy consolidated to one source of truth).
+- `src/qav/regenerate.py` — `SubprocessBridgeRegenerator` threads `regen_task_type` / per-repo
+  `test_commands` / `regen_test_timeout` to the bridge; `from_config` reads them.
+- `domains/qa-verifier/qav_regenerate_bridge.py` — `--task-type` / `--test-command` / `--test-timeout`
+  args → the `task` dict + `CoachValidator`.
+- `domains/qa-verifier/agent-config.yaml` — the `regeneration:` block (task_type + per-repo test_commands).
+- Tests: `tests/test_qav_scrub.py` (NEW), `tests/test_qav_regenerate.py` (+layers 1+2 threading),
+  `tests/test_qav_generate.py` (+config-load + engine-scrub-before-banking). Full suite **2478 passed**.
+- **Shared-venue note:** a concurrent session's `seeded_bundle` provenance lane committed during this
+  work (HEAD `864a6a0` → `6e19492`); this lane builds on that committed baseline and commits
+  path-limited — no foreign hunk swept. Corpus repos read-only: guardkit `b68c9e9d` HEAD unchanged
+  (detached scratch worktrees only, cleaned). ed00704 validators byte-frozen. No push. DF-008.
