@@ -82,3 +82,325 @@ outcomes:
     ground_truth_source: coach_correct
     disposition: queued
     note: "A1-probable — pending PRV presence-confirm among study-tutor's 32 finals (census §5)"
+
+  # ===================================================================================
+  # BATCH 2026-07-21 — the 18 evidence-derived labels of
+  # curation/derived-outcomes-2026-07-21.yaml, RATIFIED VERBATIM by Rich 2026-07-21
+  # ("approve the batch", zero strikes, against curation/batch-review-card-2026-07-21.md).
+  # Provenance kept verbatim from the derived yaml. THE REPO-KEY LAW: repo values use the
+  # corpus.roots key spellings (study_tutor / nats_core / api_test / jarvis / forge).
+  # The derived yaml's preset `split:` fields are DROPPED — split assignment belongs to
+  # the engine's own law (qav.generate.assign_split) at row creation.
+  # Derivation rules (each ratified with its labels):
+  #   A1-LIVE                 approve iff committed independent behavioural re-verification
+  #                           on the merged/deployed tree (not merely merge-clean).
+  #   independent-guard-held  approve iff a committed record OTHER than the bundle
+  #                           re-exercises the task's exact contract surface post-authoring
+  #                           and holds.
+  #   A1'-review-summary-approve  approve iff committed review-summary.md Decision==approved
+  #                           AND events.jsonl verification_status==approve at the merge onto
+  #                           main, merge is ancestor of main, no later fix touches the
+  #                           defect surface.
+  #   MP-A                    approve iff the committed adversarial post-merge review (proven
+  #                           to catch sibling escapes) affirmatively recorded THIS task PASS
+  #                           and no defect-fix touched its core surface.
+  #   A1-J                    approve iff the committed feature-tracker YAML records
+  #                           result.final_decision==approved (jarvis has no
+  #                           merge_summary.json), merge clean + ancestor of main +
+  #                           independent post-merge live-gate exercised the runtime surface
+  #                           + no post-approval fix names the task.
+  #   MP-R                    reject (escape) iff the committed adversarial post-merge review
+  #                           recorded a MEDIUM+ CONFIRMED defect in the coach-approved
+  #                           task's OWN module and a later commit substantively rewrote it
+  #                           to close it.
+  # ===================================================================================
+
+  # --- Rule A1-LIVE ---
+  - repo: api_test
+    feature: FEAT-FD8D          # actual feature; bundle sits in the reused FEAT-AE43 worktree (census rglob footgun)
+    task: TASK-UPT-001
+    run: "autobuild/FEAT-FD8D"
+    sha: "e5ff1c8"              # merge sha (RATIFIED approve provenance sha)
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-AE43/.guardkit/autobuild/TASK-UPT-001/coach_evidence_turn_3.json
+    provenance:
+      record_path: ai-transition/docs/factory-1-first-pass-2026-07-12.md   # step 14 staged deploy-smoke
+      sha: "e5ff1c8"
+      rule: A1-LIVE
+      note: "merge e5ff1c8 (coach turn-3 approve, suite byte-identical) + staged deploy-smoke re-verified /uptime (3 fields, counter 2.768->4.777, POST 405); no later fix to src/uptime/. CAVEAT: no FEAT-FD8D live-gate envelope, only staged smoke."
+
+  # --- Rule independent-guard-held ---
+  - repo: nats_core
+    feature: FEAT-MEP1
+    task: TASK-MEP-002
+    run: "autobuild/FEAT-MEP1"
+    sha: "d1f421e"             # merge sha
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: nats-core/.guardkit/autobuild/TASK-MEP-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: nats-core/tests/test_topics.py   # @bd9bc49, in FEAT-MEP1 merge
+      sha: "d1f421e"
+      rule: independent-guard-held
+      note: "merged main guard green; bd9bc49 hardened test_no_hardcoded_topic_strings_outside_registry — sole guard-hit was innocent prose in client.py, NOT a topic leak; feature-complete history 843 passed/0 failed; no post-merge fix to topics.py/_memory.py."
+
+  # --- Rule A1'-review-summary-approve (FEAT-VOICE-001, merge 5d57b022, ancestor of main) ---
+  - repo: study_tutor
+    feature: FEAT-VOICE-001
+    task: TASK-VOX-002
+    run: "autobuild/FEAT-VOICE-001"
+    sha: "5d57b022"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-VOX-002/coach_evidence_turn_2.json
+    provenance:
+      record_path: study-tutor/.guardkit/autobuild/FEAT-VOICE-001/review-summary.md   # + events.jsonl @5d57b022
+      sha: "5d57b022"
+      rule: A1'-review-summary-approve
+      note: "review-summary row approved + events.jsonl verification_status:approve at merge; no fix(VOX-002); later voice commit 6d54ea8e is feat not fix."
+
+  - repo: study_tutor
+    feature: FEAT-VOICE-001
+    task: TASK-VOX-003
+    run: "autobuild/FEAT-VOICE-001"
+    sha: "5d57b022"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-VOX-003/coach_evidence_turn_2.json
+    provenance:
+      record_path: study-tutor/.guardkit/autobuild/FEAT-VOICE-001/review-summary.md
+      sha: "5d57b022"
+      rule: A1'-review-summary-approve
+      note: "review-summary row approved + events.jsonl approve; no fix(VOX-003); 6d54ea8e is feat not fix."
+
+  - repo: study_tutor
+    feature: FEAT-VOICE-001
+    task: TASK-VOX-004
+    run: "autobuild/FEAT-VOICE-001"
+    sha: "5d57b022"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-VOX-004/coach_evidence_turn_1.json
+    provenance:
+      record_path: study-tutor/.guardkit/autobuild/FEAT-VOICE-001/review-summary.md
+      sha: "5d57b022"
+      rule: A1'-review-summary-approve
+      note: "review-summary row approved + events.jsonl approve; no fix(VOX-004); 6d54ea8e is feat not fix."
+
+  - repo: study_tutor
+    feature: FEAT-VOICE-001
+    task: TASK-VOX-005
+    run: "autobuild/FEAT-VOICE-001"
+    sha: "5d57b022"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-VOX-005/coach_evidence_turn_1.json
+    provenance:
+      record_path: study-tutor/.guardkit/autobuild/FEAT-VOICE-001/review-summary.md
+      sha: "5d57b022"
+      rule: A1'-review-summary-approve
+      note: "review-summary row approved + events.jsonl approve; no fix(VOX-005); 6d54ea8e is feat not fix."
+
+  - repo: study_tutor
+    feature: FEAT-VOICE-001
+    task: TASK-VOX-007
+    run: "autobuild/FEAT-VOICE-001"
+    sha: "5d57b022"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-VOX-007/coach_evidence_turn_5.json
+    provenance:
+      record_path: study-tutor/.guardkit/autobuild/FEAT-VOICE-001/review-summary.md
+      sha: "5d57b022"
+      rule: A1'-review-summary-approve
+      note: "review-summary row '5 | PASSED | approved' + events.jsonl turn_count:5 approve; terminal verdict is the approve; no post-merge fix reopened it."
+
+  # --- Rule MP-A (adversarial-review-affirmed; FEAT-SPL-002 post-merge review @4e47d47, merge 34b17d0) ---
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-001
+    run: "autobuild/FEAT-SPL-002"
+    sha: "34b17d0"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-001/coach_evidence_turn_2.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-A
+      note: "review checks_passed REQ6 fallbacks-audit PASS + REQ5 approval-routing PASS; audit.py untouched by any fix; MP-012 config change is only the ASSUM-004 threshold ratification, not a coach-escape."
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-002
+    run: "autobuild/FEAT-SPL-002"
+    sha: "34b17d0"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ugly_green: true
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-A
+      note: "durable-store requirements PASS; only LOW audit-only blemishes on run_store.py (below reject bar); MP-012 additions are read/support methods, not a rewrite of a broken store."
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-003
+    run: "autobuild/FEAT-SPL-002"
+    sha: "34b17d0"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ugly_green: true
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-003/coach_evidence_turn_1.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-A
+      note: "pure-function planner PASS (stateless/total, no I/O); planner.py NEVER touched by any fix; single LOW no-WAIT finding is latent-only, handled by the consuming driver."
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-004A
+    run: "autobuild/FEAT-SPL-002"
+    sha: "34b17d0"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-004A/coach_evidence_turn_1.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-A
+      note: "gate-adapter requirement PASS (SQLite-before-wire, CAS double-approve idempotent); MP-012's only change to gate_adapters.py is a cosmetic ruff signature reflow; no MEDIUM+ defect."
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-007
+    run: "autobuild/FEAT-SPL-002"
+    sha: "34b17d0"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-007/coach_evidence_turn_2.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-A
+      note: "frontier requirement PASS in full (default OFF, provider returns data only never a decision); zero negative findings against frontier.py; MP-012 change is a cosmetic log-line reflow."
+
+  # --- Rule A1-J (jarvis feature-tracker approve; no merge_summary.json exists for jarvis) ---
+  - repo: jarvis
+    feature: FEAT-28FF
+    task: TASK-JNB-001
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"             # merge sha
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-001/coach_evidence_turn_2.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "feature-tracker records final_decision=approved; coach_turn_2 decision=approve; merge 736399b '7 tasks Coach-approved, suite 2390 passed/0 failed'; independent post-merge live-gate exercised the notification-bridge runtime; no post-approval fix names JNB-001."
+
+  # --- Rule MP-R rejects (adversarial post-merge review @4e47d47 caught the escape; coach-approved
+  #     merge 34b17d0, substantively fixed by MP-012 @4aac654). ground_truth_source=merge_review_caught,
+  #     dc_class=DC-03. Preset split dropped per the ratified merge law — the engine assigns. ---
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-009
+    run: "run-2"
+    sha: "34b17d0"
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    finding:
+      class: DC-03
+      locus: "CRITICAL: Mode P chain has zero production execution path (no subscription, stub dispatch, no approval-decision consumer) in _serve_planning.py; boot sweep cannot fail QUEUED runs; rearm log-only stub. Masked by *args/**kwargs pin fakes. TASK-MP-011 names it directly; fixed by MP-012 (+1008)."
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-009/coach_evidence_turn_2.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-R
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-004B
+    run: "run-1"
+    sha: "34b17d0"
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    finding:
+      class: DC-03
+      locus: "HIGH: checkpoint approval requests are not valid ApprovalRequestPayload (checkpoint.py:244-258 missing agent_id/action_description/risk_level/details) — jarvis WARN-drops them; envelope raises ValueError on missing build_id. Masked by _FakePublisher accepting any envelope. Fixed by MP-012 (+190 wire-valid envelopes)."
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-004B/coach_evidence_turn_1.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-R
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-006
+    run: "run-3"
+    sha: "34b17d0"
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    finding:
+      class: DC-03
+      locus: "HIGH: terminal handoff unreachable in production — GitRunner is a Protocol only (handoff.py:72-104, no impl), PlannedHandoffHandler zero call sites, nothing writes the PLANNED_HANDOFF row; handoff notification a dangling wire. Fixed by MP-012 NEW planning_runner.py (+251, production WorktreeGitRunner + terminal + publish)."
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-006/coach_evidence_turn_3.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-R
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-005
+    run: "run-1"
+    sha: "34b17d0"
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    finding:
+      class: DC-03
+      locus: "MEDIUM: escalation/defer machinery has no production driver (defer under-cap never re-issues, TODO escalation.py:268); escalation publishes a new request_id but never persists it and skips the CAS guard the timeout path uses; ASSUM-005 defer path unwired end-to-end. Fixed by MP-012 (+231 durable CAS-guarded driver)."
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-005/coach_evidence_turn_1.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-R
+
+  - repo: forge
+    feature: FEAT-SPL-002
+    task: TASK-MP-008
+    run: "run-2"
+    sha: "34b17d0"
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-21 'approve the batch' (batch-review-card-2026-07-21.md)"
+    finding:
+      class: DC-03
+      locus: "MEDIUM: planning consumer acks on store-write failure (planning_consumer.py:209-218) — transient SQLITE_BUSY permanently drops the request, defeating at-least-once redelivery; RT-03 correlation_id permits dots (line 58) fragmenting the approval subject past jarvis's 4-token gate. Fixed by MP-012 (+71 sweep/ack/cid fixes)."
+    bundle_path: forge/.guardkit/autobuild/TASK-MP-008/coach_evidence_turn_2.json
+    provenance:
+      record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+      sha: "34b17d0"
+      rule: MP-R
