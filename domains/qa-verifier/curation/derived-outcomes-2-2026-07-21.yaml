@@ -1,0 +1,299 @@
+# QAV DERIVED OUTCOMES — CARD #2 (deeper hunt) — evidence-derived curator labels, ADVERSARIALLY VERIFIED
+# =====================================================================================================
+# THE LAW (ratified Option B, Rich 2026-07-21): a label rests ONLY on committed
+#   records (fix commits, retros, receipts, gate histories, merge summaries). The
+#   bundle's own contents NEVER label it. A hint without a committed record = the
+#   bundle stays excluded. New derivation RULES are allowed but stated PER LABEL;
+#   Rich ratifies rules+labels together in one batch. Gold-source tasks
+#   (SPEC-qav-gold-negatives.md) are never re-labeled. A2 (manual-fix approve)
+#   stays excluded.
+#
+# disposition: pending-rich  — NOTHING here is consumable until Rich taps
+#   "approve the batch" against curation/batch-review-card-2-2026-07-21.md.
+#   Banking != training: DF-008-private DATA; no tune trains in this lane.
+#
+# CARD #2 SCOPE: the residual pool = the 79-bundle curation pack (pack-2026-07-21.md)
+#   MINUS card #1's 20 touched rows (18 ratified + 2 refuted). The queued classes
+#   (7 PRV, 7 PO-002, A2, U1) stay queued — no NEW committed evidence surfaced for them.
+#   This card hunts SECOND-ORDER evidence: later fix commits that name the exact task and
+#   state the coach verdict, post-merge/merge-review docs, live-gate blockers, and the
+#   round-3 retros' defect attributions.
+#
+# THE TRIPWIRE (respected): every row below is HARVEST-mode — a REAL committed coach bundle
+#   (verbatim on disk, all_gates_passed=true, honesty 1.0) carrying a ratified label whose
+#   divergence is EARNED by an external committed record. This is the sanctioned reject path
+#   (render-collapse receipt §"harvest mode"); it never touches or weakens the seeded
+#   evidence-divergence guard, which polices seeded_code control-identical bundles only.
+#
+# Schema mirrors derived-outcomes-2026-07-21.yaml (card #1). Every row adds:
+#   provenance.rule        — the per-label derivation rule (below), stated once each.
+#   provenance.record_path — the committed record OTHER than the bundle the label is READ FROM.
+#   bundle_path            — the discovered final-turn coach_evidence the label attaches to (verbatim).
+#
+# HEADLINE: 6 REJECTS, all on the TRAIN split — the first harvested NON-GOLD train-side rejects
+#   in the program. The census/round-4 spike named "train reject side = 0" as THE binding
+#   constraint (gold negatives are eval-holdout, excluded from train). These six materialise it
+#   without a seeded lane. + 4 approves (jarvis A1-J ×3, guardkit QAV-006). + 1 U2 resolution
+#   (forge MP-011 = the GN-4 gold's blank task-id — surfaced for Rich to CONFIRM, never synthesised).
+#
+# NEW DERIVATION RULES (each stated per label; Rich ratifies with the labels):
+#   OA-R (operator-assist reject)  reject iff a committed operator-assist FIX COMMIT explicitly
+#                                  records the task was Coach-approved AND corrects a real product
+#                                  defect in that task's OWN module that the coach's scope missed.
+#                                  ground_truth_source = operator_caught. EXCLUDES ratification-driven
+#                                  config flips, ruff/lint, and sibling-test-only updates.
+#   RC-R (review-catch reject)     reject iff a committed post-autobuild review/"coach-of-coaches"
+#                                  fix commit records a real product defect in the coach-approved
+#                                  task's own surface (outside the smoke-gate scope) and fixes it.
+#                                  ground_truth_source = merge_review_caught.
+#   LG-R (live-gate reject)        reject iff a committed fix commit records a real product defect in
+#                                  the coach-approved task's own surface that was FOUND LIVE (on-device
+#                                  gate blocker) and fixed. ground_truth_source = live_gate_caught.
+#   A1-J (carried from card #1)    approve iff the committed feature-tracker YAML records
+#                                  result.final_decision==approved (jarvis has no merge_summary.json),
+#                                  merge clean + ancestor of main + independent post-merge live-gate
+#                                  exercised the runtime surface + NO post-approval PRODUCT fix names
+#                                  the task (test-only mirror-constant fixes do not disqualify).
+#   retro-affirmed-fix-held        approve iff the SAME committed merge-review retro that CAUGHT a
+#                                  sibling escape (proven discriminating power) affirmatively records
+#                                  THIS task closing the gap under an independent adversarial re-run,
+#                                  and no later fix names the task.
+#
+# REFUTED / EXCLUDED THIS ROUND (kept for the honest footer — see the card §HONEST RESIDUAL):
+#   guardkit QAV-001..004  — the ONLY per-task record is the FEAT-10AC run-3 autobuild review-summary,
+#                            which is IMPEACHED: it stamps QAV-005 "PASSED | approved | (no notes)" while
+#                            QAV-005 is the caught GN-3 gold reject. Silence on QAV-001..004 is not
+#                            affirmation. Low AC-met (QAV-002 0/8, QAV-004 1/9). -> QUEUED, not approved.
+#   specialist DFEM-008/009/010 — operator-assist commits are a ratification-driven default flip / a
+#                            sibling-test-only update+ruff / ruff-only-on-a-clean-task. NOT product
+#                            escapes -> not rejects; no policy-grade approve record either -> QUEUED.
+#   guardkit ABL1-002      — FAILED after 4 turns (unrecoverable_stall); the honesty machinery caught
+#                            the nats_core stub false-green IN-LOOP. Census R3: a catch, not an escape.
+#   study-tutor realm redirect URI (fa49ce58) — real KC-G3-blocking defect, but the fix names "A1
+#                            realm-as-code" with no clean join to a discovered coach bundle -> undecidable.
+#   study-tutor KCA2-001 uv.lock-sync — real but build-hygiene (lock not regenerated); DC class fuzzy;
+#                            not a product-logic escape -> QUEUED.
+#   VS2 (8) / VOX-001,006 / MEP / HARV-002 / KC group / ABL5-001 / KCA remainder / VER-001 — clean-merge
+#                            or thin-turn-1 with NO policy-grade per-task record. Approve side is NOT the
+#                            binding constraint; mining them would only worsen approve_share. Left QUEUED.
+
+# =====================================================================================
+# APPROVE — verdict=approve, ground_truth_source=coach_correct, generation_mode=harvest
+# =====================================================================================
+approve:
+  # --- Rule A1-J (jarvis feature-tracker approve; no merge_summary.json exists for jarvis).
+  #     Same rule + same tracker + same merge + same JNB-009 live-gate card #1 used for JNB-001. ---
+  - repo: jarvis
+    task: TASK-JNB-002
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-28FF
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"             # merge sha (RATIFIED approve provenance sha)
+    split: train
+    disposition: pending-rich
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-002 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (Notification-sink seam + queued hook); merge 736399b '7 tasks Coach-approved, suite 2390 pass/0 fail'; JNB-009 live v1 hardening ALL GREEN (9200266) exercised the wired bridge runtime; NO post-approval product fix names JNB-002 (the only JNB fixes 9e2e0b6/eaf9a21 are TEST-only and name JNB-005/006)."
+
+  - repo: jarvis
+    task: TASK-JNB-003
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-28FF
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"
+    split: train
+    disposition: pending-rich
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-003/coach_evidence_turn_3.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-003 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (Lifecycle wiring - construct+bind SlackNotifier in build_app_state); JNB-009 live-gate exercised exactly this wired runtime (bind/lifecycle) ALL GREEN; no post-approval fix names JNB-003. CAVEAT: implementation_mode=direct — the DC-14 false-green class; mitigant is the JNB-009 live runtime exercise, not the bundle."
+
+  - repo: jarvis
+    task: TASK-JNB-008
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-28FF
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"
+    split: train
+    disposition: pending-rich
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-008/coach_evidence_turn_5.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-008 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (v1 scenario test matrix, plain pytest); took 5 coach turns, terminal green (10/10 AC, ugly-green); no post-approval fix names JNB-008; the JNB-009 live matrix passed on the same wiring."
+
+  # --- Rule retro-affirmed-fix-held (guardkit) — WEAKEST approve; strike-me-first candidate ---
+  - repo: guardkit
+    task: TASK-QAV-006
+    verdict: approve
+    ground_truth_source: coach_correct
+    feature: FEAT-0E6D
+    run: "autobuild/FEAT-0E6D"
+    sha: "fe949bb0"           # merge sha (Phase-0 gate-set complete)
+    split: train
+    ugly_green: true
+    disposition: pending-rich
+    bundle_path: guardkit/.guardkit/worktrees/FEAT-0E6D/.guardkit/autobuild/TASK-QAV-006/coach_evidence_turn_4.json
+    provenance:
+      record_path: guardkit/docs/retro/qa-verifier-state-consolidation-2026-07-04.md
+      sha: "fe949bb0"
+      rule: retro-affirmed-fix-held
+      note: "QAV-006 is the PRODUCER that closed the QAV-005 (GN-3) runner-without-producer escape. The SAME consolidation retro that CAUGHT QAV-005 (it is the GN-3 source; proven discriminating power) affirmatively records QAV-006 'BUILT + MERGED, 4 adversarial turns, 291 tests green; fs-01 verdict-flip now real, dogfood un-softened'; no later fix names QAV-006. ADVERSARIAL CAVEAT: self-authored retro; bundle AC-met is thin (1/7). Approve side is not the binding constraint — safe to strike."
+
+# =====================================================================================
+# REJECT — verdict=reject, generation_mode=harvest, ALL split=train (the first harvested
+# NON-GOLD train-side rejects — the census's binding constraint). Every bundle is verbatim on
+# disk (all_gates_passed=true, honesty 1.0): an honest-green coach bundle whose reject label is
+# EARNED by an external committed record (fix commit / review / live-gate), never by mutation.
+# Rich may move any to split=eval_qav if he prefers to grow the holdout instead of the train side.
+# =====================================================================================
+reject:
+  # --- Rule OA-R (specialist-agent — operator-assist fix commits that state 'Coach-approved but...') ---
+  - repo: specialist-agent
+    task: TASK-DFEM-004
+    verdict: reject
+    ground_truth_source: operator_caught
+    feature: FEAT-DF12
+    run: "autobuild/FEAT-DF12"
+    sha: "418c046"           # operator-assist fix commit
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved (all-gates-green) but the independent-test scope missed 3 regressions in test_feature_plan_gates.py: RV-6 per-row completeness MIS-PARSED the authoritative positional table format (| decision point | chosen default | status |), rejecting conformant /feature-plan output; RV-5 added an unconditional `corrections` key to validation.json, breaking the pinned four-key accepted-plan contract shape. Pre-fix: 4 gate failures + 1 dispatch failure on the full suite."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-004/coach_evidence_turn_1.json
+    provenance:
+      record_path: "specialist-agent@418c046 (operator-assist fix commit: 'DFEM-004 was Coach-approved but its independent-test scope missed three regressions')"
+      sha: "418c046"
+      rule: OA-R
+
+  - repo: specialist-agent
+    task: TASK-DFEM-006
+    verdict: reject
+    ground_truth_source: operator_caught
+    feature: FEAT-DF12
+    run: "autobuild/FEAT-DF12"
+    sha: "03e4914"
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved (8/8 AC green) but VIOLATED its core AC: built a 287-line SELF-CONSISTENT SHADOW schema (src/specialist_agent/qa/formats/pass_bar.py re-implementing PassBar/PassBarCriterion/RegisteredAt) and imported the emitter+tests from it — the exact opposite of 'construct against the REAL guardkit.qa.formats.pass_bar, define no own model'. The Coach missed it BECAUSE the shadow is internally consistent (textbook self-consistent-fake seam). Carried real bugs: head_sha param/function name collision; scenario_ref/class_/model_dump_yaml/EvidenceKind API diverging from the shipped model."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-006/coach_evidence_turn_1.json
+    provenance:
+      record_path: "specialist-agent@03e4914 (operator-assist fix commit: 'DFEM-006 was Coach-approved (8/8) but VIOLATED its core AC ... shadow schema ... Coach missed it because the shadow is internally consistent')"
+      sha: "03e4914"
+      rule: OA-R
+
+  - repo: specialist-agent
+    task: TASK-DFEM-007
+    verdict: reject
+    ground_truth_source: operator_caught
+    feature: FEAT-DF12
+    run: "autobuild/FEAT-DF12"
+    sha: "cf2abe3"
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved (turn 2) but 2 defects the Coach's scope missed: (1) DF-007 division-of-labour VIOLATION — with no explicit target_repo the emitter fell back to a CWD-relative target_repo_qa='qa' and wrote pass-bars into whatever repo the tool RAN FROM (its own repo), breaking the repo-mutation-free precondition (forge Mode P owns the authoritative write); (2) 5 leaked qa/pass-bar-*.yaml artifacts written into the worktree root by that fallback were swept into the checkpoint commit. Env-hygiene aspect noted; primary defect is the write-target/division-of-labour seam."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-007/coach_evidence_turn_2.json
+    provenance:
+      record_path: "specialist-agent@cf2abe3 (operator-assist fix commit: 'DFEM-007 (Coach-approved turn 2) ... had two defects the Coach scope missed')"
+      sha: "cf2abe3"
+      rule: OA-R
+
+  # --- Rule RC-R (study-tutor — post-autobuild 'coach-of-coaches' / Fable review catches) ---
+  - repo: study-tutor
+    task: TASK-KCA2-002
+    verdict: reject
+    ground_truth_source: merge_review_caught
+    feature: FEAT-AUTH-002
+    run: "autobuild/FEAT-AUTH-002"
+    sha: "255e0b54"          # Fable review-catch fix commit
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved but the post-autobuild coach-of-coaches pass found the change made HTTPAuthConfig.resolver a REQUIRED ctor arg, breaking 5 direct-construction callsites in cli/gamification tests — outside the tests/unit/http smoke-gate scope the coach ran, and violating the task's own 'existing tests pass unchanged' AC. Signature/callsite drift (same class as GN-2). Fix: resolver defaults to None -> __post_init__ builds TableTokenResolver (src/study_tutor/http/auth.py)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA2-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: "study-tutor@255e0b54 (Fable review-catch fix: 'Post-autobuild coach-of-coaches pass found 6 regressions outside the ... smoke-gate scope: KCA2-002 made HTTPAuthConfig.resolver a required ctor arg, breaking 5 direct-construction callsites')"
+      sha: "255e0b54"
+      rule: RC-R
+
+  # --- Rule LG-R (study-tutor — live on-device KC-G3 gate blocker) ---
+  - repo: study-tutor
+    task: TASK-KCA3-001
+    verdict: reject
+    ground_truth_source: live_gate_caught
+    feature: FEAT-AUTH-003
+    run: "autobuild/FEAT-AUTH-003"
+    sha: "8c438eba"          # live-catch fix commit (found at C4 on device)
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved (turn 1, 5/5) but added a MANUAL VIEW intent-filter for the redirect scheme on MainActivity while flutter_appauth's RedirectUriReceiverActivity already registers it via the appAuthRedirectScheme placeholder. Two handlers -> Android twin-entry app-chooser on every Keycloak redirect, and routing to MainActivity STRANDS the pending token exchange. Duplicate-handler composition seam, found LIVE on device (KC-G3 blocker at checkpoint C4). Fix removed the manual handler (single documented handler remains)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA3-001/coach_evidence_turn_1.json
+    provenance:
+      record_path: "study-tutor@8c438eba (live-catch fix: 'KCA3-001 added a manual VIEW intent-filter ... Two handlers ... strands the pending token exchange (KC-G3 blocker, found live at C4)')"
+      sha: "8c438eba"
+      rule: LG-R
+
+  # --- Rule RC-R — FLAGGED AMBIGUOUS: strike-me-first reject ---
+  - repo: study-tutor
+    task: TASK-KCA3-003
+    verdict: reject
+    ground_truth_source: merge_review_caught
+    feature: FEAT-AUTH-003
+    run: "autobuild/FEAT-AUTH-003"
+    sha: "b3960225"          # Fable review-catch fix commit
+    dc_class: DC-03
+    split: train
+    reconstruction_fidelity: verbatim
+    disposition: pending-rich
+    finding:
+      class: DC-03
+      locus: "Coach-approved (10/11 AC, 5 turns) but the discarded whenComplete-derived future re-raised SignInCancelled/SignInFailed as UNCAUGHT zone errors, failing the cancel-vs-failure seam test despite the code's surface-correct try/catch — the returned-future seam was never wired. Fix folds whenComplete into signIn's returned future (app/lib/adapters/keycloak_identity_provider.dart)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA3-003/coach_evidence_turn_5.json
+    provenance:
+      record_path: "study-tutor@b3960225 (Fable review-catch fix: 'fold whenComplete into signIn's returned future ... re-raised SignInCancelled/SignInFailed as uncaught zone errors ... (coach critical)')"
+      sha: "b3960225"
+      rule: RC-R
+      note: "ADVERSARIAL FLAG: the fix message tags the seam '(coach critical)' and the bundle is 10/11 AC (one criterion unmet) — the coach may have PARTIALLY known this seam was weak rather than being fully blind. If Rich reads it as coach-aware-then-approved-anyway it is still a held-on-a-broken-seam escape; if coach-caught, strike this row. Weakest reject of the six."
+
+# =====================================================================================
+# U2 RESOLUTION — NOT a new bankable row. Surfaced for Rich to CONFIRM (never synthesised).
+# =====================================================================================
+u2_resolution:
+  # The GN-4 gold negative (harvest-outcomes-2026-07-21.yaml) is reject/DC-03/FEAT-DD4F with
+  # task: null and task_id_flag "U2 — awaiting Rich: forge-tracker wiring-fix task id". The
+  # forge FEAT-SPL-002 post-merge review resolves it with certainty:
+  - proposal: "GN-4's blank task-id = forge TASK-MP-011; and its bundle survives VERBATIM on disk."
+    repo: forge
+    gold_row: "GN-4 (FEAT-DD4F, DC-03, fix sha 1ad98c0)"
+    proposed_task: TASK-MP-011
+    verbatim_bundle_path: forge/.guardkit/autobuild/TASK-MP-011/coach_evidence_turn_3.json
+    record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
+    evidence: "The review names it explicitly and repeatedly: 'Serve-boot planning wiring (TASK-MP-011/FEAT-DD4F) calls all three planning functions with wrong keyword names — Mode P dead on arrival' (CRITICAL); 'the TASK-MP-011 pin tests use permissive *args/**kwargs fakes ... the exact PS-002 green-but-dead gap MP-011 existed to close, reproduced one level up'; fix sha 1ad98c0 = the FEAT-DD4F/MP-011 merge. GN-4's reconstructed locus is near-verbatim from this review."
+    action_for_rich: "CONFIRM to fill GN-4's U2 field with TASK-MP-011 and upgrade its reconstruction_fidelity reconstructed -> verbatim (bundle now on disk). This adds NO new row and does NOT change the reject count; it firms an existing gold. Task-id is NOT synthesised here — it is proposed with committed evidence for your tap, per the U2 discipline."
