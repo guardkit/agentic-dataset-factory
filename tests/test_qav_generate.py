@@ -21,8 +21,11 @@ from qav.generate import (
     BundleMutation,
     CoachVerdict,
     GenerateConfig,
+    GenerationSummary,
     OutputWriter,
     SourceTask,
+    _committed_bundle_provenance,
+    _discover_bundle_mutations,
     assign_split,
     build_bundle_mutations,
     cue_audit,
@@ -603,6 +606,114 @@ def test_seeded_bundle_byte_identical_mutations_dedup(tmp_path):
     # identical serialized bundle -> identical content-addressed row_id -> the 2nd is deduped
     assert summary.seeded_bundle_written == 1
     assert summary.deduped >= 1
+
+
+# --------------------------------------------------------------------------------------
+# seeded_bundle PROVENANCE COMPLETION — the union pool (source tasks ∪ ratified consumables).
+#
+# ROOT CAUSE (growth-cycle-1 G3q plateau, seeded_bundle=0): the discovery seam sourced
+# provenance ONLY from the merge_summary source tasks — but the estate's discoverable final-turn
+# bundles are the RATIFIED CONSUMABLE outcomes' bundles, whose (repo, task) never appear in the
+# source-task set, so every candidate skipped "no record-resolved provenance". The fix unions the
+# committed provenance the outcomes yaml ALREADY encodes; a bundle in neither well stays skipped
+# and is COUNTED (the honesty law made a number, not a guessed sha).
+# --------------------------------------------------------------------------------------
+def _write_bundle(root: Path, repo: str, task: str, bundle: dict, *, turn: int = 1) -> None:
+    d = root / repo / ".guardkit" / "autobuild" / task
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f"coach_evidence_turn_{turn}.json").write_text(json.dumps(bundle), encoding="utf-8")
+
+
+def _write_outcomes(tmp_path: Path, entries: list[dict]) -> str:
+    import yaml
+
+    p = tmp_path / "harvest-outcomes.yaml"
+    p.write_text(yaml.safe_dump({"version": 1, "outcomes": entries}), encoding="utf-8")
+    return str(p)
+
+
+def _consumable(repo, feature, task, sha, run="archive/FEAT"):
+    return {
+        "repo": repo, "feature": feature, "task": task, "run": run, "sha": sha,
+        "ground_truth_source": "coach_correct", "disposition": "consumable",
+    }
+
+
+def test_committed_provenance_unions_source_tasks_and_consumable_outcomes(tmp_path):
+    # THE FIX: provenance is the UNION of merge_summary source tasks AND ratified consumables.
+    outcomes = _write_outcomes(tmp_path, [
+        _consumable("forge", "FEAT-SPL", "TASK-MP-003", "34b17d0"),
+    ])
+    cfg = _cfg(tmp_path, harvest_outcomes_path=outcomes)
+    src = [SourceTask(repo="guardkit", feature="FEAT-X", task="TASK-P", sha="abc", files={})]
+    prov = _committed_bundle_provenance(cfg, src)
+    assert prov[("guardkit", "TASK-P")] == {"feature": "FEAT-X", "sha": "abc", "run": "seeded_bundle"}
+    # the consumable's committed coordinates are now IN the pool — the well the old seam ignored
+    assert prov[("forge", "TASK-MP-003")]["sha"] == "34b17d0"
+    assert prov[("forge", "TASK-MP-003")]["feature"] == "FEAT-SPL"
+
+
+def test_discover_bundle_mutations_wires_from_consumable_outcomes_alone(tmp_path):
+    # THE REGRESSION the plateau reported: with NO source tasks, a consumable outcome whose
+    # final-turn bundle is on disk now yields bundle-visible mutation candidates (was 0).
+    corpus = tmp_path / "corpus"
+    _write_bundle(corpus, "forge", "TASK-MP-003", dict(_SIGNAL_BUNDLE))
+    outcomes = _write_outcomes(tmp_path, [
+        _consumable("forge", "FEAT-SPL", "TASK-MP-003", "34b17d0"),
+    ])
+    cfg = _cfg(
+        tmp_path, harvest_outcomes_path=outcomes,
+        corpus_roots={"forge": str(corpus / "forge")},
+    )
+    summary = GenerationSummary()
+    muts = _discover_bundle_mutations(cfg, [], summary)
+    # the SIGNAL bundle fires all three catalog recipes; every candidate carries the consumable sha
+    assert sorted(m.finding["class"] for m in muts) == ["DC-03", "DC-08", "DC-14"]
+    assert all((m.repo, m.task, m.sha) == ("forge", "TASK-MP-003", "34b17d0") for m in muts)
+    assert summary.seeded_bundle_no_provenance == 0  # the only discovered bundle HAS provenance
+
+
+def test_discover_bundle_mutations_skips_and_counts_no_provenance(tmp_path):
+    # THE PROVENANCE-REFUSAL PATH: a discovered bundle whose (repo, task) is in NEITHER well is
+    # skipped (never a guessed sha) AND counted into seeded_bundle_no_provenance.
+    corpus = tmp_path / "corpus"
+    _write_bundle(corpus, "forge", "TASK-HAS-PROV", dict(_SIGNAL_BUNDLE))
+    _write_bundle(corpus, "forge", "TASK-NO-PROV", dict(_SIGNAL_BUNDLE))
+    outcomes = _write_outcomes(tmp_path, [
+        _consumable("forge", "FEAT-SPL", "TASK-HAS-PROV", "34b17d0"),
+    ])
+    cfg = _cfg(
+        tmp_path, harvest_outcomes_path=outcomes,
+        corpus_roots={"forge": str(corpus / "forge")},
+    )
+    summary = GenerationSummary()
+    muts = _discover_bundle_mutations(cfg, [], summary)
+    tasks_with_muts = {m.task for m in muts}
+    assert "TASK-HAS-PROV" in tasks_with_muts
+    assert "TASK-NO-PROV" not in tasks_with_muts  # no committed provenance -> no candidate
+    assert summary.seeded_bundle_no_provenance == 1  # counted, not just logged
+
+
+def test_committed_provenance_consumable_sha_wins_on_divergence(tmp_path, caplog):
+    # a (repo, task) in BOTH wells with divergent shas: the ratified census sha wins, loudly.
+    outcomes = _write_outcomes(tmp_path, [
+        _consumable("guardkit", "FEAT-E2CB", "TASK-BDDW-001", "917bcef7"),
+    ])
+    cfg = _cfg(tmp_path, harvest_outcomes_path=outcomes)
+    src = [SourceTask(repo="guardkit", feature="FEAT-E2CB", task="TASK-BDDW-001", sha="deadbeef", files={})]
+    import logging
+    with caplog.at_level(logging.WARNING):
+        prov = _committed_bundle_provenance(cfg, src)
+    assert prov[("guardkit", "TASK-BDDW-001")]["sha"] == "917bcef7"  # consumable wins
+    assert any("provenance sha divergence" in r.message for r in caplog.records)
+
+
+def test_committed_provenance_none_outcomes_path_falls_back_to_source_tasks(tmp_path):
+    # no outcomes file => provenance is source-tasks-only (inert-clean, no crash).
+    cfg = _cfg(tmp_path, harvest_outcomes_path=None)
+    src = [SourceTask(repo="guardkit", feature="FEAT-X", task="TASK-P", sha="abc", files={})]
+    prov = _committed_bundle_provenance(cfg, src)
+    assert prov == {("guardkit", "TASK-P"): {"feature": "FEAT-X", "sha": "abc", "run": "seeded_bundle"}}
 
 
 # --------------------------------------------------------------------------------------

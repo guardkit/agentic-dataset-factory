@@ -753,24 +753,68 @@ def build_bundle_mutations(
     return out
 
 
-def _discover_bundle_mutations(
+def _committed_bundle_provenance(
     config: GenerateConfig, source_tasks: list[SourceTask]
+) -> dict[tuple[str, str], dict[str, str]]:
+    """The record-resolved provenance POOL for ``seeded_bundle`` base bundles — assembled from
+    EVERY committed-provenance source the estate really encodes, unioned:
+
+      * the merge_summary-resolved known-green **source tasks** (``qav.discover`` already applied
+        the approved-sha honesty law — each carries a resolved approved sha + feature), and
+      * the **ratified consumable harvest outcomes** (the census §2 labels: each consumable entry
+        carries a committed ``{feature, sha, run}`` keyed ``(repo, task)`` — the same real merge/FF
+        provenance the outcomes yaml already encodes). ``queued``/``flagged`` entries are NOT
+        ratified provenance and are dropped by ``load_harvest_outcomes`` (never guessed).
+
+    THE ROOT-CAUSE FIX (growth-cycle-1 G3q plateau): the prior seam sourced provenance ONLY from
+    ``source_tasks`` — but 11 of the 13 discovered source tasks (the FEAT-C332 / FEAT-70A4
+    reconstructed-record tasks) have NO discovered final-turn bundle at all, and the 2 that do
+    (BDDW-001/002) carry all-null target fields, so EVERY candidate skipped ``no record-resolved
+    provenance`` → 0 rows. The ratified consumables ARE final-turn bundles on disk with committed
+    coordinates — the real, honest provenance well.
+
+    A ``(repo, task)`` present in NEITHER source has no committed provenance and is absent from the
+    pool (its discovered bundle stays skipped downstream — never a guessed sha). Gold-negative
+    source tasks are excluded belt-and-braces. On a key present in both, the ratified consumable
+    committed sha wins (the census is the authoritative label record); a divergent sha is logged
+    loudly rather than silently reconciled."""
+    provenance: dict[tuple[str, str], dict[str, str]] = {}
+    for src in source_tasks:
+        key = (src.repo, src.task)
+        if key in GOLD_SOURCE_TASKS:
+            continue
+        provenance[key] = {"feature": src.feature, "sha": src.sha, "run": "seeded_bundle"}
+    loaded = load_harvest_outcomes(config.harvest_outcomes_path)
+    for key, oc in loaded.outcomes.items():
+        if key in GOLD_SOURCE_TASKS:
+            continue
+        prior = provenance.get(key)
+        if prior is not None and prior["sha"] != oc.sha:
+            logger.warning(
+                "SEEDED_BUNDLE provenance sha divergence %s/%s — source-task sha %s vs ratified "
+                "consumable sha %s; taking the ratified census sha (committed-label record)",
+                key[0], key[1], prior["sha"], oc.sha,
+            )
+        provenance[key] = {"feature": oc.feature, "sha": oc.sha, "run": oc.run}
+    return provenance
+
+
+def _discover_bundle_mutations(
+    config: GenerateConfig,
+    source_tasks: list[SourceTask],
+    summary: GenerationSummary | None = None,
 ) -> list[BundleMutation]:
     """Generation-run seam: wire the ``seeded_bundle`` input from the census-safe final-turn
-    bundle discovery + the record-resolved provenance of the discovered known-green source tasks.
-
-    Provenance comes ONLY from ``source_tasks`` (each carries a record-resolved approved sha +
-    feature — the honesty law already applied by ``qav.discover``), so a bundle only augments when
-    its task is a genuine known-green with resolved coordinates; gold-negative source tasks are
-    excluded (belt-and-braces over the downstream check)."""
+    bundle discovery + the UNION committed-provenance pool (merge_summary source tasks ∪ ratified
+    consumable outcomes — see ``_committed_bundle_provenance``). A discovered bundle with no
+    committed provenance stays skipped and, when a ``summary`` is threaded, is COUNTED into
+    ``seeded_bundle_no_provenance`` (the honesty law made a number, not just a log line)."""
     corpus_roots = {k: Path(v) for k, v in config.corpus_roots.items()}
     artifacts = discover_final_turn_bundles(corpus_roots)
     bundles = {key: art.bundle for key, art in artifacts.items()}
-    provenance = {
-        (src.repo, src.task): {"feature": src.feature, "sha": src.sha, "run": "seeded_bundle"}
-        for src in source_tasks
-        if (src.repo, src.task) not in GOLD_SOURCE_TASKS
-    }
+    provenance = _committed_bundle_provenance(config, source_tasks)
+    if summary is not None:
+        summary.seeded_bundle_no_provenance = sum(1 for key in bundles if key not in provenance)
     return build_bundle_mutations(bundles, provenance)
 
 
@@ -881,6 +925,10 @@ class GenerationSummary:
     seeded_control_written: int = 0
     seeded_bundle_written: int = 0
     seeded_bundle_capped: int = 0  # candidates dropped by the ≤cap share rule
+    # Discovered final-turn bundles skipped because their (repo, task) has NO committed
+    # provenance in the union pool (no merge_summary source task AND no ratified consumable
+    # outcome) — the approved-sha honesty law, counted not just logged (never a guessed sha).
+    seeded_bundle_no_provenance: int = 0
     harvest_written: int = 0
     harvest_outcomes_skipped: int = 0  # queued/flagged yaml entries (undecidable, never guessed)
     harvest_bundle_not_found: int = 0  # a consumable label with no skip-filtered bundle on disk
@@ -1057,7 +1105,7 @@ def run_generation(
     # discovers the augmentation candidates from the REAL final-turn bundles keyed to the
     # record-resolved provenance of the known-green source tasks (PLAN §2 capped augmentation).
     if bundle_mutations is None and config.mode in ("seeded_defect", "both"):
-        bundle_mutations = _discover_bundle_mutations(config, source_tasks)
+        bundle_mutations = _discover_bundle_mutations(config, source_tasks, summary)
     bundle_mutations = bundle_mutations or []
     # outcomes: an injected dict (tests) is used verbatim; ``None`` + a harvest mode loads the
     # ratified, schema-validated outcomes yaml from config (queued/flagged skipped + counted).
