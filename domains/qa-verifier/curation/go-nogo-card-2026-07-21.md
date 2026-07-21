@@ -21,3 +21,11 @@ provenance on every row · contamination PASS twice · approve_share 0.77 (outsi
 band, recorded honestly — more rejects is also what growth fixes).
 
 **Reply with a letter (A–D).**
+
+---
+
+**RATIFIED (Rich, 2026-07-21 evening): Option A, amended — the auto-GO floor is raised to the
+DCL-pilot tier: `train ≥ 500` with the frozen laws PASSING (balance band 0.50±0.10 ⇒ rejects
+≥ ~200; ugly-green floor; contamination). "Take longer and get a better count." The tune fires
+itself at the floor; the exam follows; Rich sees the verdict. His only interim touches:
+ratifying future curation batch-cards (one tap each).**
