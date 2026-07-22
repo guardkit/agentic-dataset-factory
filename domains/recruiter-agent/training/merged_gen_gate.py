@@ -107,11 +107,15 @@ def do_generate(args) -> int:
             system = next(m["content"] for m in msgs if m["role"] == "system")
             user = next(m["content"] for m in msgs if m["role"] == "user")
             convo = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+            # apply_chat_template returns a BatchEncoding (dict-like) in this transformers pin, so
+            # request the dict explicitly and splat it into generate; a bare positional would be read
+            # as a tensor and crash on ``.shape`` (KeyError 'shape' -> AttributeError).
             inputs = tok.apply_chat_template(
-                convo, return_tensors="pt", add_generation_prompt=True).to("cuda")
+                convo, return_tensors="pt", add_generation_prompt=True, return_dict=True).to("cuda")
+            prompt_len = inputs["input_ids"].shape[1]
             with torch.no_grad():
-                gen = model.generate(inputs, max_new_tokens=args.max_new_tokens, do_sample=False)
-            output = tok.decode(gen[0][inputs.shape[1]:], skip_special_tokens=True)
+                gen = model.generate(**inputs, max_new_tokens=args.max_new_tokens, do_sample=False)
+            output = tok.decode(gen[0][prompt_len:], skip_special_tokens=True)
             rec = {
                 "row_id": row["metadata"]["row_id"],
                 "class": row["metadata"]["class"],

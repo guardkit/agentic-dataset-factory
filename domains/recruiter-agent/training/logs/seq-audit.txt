@@ -1,0 +1,13 @@
+🦥 Unsloth: Will patch your computer to enable 2x faster free finetuning.
+🦥 Unsloth Zoo will now patch everything to make training faster!
+==((====))==  Unsloth 2026.7.4: Fast Qwen3 patching. Transformers: 5.5.4.
+   \\   /|    NVIDIA GB10. Num GPUs = 1. Max memory: 121.689 GB. Platform: Linux.
+O^O/ \_/ \    Torch: 2.10.0a0+b558c986e8.nv25.11. CUDA: 12.1. CUDA Toolkit: 13.0. Triton: 3.5.0
+\        /    Bfloat16 = TRUE. FA [Xformers = None. FA2 = True]
+ "-____-"     Free license: http://github.com/unslothai/unsloth
+Unsloth: Fast downloading is enabled - ignore downloading bars which are red colored!
+
+2048 0/696 exceed
+3072 0/696 exceed
+4096 0/696 exceed
+p95 1208 p99 1299 max 1416

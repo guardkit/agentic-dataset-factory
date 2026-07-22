@@ -1,0 +1,71 @@
+{
+  "domain": "recruiter-agent",
+  "artifact": "recruiter-qwen3-4b (dense QLoRA on Qwen/Qwen3-4B-Instruct-2507)",
+  "visibility": "private (DF-008) — large binaries stay on the Spark, never committed/pushed",
+  "trained_on": "spark-fcf6",
+  "trained_at": "2026-07-22 (UTC) — full run completed ~19:24, merged-gen gate ~20:46",
+  "container": "nvcr.io/nvidia/pytorch:25.11-py3",
+  "base_model": "Qwen/Qwen3-4B-Instruct-2507 (Apache-2.0, dense, non-thinking instruct)",
+  "corpus": {
+    "manifest": "domains/recruiter-agent/corpus/manifest.json",
+    "rows": 773,
+    "train": 696,
+    "val": 77,
+    "teacher": "workhorse",
+    "frozen_at": "2026-07-22T19:00:57+00:00"
+  },
+  "hyperparams": {
+    "max_seq_length": 4096,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.0,
+    "learning_rate": 2e-4,
+    "lr_scheduler": "cosine",
+    "warmup_ratio": 0.03,
+    "effective_batch": 4,
+    "epochs": 2,
+    "steps": 348,
+    "optim": "adamw_8bit",
+    "seed": 3407,
+    "chat_template": "stock Qwen3-2507 forced by file (qwen3-2507-stock.jinja, sha256 64f85b19...)",
+    "gguf_quant": "q4_k_m"
+  },
+  "training_evidence": {
+    "final_training_loss": 0.4377,
+    "eval_loss_epoch1": 0.5137,
+    "eval_loss_epoch2": 0.4716,
+    "peak_gpu_memory_gb": 5.2,
+    "guards": {
+      "G1_trainable_pct": 1.30,
+      "G2_qwen_markers_no_gemma_leak": true,
+      "G3_attn_impl": "flash_attention_2",
+      "G4_masked_pct": 28.2,
+      "G6_think_targets": 0,
+      "G6_byte_match_mismatches": 0,
+      "G6_file_block_targets": "481/696"
+    },
+    "seq_audit": {"p95": 1208, "p99": 1299, "max": 1416, "exceed_4096": 0}
+  },
+  "spark_paths": {
+    "root": "~/fine-tuning/recruiter-tune/output/recruiter-qwen3-4b/",
+    "lora_adapter": "lora-adapter/ (137M)",
+    "merged_16bit": "merged-16bit/ (7.6G)",
+    "gguf_q4_k_m": "gguf_gguf/qwen3-4b-instruct-2507.Q4_K_M.gguf (2.4G) — the laptop/CPU-runnable bundled-seat target"
+  },
+  "sha256": {
+    "lora-adapter/adapter_model.safetensors": "5050f01e7ddb939b80f274bb90475967ea55dd48ceb32c603b22a3009a29a420",
+    "lora-adapter/adapter_config.json": "d178c3ed451f6534edce63ccb52bf4801557d1d54fe2911c4ae509db70962afa",
+    "merged-16bit/model-00001-of-00002.safetensors": "d52761f43a739d2e976c9be88e94fbf6178d84b939adf0f8ca480208985c0e31",
+    "merged-16bit/model-00002-of-00002.safetensors": "c2da7fbad89b25ed7b7cc40d6e4d2b69139db4509141479e32581b0a4bceeef6",
+    "merged-16bit/config.json": "4699bc56122c1b10a738d2c570b0495f0597000c493b22cdffd3c77ed81e336c",
+    "gguf_gguf/qwen3-4b-instruct-2507.Q4_K_M.gguf": "63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650"
+  },
+  "merged_generation_gate": {
+    "results": "domains/recruiter-agent/training/gate-results.json",
+    "tuned_pass_rate_pct": 98.7,
+    "stock_pass_rate_pct": 31.2,
+    "delta_pts": 67.5,
+    "bar": "tuned >= 60% AND delta >= 25 pts",
+    "verdict": "PASS (materially above stock)"
+  }
+}
