@@ -20,10 +20,12 @@ import pytest
 import yaml
 
 from qav.discover import (
+    APPROVE_GROUND_TRUTH_SOURCE,
     APPROVED_SHA_KEYS,
     MAX_FILE_BYTES,
     RUN_RECORD_SENTINEL,
     checkout_scoped_file_map,
+    consumable_source_task_refs,
     discover_source_task_refs,
     discover_source_tasks,
     locate_run_record_dir,
@@ -640,3 +642,178 @@ def test_checkout_with_relative_worktree_path_never_plants_inside_corpus(tmp_pat
         ["git", "worktree", "list"], cwd=str(repo), capture_output=True, text=True
     ).stdout
     assert "TASK-REL" not in listing
+
+
+# --------------------------------------------------------------------------------------
+# RATIFIED-CONSUMABLES AS SEEDED SOURCES (SB, 2026-07-22) — approve-only law, sha-resolution,
+# run-record existence, gold exclusion, dedupe. Hermetic: real temp git repo + fixture records
+# + duck-typed outcome objects (mirrors qav.harvest.Outcome's .ground_truth_source/.feature/.sha).
+# --------------------------------------------------------------------------------------
+def _oc(ground_truth_source: str, feature: str, sha: str):
+    """A duck-typed consumable outcome (the fields consumable_source_task_refs reads)."""
+    return SimpleNamespace(ground_truth_source=ground_truth_source, feature=feature, sha=sha)
+
+
+def _consumable_repo(tmp_path, task="TASK-MP-001", feature="FEAT-SPL-002"):
+    """A corpus repo with NO merge_summary for the task (the consumable-only shape) but a live
+    ``.guardkit/autobuild/<task>/`` run record at HEAD, returning (repo, resolved_sha)."""
+    repo = tmp_path / "forge"
+    sha = _init_repo(repo, {"src/mp.py": "x = 1\n", "tests/test_mp.py": "def test(): assert True\n"})
+    _write_record(repo, f".guardkit/autobuild/{task}", task)
+    return repo, sha
+
+
+def test_consumable_approve_with_resolvable_sha_and_record_is_included(tmp_path):
+    repo, sha = _consumable_repo(tmp_path)
+    result = consumable_source_task_refs(
+        {"forge": repo}, {("forge", "TASK-MP-001"): _oc("coach_correct", "FEAT-SPL-002", sha)}
+    )
+    assert [(r.repo, r.task, r.feature, r.sha) for r in result.included] == [
+        ("forge", "TASK-MP-001", "FEAT-SPL-002", sha)
+    ]
+    assert result.excluded == []
+
+
+def test_consumable_reject_labeled_is_excluded_approve_only_law(tmp_path):
+    # THE APPROVE-ONLY LAW: a reject-labeled consumable is NOT a green seeding base — never seeded.
+    repo, sha = _consumable_repo(tmp_path)
+    for reject_src in ("merge_review_caught", "operator_caught", "live_gate_caught"):
+        result = consumable_source_task_refs(
+            {"forge": repo}, {("forge", "TASK-MP-001"): _oc(reject_src, "FEAT-SPL-002", sha)}
+        )
+        assert result.included == []
+        assert len(result.excluded) == 1
+        assert result.excluded[0].task == "TASK-MP-001"
+        assert "not a known-green seeding base" in result.excluded[0].reason
+        assert reject_src in result.excluded[0].reason
+    # sanity: the constant is the one approve source, not a reject one.
+    assert APPROVE_GROUND_TRUTH_SOURCE == "coach_correct"
+
+
+def test_consumable_unresolvable_sha_excluded_never_head(tmp_path):
+    repo, head = _consumable_repo(tmp_path)
+    result = consumable_source_task_refs(
+        {"forge": repo},
+        {("forge", "TASK-MP-001"): _oc("coach_correct", "FEAT-SPL-002", "deadbeefdeadbeef")},
+    )
+    assert result.included == []  # NEVER falls back to HEAD
+    assert len(result.excluded) == 1
+    reason = result.excluded[0].reason
+    assert "does not resolve" in reason and "HEAD" in reason
+    assert head not in reason
+
+
+def test_consumable_no_run_record_excluded_never_fabricated(tmp_path):
+    # sha resolves but NO task_work_results.json anywhere -> excluded (never fabricated).
+    repo = tmp_path / "forge"
+    sha = _init_repo(repo, {"src/mp.py": "x = 1\n"})  # no .guardkit record written
+    result = consumable_source_task_refs(
+        {"forge": repo}, {("forge", "TASK-MP-001"): _oc("coach_correct", "FEAT-SPL-002", sha)}
+    )
+    assert result.included == []
+    assert "no autobuild run record" in result.excluded[0].reason
+
+
+def test_consumable_record_recovered_from_factory_store(tmp_path):
+    # Record ABSENT from the corpus but PRESENT in the factory record store -> INCLUDED.
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    store = tmp_path / "record-store"
+    _write_record(store, "guardkit/TASK-QAWE-003", "TASK-QAWE-003")
+    # Without the store: no record -> excluded.
+    without = consumable_source_task_refs(
+        {"guardkit": repo}, {("guardkit", "TASK-QAWE-003"): _oc("coach_correct", "FEAT-C332", sha)}
+    )
+    assert without.included == []
+    # With the store root: recovered -> included.
+    got = consumable_source_task_refs(
+        {"guardkit": repo}, {("guardkit", "TASK-QAWE-003"): _oc("coach_correct", "FEAT-C332", sha)},
+        record_store_roots=[store],
+    )
+    assert [(r.repo, r.task) for r in got.included] == [("guardkit", "TASK-QAWE-003")]
+
+
+def test_consumable_gold_source_task_excluded(tmp_path):
+    # A gold-negative source task never seeds a training row, even as a ratified approve consumable.
+    repo, sha = _consumable_repo(tmp_path)
+    gold = {("forge", "TASK-MP-001")}
+    result = consumable_source_task_refs(
+        {"forge": repo}, {("forge", "TASK-MP-001"): _oc("coach_correct", "FEAT-SPL-002", sha)},
+        gold_source_tasks=gold,
+    )
+    assert result.included == []
+    assert "gold-negative source task" in result.excluded[0].reason
+
+
+def test_consumable_deduped_against_merge_summary(tmp_path):
+    # A consumable whose (repo, task) is ALREADY discovered from a merge_summary is NOT re-added
+    # (the base walk owns it) and is not a turn-away (no exclusion emitted).
+    repo, sha = _consumable_repo(tmp_path)
+    result = consumable_source_task_refs(
+        {"forge": repo}, {("forge", "TASK-MP-001"): _oc("coach_correct", "FEAT-SPL-002", sha)},
+        already_included={("forge", "TASK-MP-001")},
+    )
+    assert result.included == []
+    assert result.excluded == []  # deduped, not excluded
+
+
+def test_consumable_dedupe_normalises_repo_name(tmp_path):
+    # already_included may spell the repo study-tutor while the outcome spells study_tutor.
+    repo = tmp_path / "study-tutor"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_record(repo, ".guardkit/autobuild/TASK-VOX-002", "TASK-VOX-002")
+    result = consumable_source_task_refs(
+        {"study_tutor": repo},
+        {("study_tutor", "TASK-VOX-002"): _oc("coach_correct", "FEAT-VOICE-001", sha)},
+        already_included={("study-tutor", "TASK-VOX-002")},
+    )
+    assert result.included == [] and result.excluded == []
+
+
+def test_consumable_no_corpus_root_for_repo_excluded(tmp_path):
+    result = consumable_source_task_refs(
+        {"forge": tmp_path / "forge"},
+        {("ghost_repo", "TASK-X"): _oc("coach_correct", "FEAT-Y", "abc1234")},
+    )
+    assert result.included == []
+    assert "no corpus root configured" in result.excluded[0].reason
+
+
+def test_discover_source_task_refs_admits_consumable_and_dedupes(tmp_path):
+    # End to end through discover_source_task_refs: a merge_summary task AND a consumable-only task
+    # in the same repo. The merge_summary task is included by the base walk; the consumable that
+    # shares its coordinates dedupes out; a distinct consumable is admitted.
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_merge_summary(repo, "FEAT-E2CB", {
+        "merged_commit": sha,
+        "tasks": [{"id": "TASK-BDDW-001", "decision": "approved"}],
+    })
+    _write_record(repo, ".guardkit/autobuild/TASK-BDDW-001", "TASK-BDDW-001")
+    _write_record(repo, ".guardkit/autobuild/TASK-QAV-006", "TASK-QAV-006")
+    outcomes = {
+        ("guardkit", "TASK-BDDW-001"): _oc("coach_correct", "FEAT-E2CB", sha),   # dedupes out
+        ("guardkit", "TASK-QAV-006"): _oc("coach_correct", "FEAT-0E6D", sha),    # NEW seeded source
+        ("guardkit", "TASK-REJ-001"): _oc("merge_review_caught", "FEAT-R", sha),  # reject -> excluded
+    }
+    base = discover_source_task_refs({"guardkit": repo})
+    withc = discover_source_task_refs({"guardkit": repo}, consumable_outcomes=outcomes)
+    assert {(r.task) for r in base.included} == {"TASK-BDDW-001"}
+    # after: the base task + the one distinct approve consumable, no double-count of BDDW-001.
+    assert {r.task for r in withc.included} == {"TASK-BDDW-001", "TASK-QAV-006"}
+    assert sum(r.task == "TASK-BDDW-001" for r in withc.included) == 1
+    assert any(e.task == "TASK-REJ-001" and "not a known-green" in e.reason for e in withc.excluded)
+
+
+def test_discover_source_task_refs_no_outcomes_is_byte_identical(tmp_path):
+    # Backward-compat: None/absent outcomes => the pre-lever merge_summary-only result unchanged.
+    repo = tmp_path / "guardkit"
+    sha = _init_repo(repo, {"src/a.py": "x = 1\n"})
+    _write_merge_summary(repo, "FEAT-AAA", {
+        "merged_commit": sha, "tasks": [{"id": "TASK-1", "decision": "approved"}],
+    })
+    a = discover_source_task_refs({"guardkit": repo})
+    b = discover_source_task_refs({"guardkit": repo}, consumable_outcomes=None)
+    c = discover_source_task_refs({"guardkit": repo}, consumable_outcomes={})
+    assert [(r.repo, r.task, r.sha) for r in a.included] == [(r.repo, r.task, r.sha) for r in b.included]
+    assert [(r.repo, r.task, r.sha) for r in c.included] == [(r.repo, r.task, r.sha) for r in b.included]

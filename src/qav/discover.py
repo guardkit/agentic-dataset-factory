@@ -518,14 +518,166 @@ def _classify_feature_tracker(
     return out
 
 
+# ---------------------------------------------------------------------------------------------
+# RATIFIED-CONSUMABLES AS SEEDED SOURCES (SB, 2026-07-22).
+#
+# The estate's deepest committed-provenance well is the RATIFIED CONSUMABLE harvest outcomes: each
+# consumable entry in the outcomes yaml (census §2 labels) carries a COMMITTED, Rich-RATIFIED
+# provenance {repo, task, feature, sha} — the ratification record IS the committed record, a
+# legitimate approved-sha source under the honesty law (no HEAD, no guess). Most of these tasks
+# never emit a ``.guardkit/archive/<FEAT>/merge_summary.json`` (the base walk's only INCLUDE
+# gate), so they were discoverable as SEEDED sources by no path — even though their approved sha
+# git-resolves and their authentic run record is on disk. This lever admits them.
+#
+# THE APPROVE-ONLY LAW (stated here + in the function docstring + hermetically tested): ONLY an
+# APPROVE-labeled consumable (``ground_truth_source == coach_correct``) is a known-green seeding
+# base. A REJECT-labeled consumable (merge_review_caught / operator_caught / live_gate_caught)
+# names a CAUGHT DEFECT — it is NOT green, must never seed a control/approve base, and is turned
+# away here (it rides the HARVEST path as a real reject row, not the seeded path). A ratified
+# approve consumable JOINS the seeded INCLUDED set iff, and only iff, ALL hold:
+#   1. it is APPROVE-labeled (coach_correct) — the approve-only law above;
+#   2. its committed sha GIT-RESOLVES in its corpus repo (the same ``git cat-file`` authority the
+#      merge_summary path uses — an unresolvable sha is excluded, NEVER defaulted to HEAD/guessed);
+#   3. its authentic RUN RECORD exists (corpus ``.guardkit`` globs OR the factory record store) —
+#      without it gather_evidence would emit an evidence-empty bundle; absent => excluded, never
+#      fabricated (the RUN-RECORD MATERIALIZATION honesty rule);
+#   4. it is NOT a gold-source task (gold negatives never seed a training row — by law); and
+#   5. it is NOT ALREADY discovered from a ``merge_summary.json`` (dedupe — the base walk owns it).
+# Everything else is EXCLUDED with a precise logged reason (the module's log-every-turn-away ethos).
+# ---------------------------------------------------------------------------------------------
+APPROVE_GROUND_TRUTH_SOURCE = "coach_correct"
+
+
+def _corpus_key_for_repo(corpus_roots: dict[str, Path], repo: str) -> Optional[str]:
+    """The corpus_roots KEY whose normalised name matches ``repo`` (outcomes may spell a repo
+    ``study_tutor`` while the root is keyed ``study-tutor``). ``None`` if no root serves it."""
+    if repo in corpus_roots:
+        return repo
+    nrepo = _normalise_repo(repo)
+    for key in corpus_roots:
+        if _normalise_repo(key) == nrepo:
+            return key
+    return None
+
+
+def consumable_source_task_refs(
+    corpus_roots: dict[str, Path],
+    consumable_outcomes: Any,
+    *,
+    already_included: Iterable[tuple[str, str]] = (),
+    gold_source_tasks: Iterable[tuple[str, str]] = GOLD_SOURCE_TASKS,
+    record_store_roots: Iterable[Path] = (),
+) -> DiscoveryResult:
+    """Admit the RATIFIED APPROVE consumables as additional seeded INCLUDED source tasks.
+
+    ``consumable_outcomes`` is a mapping ``(repo, task) -> outcome`` (the ``LoadedOutcomes.outcomes``
+    dict; each value carries ``.ground_truth_source`` / ``.feature`` / ``.sha``). ``already_included``
+    is the ``(repo, task)`` set the merge_summary/tracker walk already produced, for dedupe.
+
+    THE APPROVE-ONLY LAW: only an APPROVE-labeled consumable (``ground_truth_source ==
+    coach_correct``) is a known-green seeding base — a REJECT-labeled consumable
+    (merge_review_caught / operator_caught / live_gate_caught) names a caught defect, is NOT green,
+    and is EXCLUDED (it seeds nothing; it rides the harvest path as a real reject row). Each
+    surviving approve consumable JOINS INCLUDED iff its committed sha git-resolves in the corpus
+    repo AND its authentic run record exists (corpus ``.guardkit`` or the factory record store),
+    is not a gold-source task, and is not already discovered from a merge_summary (deduped). Every
+    other consumable is EXCLUDED with a logged reason. Pure over the on-disk records + git (no
+    worktree checkout, no model, no network) — same purity as :func:`discover_source_task_refs`.
+    """
+    included: list[SourceTaskRef] = []
+    excluded: list[ExclusionRecord] = []
+    outcomes = dict(consumable_outcomes.items()) if consumable_outcomes else {}
+    already = {(_normalise_repo(r), t) for r, t in already_included}
+    store_roots = list(record_store_roots)
+
+    for (repo, task), outcome in sorted(outcomes.items()):
+        source = str(getattr(outcome, "ground_truth_source", ""))
+        feature = str(getattr(outcome, "feature", "")) or None
+        sha = str(getattr(outcome, "sha", "")).strip()
+        # (1) APPROVE-ONLY LAW — a reject-labeled consumable is not a green seeding base.
+        if source != APPROVE_GROUND_TRUTH_SOURCE:
+            excluded.append(
+                ExclusionRecord(
+                    repo, feature or "", task,
+                    f"reject-labeled consumable (ground_truth_source={source!r}) — not a known-green "
+                    "seeding base; only approve (coach_correct) consumables seed (it rides the "
+                    "harvest path as a real reject row, never the seeded path)",
+                )
+            )
+            continue
+        # (4) gold-source never seeds a training row (by law).
+        if _is_gold_source(repo, task, gold_source_tasks):
+            excluded.append(
+                ExclusionRecord(repo, feature or "", task,
+                                "gold-negative source task — never seeds a training row")
+            )
+            continue
+        # (5) dedupe — the merge_summary/tracker walk already owns this task (not a turn-away).
+        if (_normalise_repo(repo), task) in already:
+            logger.debug(
+                "CONSUMABLE dedupe %s/%s — already discovered via merge_summary (base walk owns it)",
+                repo, task,
+            )
+            continue
+        corpus_key = _corpus_key_for_repo(corpus_roots, repo)
+        if corpus_key is None:
+            excluded.append(
+                ExclusionRecord(repo, feature or "", task,
+                                f"no corpus root configured for repo {repo!r} — cannot resolve the "
+                                "approved sha or locate the run record; excluded, never guessed")
+            )
+            continue
+        root = Path(corpus_roots[corpus_key])
+        # (2) approved-sha honesty law — the committed ratified sha must git-resolve; never HEAD.
+        if not sha or not _git_sha_resolves(root, sha):
+            excluded.append(
+                ExclusionRecord(
+                    repo, feature or "", task,
+                    f"ratified consumable sha {sha!r} does not resolve in {root}/.git — excluded, "
+                    "never defaulted to HEAD (the ratification record's committed sha is the only "
+                    "source, git cat-file the only authority)",
+                )
+            )
+            continue
+        # (3) authentic run record must exist somewhere the search reaches (corpus or store).
+        record_dir = locate_run_record_dir(
+            root, feature, task, repo=corpus_key, record_store_roots=store_roots
+        )
+        if record_dir is None:
+            excluded.append(
+                ExclusionRecord(
+                    repo, feature or "", task,
+                    f"no autobuild run record found for the ratified consumable (looked for "
+                    f"{RUN_RECORD_SENTINEL} under .guardkit + the factory record store(s)) — cannot "
+                    "reconstruct authentic evidence, excluded (never fabricated)",
+                )
+            )
+            continue
+        included.append(
+            SourceTaskRef(corpus_key, feature or "", task, sha, _evidence_paths(root, task))
+        )
+
+    included.sort(key=lambda r: (r.repo, r.feature, r.task))
+    excluded.sort(key=lambda e: (e.repo, e.feature, e.task or ""))
+    return DiscoveryResult(included=included, excluded=excluded)
+
+
 def discover_source_task_refs(
     corpus_roots: dict[str, Path],
     *,
     gold_source_tasks: Iterable[tuple[str, str]] = GOLD_SOURCE_TASKS,
+    consumable_outcomes: Any = None,
+    record_store_roots: Iterable[Path] = (),
 ) -> DiscoveryResult:
     """Walk each corpus repo's ``.guardkit`` records and split candidate source tasks into
     included (approved sha resolved) and excluded (with a logged reason). Pure over the on-disk
-    records + the repos' git (no worktree checkout, no model, no network)."""
+    records + the repos' git (no worktree checkout, no model, no network).
+
+    When ``consumable_outcomes`` (a ``(repo, task) -> outcome`` mapping, e.g.
+    ``LoadedOutcomes.outcomes``) is given, the RATIFIED APPROVE consumables are also admitted as
+    seeded sources via :func:`consumable_source_task_refs` (approve-only law, sha git-resolution,
+    run-record existence, gold exclusion, dedupe against the merge_summary walk). ``None``/empty =>
+    the pre-lever behaviour (merge_summary + feature-tracker only), byte-for-byte."""
     included: list[SourceTaskRef] = []
     excluded: list[ExclusionRecord] = []
 
@@ -612,6 +764,20 @@ def discover_source_task_refs(
             excluded.extend(
                 _classify_feature_tracker(repo, feature, root, record, gold_source_tasks)
             )
+
+    # RATIFIED-CONSUMABLE seeded sources (SB): admit the approve consumables the merge_summary
+    # walk could never reach, deduped against the tasks it just produced. Turned off (identical to
+    # the pre-lever result) when no outcomes mapping is threaded.
+    if consumable_outcomes:
+        cons = consumable_source_task_refs(
+            corpus_roots,
+            consumable_outcomes,
+            already_included={(r.repo, r.task) for r in included},
+            gold_source_tasks=gold_source_tasks,
+            record_store_roots=record_store_roots,
+        )
+        included.extend(cons.included)
+        excluded.extend(cons.excluded)
 
     included.sort(key=lambda r: (r.repo, r.feature, r.task))
     excluded.sort(key=lambda e: (e.repo, e.feature, e.task or ""))
@@ -703,7 +869,22 @@ def discover_source_tasks(config: Any, *, limit: Optional[int] = None) -> list[R
     # Factory-side record-store roots (additive; recovered HEAD-missing records). Config key is
     # optional — absent => the pre-recovery behaviour (corpus globs only).
     record_store_roots = [Path(p) for p in getattr(config, "record_store_roots", ()) or ()]
-    result = discover_source_task_refs(corpus_roots)
+    # RATIFIED-CONSUMABLE seeded sources (SB): the ratified APPROVE consumables the merge_summary
+    # walk cannot reach are admitted as additional seeded sources. Loaded from the SAME ratified
+    # outcomes yaml the harvest path consumes; only its APPROVE (coach_correct) consumables seed
+    # (the approve-only law), and each still needs its committed sha to git-resolve AND its run
+    # record to exist. Absent/inert path => empty mapping => the pre-lever merge_summary-only result.
+    consumable_outcomes: dict[tuple[str, str], Any] = {}
+    outcomes_path = getattr(config, "harvest_outcomes_path", None)
+    if outcomes_path:
+        from qav.generate import load_harvest_outcomes  # local import: avoid an import cycle
+
+        consumable_outcomes = load_harvest_outcomes(outcomes_path).outcomes
+    result = discover_source_task_refs(
+        corpus_roots,
+        consumable_outcomes=consumable_outcomes,
+        record_store_roots=record_store_roots,
+    )
 
     for exc in result.excluded:
         logger.info(
