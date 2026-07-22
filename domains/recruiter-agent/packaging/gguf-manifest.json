@@ -1,0 +1,28 @@
+{
+  "artifact": "recruiter-qwen3-4b — Q4_K_M GGUF (the bundled-seat brain)",
+  "produced_by": "recruiter-tune lane, S4-package (2026-07-22)",
+  "visibility": "private (DF-008) — the binary stays on the Spark; nothing here is committed except this manifest",
+  "file": {
+    "spark_path": "~/fine-tuning/recruiter-tune/output/recruiter-qwen3-4b/gguf_gguf/qwen3-4b-instruct-2507.Q4_K_M.gguf",
+    "bundle_name": "recruiter-qwen3-4b-Q4_K_M.gguf",
+    "bytes": 2497278880,
+    "size_h": "2.4 GiB",
+    "sha256": "63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650",
+    "sha256_verified_on_spark": "2026-07-22 (matches training/artifacts-manifest.json)",
+    "quant": "Q4_K_M"
+  },
+  "provenance": {
+    "base_model": "Qwen/Qwen3-4B-Instruct-2507 (Apache-2.0, dense, non-thinking instruct)",
+    "adapter": "dense QLoRA r=16 alpha=32, merged to 16bit then quantized to Q4_K_M",
+    "corpus": "recruiter-agent synthetic authoring conversations, 773 rows (696 train / 77 val), teacher=workhorse, frozen 2026-07-22T19:00:57+00:00",
+    "merged_generation_gate": "PASS — tuned 98.7% (76/77) vs stock 31.2% (24/77), +67.5 pts, on the office's own checkers (mandatory pre-GGUF gate, RUNBOOK-dcl-fine-tune v1.2)",
+    "chat_template": "stock Qwen3-2507 non-thinking, forced by file at train time (qwen3-2507-stock.jinja, sha256 64f85b19...); the SAME 2630-char template is embedded in this GGUF — verified via llama-server /props: no <think>, no reasoning_content, no messages[::-1] (the DCL thinking-template catch is avoided at serve)"
+  },
+  "serve_verification": {
+    "engine": "llama.cpp llama-server (aarch64 CUDA build, version 1 / 13f2b28) on the Spark",
+    "result": "clean on all 7 val drafting classes — file: blocks emitted where expected, zero <tool_call> leak, zero <|im_start|> leak; the served GGUF byte-faithfully reproduces the merged-gen gate behaviour",
+    "evidence": "packaging/latency-gpu.json, packaging/latency-cpu.json (raw per-prompt outputs + timings)"
+  },
+  "backup_gap": "NO off-box backup of this GGUF exists yet. The binary lives ONLY on spark-fcf6 (~/fine-tuning/recruiter-tune/output/...). The estate's known GGUF-backup gap applies to this artifact: a Spark disk loss loses it, and it would have to be re-quantized from merged-16bit (also Spark-only) or re-trained. Closing this gap (a release asset / NAS sink) is a prerequisite before the sha256-pinned first-start fetch pattern in docker-compose.yml can point at a real URL.",
+  "notes": "The sha256 above is the single load-bearing integrity check across the whole bundle (compose fetch-verify, README placement step, and any future release asset). It is name-independent — renaming the file to recruiter-qwen3-4b-Q4_K_M.gguf for the bundle does not change it."
+}

@@ -1,0 +1,35 @@
+# GPU override for the bundled seat — OPTIONAL, never a required step.
+#
+# Apply it ON TOP of docker-compose.yml only on a machine with an NVIDIA GPU and the
+# nvidia-container-toolkit installed and working:
+#
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+#
+# Preflight (the toolkit must be able to expose the GPU to a container) — run this FIRST; if it
+# does not print your GPU, do NOT use this override, the CPU default already works:
+#
+#     docker run --rm --gpus all ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:c1ddeb6d30932ddd9ddff962cb62dbc5450cd99d8e82c8c20de2fd1f99fde85b \
+#       nvidia-smi -L
+#
+# If the preflight fails, the plain `docker compose up` (CPU) is the graceful fallback — the office
+# is fully functional on CPU, just slower per turn (see packaging/speed-measurement.md).
+
+services:
+  seat:
+    # The CUDA build of the SAME llama.cpp server, pinned by digest. (CPU and CUDA are different
+    # images; you cannot GPU-offload with the CPU image.)
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda@sha256:c1ddeb6d30932ddd9ddff962cb62dbc5450cd99d8e82c8c20de2fd1f99fde85b
+    command: >-
+      --model /models/recruiter-qwen3-4b-Q4_K_M.gguf
+      --alias recruiter
+      --host 0.0.0.0 --port 8080
+      --ctx-size 4096
+      --n-gpu-layers 99
+      --no-webui
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

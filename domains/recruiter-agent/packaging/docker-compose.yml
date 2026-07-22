@@ -1,0 +1,71 @@
+# The bundled recruiter seat — the tuned 4B brain shipped INSIDE the client office.
+#
+# One mental model: the office and its brain come up together with `docker compose up`. The end
+# user never installs vLLM / Ollama / LM Studio / llama.cpp and never learns what an inference
+# engine is — the `seat` service IS the engine (llama.cpp's llama-server, a single MIT binary,
+# OpenAI-compatible), pinned by digest, carrying the tuned GGUF. The `office` talks to it over the
+# private compose network; nothing leaves the host.
+#
+# This file is the SEAT half + a stub `office` service showing the ONE wire that connects them
+# (OPENAI_BASE_URL). Drop the seat service into the real client office compose; keep the volume,
+# the digest pin, and the OPENAI_BASE_URL line.
+#
+# CPU by default (runs on any machine, no GPU, no drivers). For a GPU host, ALSO apply the override
+# file:  docker compose -f docker-compose.yml -f docker-compose.gpu.yml up   (see docker-compose.gpu.yml).
+
+services:
+
+  seat:
+    # llama.cpp official server image — CPU, multi-arch (amd64 + arm64), pinned BY DIGEST.
+    # Resolve/refresh the digest with:  packaging/README.md  ("Refreshing the pinned image").
+    image: ghcr.io/ggml-org/llama.cpp:server@sha256:6c9257ee7187fd01bb479a9a3142e59c3d4f37bb6c3fc4c12326bcffcbfcf2ba
+    # The model lives in a named volume, populated once (see README: either drop the GGUF in, or
+    # let the sha256-pinned fetch-model.sh init do it). The volume persists across restarts.
+    volumes:
+      - recruiter-model:/models:ro
+    command: >-
+      --model /models/recruiter-qwen3-4b-Q4_K_M.gguf
+      --alias recruiter
+      --host 0.0.0.0 --port 8080
+      --ctx-size 4096
+      --n-gpu-layers 0
+      --no-webui
+    # Internal only — the office reaches it by service name on the compose network. Do NOT publish
+    # 8080 to the host unless you have a reason to; the seat is not a user-facing surface.
+    expose:
+      - "8080"
+    healthcheck:
+      # llama-server answers /health 200 only once the model is loaded and ready.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    restart: unless-stopped
+
+  # ---- WIRING REFERENCE: your real office service. NOT started by default (the placeholder image
+  # below does not exist) — it is here to show the ONE env wire. Copy the `seat` service above and
+  # the OPENAI_BASE_URL line below into your real client-office compose. To exercise this reference
+  # against a real office image, replace the image and run:  docker compose --profile office up
+  office:
+    profiles: ["office"]
+    image: your-office-manager-image:pinned
+    depends_on:
+      seat:
+        condition: service_healthy
+    environment:
+      # THE ONE WIRE. deckhand's endpoint resolver: model.endpoint `loopback` -> OPENAI_BASE_URL
+      # when set, else http://localhost:9000/v1. Point it at the seat container.
+      OPENAI_BASE_URL: "http://seat:8080/v1"
+      # Local servers ignore the key but the OpenAI client requires a non-empty value.
+      OPENAI_API_KEY: "local"
+      # HONESTY NOTE (read packaging/README.md "The egress-fact wrinkle"): because `seat` is a
+      # service DNS name (not 127.0.0.1/localhost/::1), deckhand resolves this as NON-loopback and
+      # records it as an egress fact in every ledger event. That fact is TRUE and correct: the seat
+      # is a separate container. The traffic still never leaves this host's private compose network
+      # — same posture the estate already accepts for a self-hosted non-loopback seat.
+    restart: unless-stopped
+
+volumes:
+  # Holds the GGUF. Populate once — see README ("Getting the model into the volume").
+  recruiter-model:
