@@ -1,8 +1,8 @@
 {
   "manifest_version": 1,
   "dataset_id": "qav-phase1-train-v1",
-  "created": "2026-07-21",
-  "factory_sha": "0ceaa9e",
+  "created": "2026-07-22",
+  "factory_sha": "ca40863",
   "bundle_schema_shas": [
     "41a0ebe457"
   ],
@@ -14,40 +14,40 @@
   "files": [
     {
       "path": "output/qa-verifier/train.jsonl",
-      "rows": 41,
-      "sha256": "176136c0821f8c2356eea4ceb1b751fbcb359f32d791ea6e48d57916b97ce743"
+      "rows": 77,
+      "sha256": "f41be81d8855015bd1b7bb60d164f8b5d509748430c150cb204055d8a221883f"
     }
   ],
   "counts": {
     "by_verdict": {
-      "approve": 24,
-      "reject": 17
+      "approve": 41,
+      "reject": 36
     },
     "by_dc_class": {
-      "DC-03": 10,
-      "DC-05": 2,
-      "DC-08": 1,
+      "DC-03": 23,
+      "DC-05": 0,
+      "DC-08": 6,
       "DC-12": 0,
-      "DC-14": 4
+      "DC-14": 7
     },
     "by_ground_truth_source": {
-      "coach_correct": 13,
-      "live_gate_caught": 0,
-      "merge_review_caught": 3,
-      "operator_caught": 0,
-      "seeded": 25
+      "coach_correct": 15,
+      "live_gate_caught": 1,
+      "merge_review_caught": 4,
+      "operator_caught": 2,
+      "seeded": 55
     },
     "by_generation_mode": {
       "gold_negative": 0,
-      "harvest": 16,
-      "seeded_bundle": 4,
-      "seeded_code": 21
+      "harvest": 22,
+      "seeded_bundle": 7,
+      "seeded_code": 48
     }
   },
   "balance_report": {
-    "approve_share": 0.5854,
+    "approve_share": 0.5325,
     "tolerance": 0.1,
-    "ugly_green_share_of_approves": 0.9583,
+    "ugly_green_share_of_approves": 0.9512,
     "plan_ref": "PLAN §5"
   },
   "contamination_check": {
