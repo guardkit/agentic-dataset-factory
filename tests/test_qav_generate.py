@@ -566,6 +566,11 @@ def test_shipped_per_recipe_pins_obey_the_tokenisation_law():
     cfg = GenerateConfig.from_yaml("domains/qa-verifier/agent-config.yaml")
     per_recipe = cfg.test_commands_per_recipe
     assert per_recipe.get("guardkit", {}), "the shipped guardkit per-recipe overrides must be present"
+    # ANCHOR-DIVERSITY (cycle-5): jarvis gained a DC-05 skip-guard anchor (its second DC-class),
+    # which needs its OWN scope (the per-repo default covers the DC-08 BDD anchor, not the skip-guard).
+    assert per_recipe.get("jarvis", {}).get("R-DC05-skipguard"), (
+        "the shipped jarvis R-DC05-skipguard per-recipe scope must be present"
+    )
     for repo, per in per_recipe.items():
         for recipe_id, cmd in per.items():
             assert cmd.startswith("pytest "), (repo, recipe_id, cmd)

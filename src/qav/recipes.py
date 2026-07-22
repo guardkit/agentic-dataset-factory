@@ -300,9 +300,22 @@ def _plan_dc05_sysmod(files: dict[str, str]) -> Mutation:
 
 
 def _plan_dc05_skipguard(files: dict[str, str]) -> Mutation:
-    """Alter a skip-guard so dependency-missing tests silently skip instead of fail.
+    """Alter a skip-guard so dependency-missing tests silently skip instead of fail. Per-repo
+    anchor variants (guardkit, then study_tutor, then jarvis); every variant plants the SAME
+    DC-05 skip-guard-defeat semantics — a genuine dependency skip-guard is weakened to
+    always-skip so the regenerated junit reports skips, never fails, for the guarded module
+    (skip-count vs claims diverge). Only the ANCHOR STRINGS differ per repo (the ed00704
+    recipes-anchors exception); the trees are disjoint so first-unique-match is unambiguous."""
+    return _first_anchor(
+        files,
+        _plan_dc05_skipguard_guardkit,
+        _plan_dc05_skipguard_jarvis,
+    )
 
-    Real corpus construct (guardkit tree): ``tests/knowledge/test_seeding.py`` carries
+
+def _plan_dc05_skipguard_guardkit(files: dict[str, str]) -> Mutation:
+    """Skip-guard defeat, guardkit variant. Real corpus construct (guardkit tree):
+    ``tests/knowledge/test_seeding.py`` carries
     ``@pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Imports not available")`` — a genuine
     dependency guard. Weakening it to always-skip (``True or not IMPORTS_AVAILABLE``) makes the
     regenerated junit report skips, never fails, for the whole module (skip-count vs claims diverge)."""
@@ -321,6 +334,55 @@ def _plan_dc05_skipguard(files: dict[str, str]) -> Mutation:
             )
         ],
         finding_locus=f"{test} — skip-guard weakened to always-skip; dependency-missing runs report skips, not fails",
+    )
+
+
+# study_tutor DC-05 skip-guard — HONEST CEILING (not shipped). study_tutor's only unique
+# service-free skip-guard at its approved shas is ``tests/unit/planner/test_protocols.py``'s
+# AC-002 mypy-strict guard (``@pytest.mark.skipif(shutil.which("mypy") is None, …)``). A live
+# micro-spike at TASK-PRV-001 @ 94f3331 proved it VIOLATES the known-green premise: the
+# scope-matched CONTROL is RED there (``mypy --strict`` genuinely fails on the inline sample in the
+# regeneration environment — 28 passed / 1 FAILED). Weakening the guard only makes an already-
+# failing test SKIP (hiding a real failure), not the clean green-with-hidden-skip DC-05 shape, and
+# seeding on a non-green scope would bank a dishonest baseline. The VOX-sha (5d57b022) skipifs are
+# all live-server ``_skip_no_server`` guards (not service-free) and non-unique. So study_tutor
+# offers NO viable second (DC-05) construct — recorded, not force-fit. See
+# receipts/anchor-diversity-dc05-jarvis-2026-07-22.md §"study_tutor ceiling".
+
+
+def _plan_dc05_skipguard_jarvis(files: dict[str, str]) -> Mutation:
+    """Skip-guard defeat, jarvis variant (FEAT-28FF / JNB tree @ 736399b).
+
+    Real corpus construct: ``tests/test_fleet_memory_payloads.py`` (docstring: "Unit tests for
+    Jarvis fleet-memory episode construction") carries a MODULE-level
+    ``pytestmark = pytest.mark.skipif(not _HAS_NATS_CORE, reason="nats_core (memory write dep) not
+    installed")`` — a genuine sibling-package dependency guard (nats_core IS installed in the
+    jarvis env, so the control runs the module green). Weakening it to always-skip
+    (``True or not _HAS_NATS_CORE``) makes the regenerated junit report skips, never passes, for
+    the whole module (skip-count vs claims diverge). The module tests the outbound episode shape
+    "without any live store (no publish)" — service-free; the pinned per-recipe jarvis command
+    covers it. The ``not _HAS_NATS_CORE`` token also appears as per-test decorators in a SIBLING
+    test module, so the unique per-module docstring anchors the file; the edit then targets the one
+    module-level skipif within it."""
+    module = _find(
+        files,
+        r"Unit tests for Jarvis fleet-memory episode construction",
+        "jarvis fleet-memory payloads module (test_fleet_memory_payloads.py)",
+    )
+    return Mutation(
+        edits=[
+            Edit(
+                module,
+                r"pytest\.mark\.skipif\(\s*not\s+_HAS_NATS_CORE",
+                "pytest.mark.skipif(True or not _HAS_NATS_CORE",
+                min_count=1,
+            )
+        ],
+        finding_locus=(
+            f"{module} — module-level nats_core skip-guard weakened to always-skip (True or not "
+            "_HAS_NATS_CORE); the dependency-present run now reports the whole module skipped where "
+            "the control reported passes (skip-count vs claims diverge)"
+        ),
     )
 
 

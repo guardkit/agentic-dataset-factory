@@ -184,10 +184,26 @@ regeneration:
   # (quality_gates/__init__.py), R-DC03-callsite (full_doc_parser.py source + unit test that stays
   # green-by-design; the broken call site graphiti.py has no service-free covering test). Forcing a
   # scope for these would be config for a dead path (the no-gold-plating discipline).
+  # ANCHOR-DIVERSITY (2026-07-22 cycle-5 constraint; receipts/anchor-diversity-dc05-jarvis-2026-07-22).
+  # jarvis was MONO-DC-class (DC-08 only), so its 4 same-sha tasks collapsed one mutation shape under
+  # dedup (the deduped=14 constraint). R-DC05-skipguard is now extended to jarvis via the
+  # recipes._first_anchor per-repo variant mechanism, giving jarvis a genuine SECOND DC-class. It needs
+  # its OWN test scope (the per-repo default covers the DC-08 BDD anchor, not the DC-05 skip-guard), so
+  # it is pinned here. Tokenisation law: every token whitespace-free. SPIKE-validated on the real bridge
+  # (integration profile, TASK-JNB-001 @ 736399b, run twice):
+  #   jarvis R-DC05-skipguard mutates tests/test_fleet_memory_payloads.py (weakens the module-level
+  #     `not _HAS_NATS_CORE` skip-guard to always-skip). nats_core IS installed so the CONTROL runs the
+  #     module GREEN (9 passed); MUTATED skips the whole module (9 skipped) — skip-count vs claims
+  #     diverge. Service-free (episode-shape asserts, no live store / publish). DIVERGED + DETERMINISTIC.
+  # study_tutor DC-05 was ATTEMPTED and is an HONEST CEILING (not shipped): its only unique service-free
+  # skip-guard (test_protocols.py mypy-strict) is CONTROL-RED at the approved sha (mypy --strict fails on
+  # the inline sample), violating the known-green premise — see the receipt. study_tutor stays DC-03-only.
   test_commands_per_recipe:
     guardkit:
       R-DC05-skipguard: "pytest tests/knowledge/test_seeding.py -q -p no:cacheprovider -p no:warnings"
       R-ABSENT-junit: "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q -p no:cacheprovider -p no:warnings"
+    jarvis:
+      R-DC05-skipguard: "pytest tests/test_fleet_memory_payloads.py -q -p no:cacheprovider -p no:warnings"
 
 output:
   dir: output/qa-verifier

@@ -265,6 +265,68 @@ def test_dc03_callsite_raises_loudly_when_no_variant_anchors():
     assert "no per-repo anchor variant matched" in str(exc.value)
 
 
+# --- jarvis per-repo anchor variant (R-DC05-skipguard) -------------------------------
+# Verbatim skip-guard construct lifted from jarvis tests/test_fleet_memory_payloads.py @ 736399b
+# (module-level nats_core guard). The variant plants the SAME DC-05 skip-guard-defeat as guardkit's
+# IMPORTS_AVAILABLE weaken, expressed in jarvis's own dependency-guard vocabulary. The fixture
+# proves the anchor matches the real code shape, not an assumed one.
+# (study_tutor's DC-05 skip-guard was attempted and recorded as an honest ceiling — control-red at
+#  its approved sha; see recipes._plan_dc05_skipguard and the receipt — so no study_tutor fixture.)
+JARVIS_TEST_PAYLOADS = (
+    '"""Unit tests for Jarvis fleet-memory episode construction.\n\n'
+    "These assert the outbound episode shape without any live store (no publish).\n"
+    '"""\n'
+    "from __future__ import annotations\n\n"
+    "import importlib.util\n"
+    "import pytest\n\n"
+    '_HAS_NATS_CORE = importlib.util.find_spec("nats_core") is not None\n'
+    "pytestmark = pytest.mark.skipif(\n"
+    '    not _HAS_NATS_CORE, reason="nats_core (memory write dep) not installed"\n'
+    ")\n\n\n"
+    "def test_colons_and_hyphens_become_underscores():\n"
+    "    assert True\n"
+)
+JARVIS_SKIPGUARD_FIXTURE = {
+    "tests/test_fleet_memory_payloads.py": JARVIS_TEST_PAYLOADS,
+}
+
+
+def test_dc05_skipguard_jarvis_variant_weakens_the_module_guard_and_nothing_else():
+    """The jarvis anchor variant of R-DC05-skipguard: weaken the module-level nats_core skip-guard
+    to always-skip (True or not _HAS_NATS_CORE). The unique per-module docstring anchors the file;
+    the edit targets the one module-level skipif within it."""
+    module = "tests/test_fleet_memory_payloads.py"
+    result = inject(dict(JARVIS_SKIPGUARD_FIXTURE), "R-DC05-skipguard")
+
+    assert result.dc_class == "DC-05"
+    assert result.changed_files == [module]
+    mutated = result.mutated_files[module]
+    assert "pytest.mark.skipif(True or not _HAS_NATS_CORE" in mutated
+    # the _HAS_NATS_CORE definition line is untouched (only the pytestmark predicate weakened)
+    assert '_HAS_NATS_CORE = importlib.util.find_spec("nats_core") is not None' in mutated
+    assert module in result.finding["locus"]
+
+
+def test_dc05_skipguard_variants_are_mutually_exclusive_across_disjoint_trees():
+    """First-unique-match across the disjoint repo trees: the guardkit fixture triggers the guardkit
+    variant, the jarvis fixture the jarvis variant — each names a different locus and neither repo's
+    anchor is present in the other's tree."""
+    gk = inject(dict(FIXTURES["R-DC05-skipguard"]), "R-DC05-skipguard")
+    jv = inject(dict(JARVIS_SKIPGUARD_FIXTURE), "R-DC05-skipguard")
+    assert "test_seeding.py" in gk.finding["locus"]
+    assert "test_fleet_memory_payloads.py" in jv.finding["locus"]
+    assert gk.finding["locus"] != jv.finding["locus"]
+    assert set(gk.changed_files) != set(jv.changed_files)
+
+
+def test_dc05_skipguard_raises_loudly_when_no_variant_anchors():
+    """When neither per-repo anchor is present, _first_anchor re-raises AnchorNotFound loudly
+    (never a silent no-op) and names every variant it tried."""
+    with pytest.raises(AnchorNotFound) as exc:
+        inject({"tests/unrelated.py": "def test_x():\n    assert True\n"}, "R-DC05-skipguard")
+    assert "no per-repo anchor variant matched" in str(exc.value)
+
+
 def test_expected_miss_recipes_are_recorded_but_still_plant_on_their_fixture():
     """The recipes recorded as corpus expected-misses are faithful, not broken: each still plants
     its labelled defect on a realistic in-memory fixture. The miss is corpus-specific (verified out
