@@ -1,0 +1,7 @@
+# RECEIPT — Growth cycle 3 (2026-07-22; close-out by the coordinator — the operator watcher died with a client-side VS Code crash; the detached driver finished alone, 09:57→11:51)
+
+- **Corpus 50 → 76 (+52%): train 61 / eval_qav 15.** Sources: harvest 30 (all consumables incl. card #2's ten, zero misses) · controls 27 · seeded_code 9 · seeded_bundle 6 · golds 4. Guard refusals: **28 evidence_invariant** (the new consumable-sourced repos ride auto-detect — `test_command=None` — so most of their reject plants honestly failed to surface; the guard turned every one away pre-teacher). seeded_bundle_no_provenance 52 (the pool cap; grows with future ratifications). coach_rejected 1 · cue_rejected 1.
+- **Manifest honest: finalized, contamination PASS; balance ADVISORY FAIL (approve_share 0.6721)** — the new approve-labeled sources added 17 controls while rejects grew slower; the band regression is real and recorded, not massaged.
+- **Floor (Option A, 250 + laws): NOT ARMED — 76 < 250; +52% ⇒ no plateau.** The loop continues.
+- Next levers, quantified by this run's own counts: per-repo `test_command` pins for forge/jarvis/nats_core (turns the 28 refusals into candidates) · study_tutor-shaped reject recipes (the SA finding) · seeded_bundle pool growth via ratifications · balance recovers as reject surfacing lands.
+- Ops: run survived SSH/VS Code disconnects (nohup); services all active post-run; GPU idle-after-finish (the "0%" reading is a finished run, not a fault).
