@@ -221,7 +221,10 @@ def test_from_config_threads_interpreters_and_scratch():
 # pinned test command (render-collapse root-cause fix). Zero real guardkit: the fake bridge logs
 # exactly what argv it received.
 # --------------------------------------------------------------------------------------
-def _regen_l2(tmp_path, bridge, *, task_type=None, test_commands=None, timeout=1800.0):
+def _regen_l2(
+    tmp_path, bridge, *, task_type=None, test_commands=None, test_commands_per_recipe=None,
+    timeout=1800.0,
+):
     return SubprocessBridgeRegenerator(
         interpreters={"guardkit": "/interp/guardkit/python", "study_tutor": "/interp/study/python"},
         scratch_dir=str(tmp_path / "scratch"),
@@ -229,6 +232,7 @@ def _regen_l2(tmp_path, bridge, *, task_type=None, test_commands=None, timeout=1
         bridge_script=bridge,
         regen_task_type=task_type,
         test_commands=test_commands or {},
+        test_commands_per_recipe=test_commands_per_recipe or {},
         timeout_seconds=timeout,
     )
 
@@ -291,3 +295,81 @@ def test_from_config_threads_regen_task_type_and_test_commands():
     assert r.regen_task_type == "integration"
     assert r.test_commands == {"guardkit": "pytest tests/orchestrator -q"}
     assert r.timeout_seconds == 900.0
+
+
+# --------------------------------------------------------------------------------------
+# LAYER 4 — per-RECIPE test-scope override. The recipe is the third worktree-path segment, so a
+# (repo, recipe) pin wins over the per-repo default; other recipes on the same repo keep the default.
+# --------------------------------------------------------------------------------------
+def test_layer4_per_recipe_command_overrides_per_repo_default(tmp_path, bridge, log_path, monkeypatch):
+    monkeypatch.setenv("FAKE_BRIDGE_MODE", "ok")
+    r = _regen_l2(
+        tmp_path, bridge,
+        test_commands={"guardkit": "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q"},
+        test_commands_per_recipe={
+            "guardkit": {
+                "R-DC05-skipguard": "pytest tests/knowledge/test_seeding.py -q",
+                "R-ABSENT-junit": "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q",
+            }
+        },
+    )
+    # Overridden recipe -> its OWN scope; a sibling recipe with no override -> the per-repo default.
+    r.regenerate(_worktree(tmp_path, "guardkit", "TASK-A", recipe="R-DC05-skipguard"))
+    r.regenerate(_worktree(tmp_path, "guardkit", "TASK-B", recipe="R-ABSENT-junit"))
+    r.regenerate(_worktree(tmp_path, "guardkit", "TASK-C", recipe="R-DC03-mockseam"))
+    by_task = {rec["task_id"]: rec for rec in _log_records(log_path)}
+    assert by_task["TASK-A"]["test_command"] == "pytest tests/knowledge/test_seeding.py -q"
+    assert (
+        by_task["TASK-B"]["test_command"]
+        == "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q"
+    )
+    # unoverridden recipe falls back to the per-repo default (mockseam is served by that scope)
+    assert (
+        by_task["TASK-C"]["test_command"]
+        == "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q"
+    )
+
+
+def test_layer4_override_only_applies_to_its_own_repo(tmp_path, bridge, log_path, monkeypatch):
+    # A per-recipe override keyed under guardkit never leaks to a same-recipe-id worktree in study_tutor.
+    monkeypatch.setenv("FAKE_BRIDGE_MODE", "ok")
+    r = _regen_l2(
+        tmp_path, bridge,
+        test_commands={"study_tutor": "pytest tests/unit -q"},
+        test_commands_per_recipe={"guardkit": {"R-DC05-skipguard": "pytest tests/knowledge -q"}},
+    )
+    r.regenerate(_worktree(tmp_path, "study_tutor", "TASK-B", recipe="R-DC05-skipguard"))
+    # study_tutor has no per-recipe override for R-DC05-skipguard -> its per-repo default wins.
+    assert _log_records(log_path)[0]["test_command"] == "pytest tests/unit -q"
+
+
+def test_select_test_command_precedence_unit():
+    r = SubprocessBridgeRegenerator(
+        interpreters={"guardkit": "/g/py"},
+        scratch_dir="out/_scratch",
+        guardkit_interpreter="/g/py",
+        test_commands={"guardkit": "pytest default -q"},
+        test_commands_per_recipe={"guardkit": {"R-DC05-skipguard": "pytest override -q"}},
+    )
+    assert r._select_test_command("guardkit", "R-DC05-skipguard") == "pytest override -q"
+    assert r._select_test_command("guardkit", "R-DC03-mockseam") == "pytest default -q"
+    assert r._select_test_command("guardkit", None) == "pytest default -q"
+    assert r._select_test_command("study_tutor", "R-DC05-skipguard") is None
+
+
+def test_from_config_threads_per_recipe_test_commands():
+    class _Cfg:
+        interpreters = {"guardkit": "/g/py"}
+        scratch_dir = "out/_scratch"
+        bundle_schema_sha = "41a0ebe457"
+        regen_task_type = "integration"
+        test_commands = {"guardkit": "pytest tests/orchestrator -q"}
+        test_commands_per_recipe = {
+            "guardkit": {"R-DC05-skipguard": "pytest tests/knowledge/test_seeding.py -q"}
+        }
+        regen_test_timeout = 900
+
+    r = SubprocessBridgeRegenerator.from_config(_Cfg())
+    assert r.test_commands_per_recipe == {
+        "guardkit": {"R-DC05-skipguard": "pytest tests/knowledge/test_seeding.py -q"}
+    }

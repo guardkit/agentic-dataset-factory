@@ -88,6 +88,13 @@ class SubprocessBridgeRegenerator:
     # guardkit auto-detection).
     regen_task_type: str | None = None
     test_commands: dict[str, str] = field(default_factory=dict)
+    # LAYER 4 (per-RECIPE test-scope override): ``repo -> {recipe_id -> pytest command}``. The recipe
+    # is the third worktree-path segment (``<scratch>/<repo>/<task>/<recipe_id>`` — how
+    # ``_materialize_worktree`` lays it out), so it needs no extra Protocol argument. When a
+    # (repo, recipe) has an override it wins over the per-repo ``test_commands`` default; else the
+    # per-repo default applies. Absent both => guardkit auto-detection. Threaded to the bridge CLI as
+    # the same ``--test-command`` arg (the per-recipe pin is just a more specific selection of it).
+    test_commands_per_recipe: dict[str, dict[str, str]] = field(default_factory=dict)
 
     @classmethod
     def from_config(cls, config: Any, *, bridge_script: str | Path | None = None) -> "SubprocessBridgeRegenerator":
@@ -107,11 +114,24 @@ class SubprocessBridgeRegenerator:
             test_commands={
                 str(k): str(v) for k, v in dict(getattr(config, "test_commands", {}) or {}).items()
             },
+            test_commands_per_recipe={
+                str(repo): {str(rid): str(cmd) for rid, cmd in (per or {}).items()}
+                for repo, per in dict(
+                    getattr(config, "test_commands_per_recipe", {}) or {}
+                ).items()
+            },
         )
 
     def _repo_task(self, worktree: Path) -> tuple[str, str]:
         """Derive ``(repo, task)`` from a materialised worktree path relative to ``scratch_dir``
         (``<scratch_dir>/<repo>/<task>/<recipe>``)."""
+        repo, task, _recipe = self._repo_task_recipe(worktree)
+        return repo, task
+
+    def _repo_task_recipe(self, worktree: Path) -> tuple[str, str, str | None]:
+        """Derive ``(repo, task, recipe)`` from a materialised worktree path relative to
+        ``scratch_dir`` (``<scratch_dir>/<repo>/<task>/<recipe>``). ``recipe`` is ``None`` when the
+        path carries only ``<repo>/<task>`` (no per-recipe override can apply then)."""
         scratch = Path(self.scratch_dir).resolve()
         try:
             rel = worktree.resolve().relative_to(scratch)
@@ -125,12 +145,22 @@ class SubprocessBridgeRegenerator:
             raise RuntimeError(
                 f"worktree path {rel!s} under scratch does not encode <repo>/<task>/<recipe>"
             )
-        return parts[0], parts[1]
+        recipe = parts[2] if len(parts) >= 3 else None
+        return parts[0], parts[1], recipe
+
+    def _select_test_command(self, repo: str, recipe: str | None) -> str | None:
+        """The pinned pytest command for this (repo, recipe): a per-RECIPE override (layer 4) wins
+        over the per-repo default (layer 2); absent both => ``None`` (guardkit auto-detects)."""
+        if recipe:
+            per = self.test_commands_per_recipe.get(repo)
+            if per and recipe in per:
+                return per[recipe]
+        return self.test_commands.get(repo)
 
     def regenerate(self, worktree: Path) -> dict[str, Any]:
         """Run the bridge over ``worktree`` and return the validated CoachEvidenceBundle dict."""
         worktree = Path(worktree)
-        repo, task = self._repo_task(worktree)
+        repo, task, recipe = self._repo_task_recipe(worktree)
         target_interpreter = self.interpreters.get(repo)
         if not target_interpreter:
             raise RuntimeError(
@@ -153,16 +183,17 @@ class SubprocessBridgeRegenerator:
             # profile whose required gates match the record; NOT skip_arch_review).
             if self.regen_task_type:
                 cmd += ["--task-type", str(self.regen_task_type)]
-            # LAYER 2: the per-repo pinned pytest command (no stack misdetect). Absent => the
+            # LAYER 2/4: the pinned pytest command — a per-RECIPE override (layer 4) if one is
+            # configured for (repo, recipe), else the per-repo default (layer 2). Absent both => the
             # bridge lets guardkit auto-detect (pre-fix behaviour, loud in the log).
-            test_command = self.test_commands.get(repo)
+            test_command = self._select_test_command(repo, recipe)
             if test_command:
                 cmd += ["--test-command", str(test_command)]
             cmd += ["--test-timeout", str(int(self.timeout_seconds))]
             logger.info(
-                "REGEN bridge: repo=%s task=%s worktree=%s venv_python=%s task_type=%s "
+                "REGEN bridge: repo=%s task=%s recipe=%s worktree=%s venv_python=%s task_type=%s "
                 "test_command=%r (bridge under %s)",
-                repo, task, worktree, target_interpreter, self.regen_task_type,
+                repo, task, recipe, worktree, target_interpreter, self.regen_task_type,
                 test_command, self.guardkit_interpreter,
             )
             try:

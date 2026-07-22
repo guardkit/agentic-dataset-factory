@@ -516,6 +516,63 @@ def test_config_yaml_loads_multi_repo_test_commands(tmp_path):
     )
 
 
+def test_config_yaml_loads_per_recipe_test_commands(tmp_path):
+    # LAYER 4 (2026-07-22 guardkit scope lane): the per-RECIPE override map threads through
+    # from_yaml -> GenerateConfig.test_commands_per_recipe as repo -> {recipe_id -> command},
+    # ALONGSIDE the per-repo default. The engine/regenerator select the per-recipe pin over the
+    # per-repo default for the named recipe only; a mis-keyed override silently falls the recipe
+    # back to the per-repo default (which may not exercise its mutated file -> honest refusal).
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text(
+        "domain: qa-verifier\n"
+        "corpus:\n  guardkit: /g\n"
+        "regeneration:\n"
+        "  task_type: integration\n"
+        "  test_commands:\n"
+        "    guardkit: pytest tests/orchestrator/test_wiring_seam_real_factory.py -q\n"
+        "  test_commands_per_recipe:\n"
+        "    guardkit:\n"
+        "      R-DC05-skipguard: pytest tests/knowledge/test_seeding.py -q -p no:warnings\n"
+        "      R-ABSENT-junit: pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q\n",
+        encoding="utf-8",
+    )
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    # per-repo default still present and unchanged
+    assert cfg.test_commands["guardkit"] == (
+        "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q"
+    )
+    # per-recipe overrides parsed nested
+    assert cfg.test_commands_per_recipe["guardkit"]["R-DC05-skipguard"] == (
+        "pytest tests/knowledge/test_seeding.py -q -p no:warnings"
+    )
+    assert cfg.test_commands_per_recipe["guardkit"]["R-ABSENT-junit"] == (
+        "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q"
+    )
+
+
+def test_config_yaml_per_recipe_test_commands_default_empty(tmp_path):
+    # Absent block => empty map (pre-override behaviour: every recipe uses the per-repo default).
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text("domain: qa-verifier\ncorpus:\n  guardkit: /g\n", encoding="utf-8")
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    assert cfg.test_commands_per_recipe == {}
+
+
+def test_shipped_per_recipe_pins_obey_the_tokenisation_law():
+    # The SHIPPED agent-config.yaml per-recipe pins are guarded against the layer-2 tokenisation
+    # footgun directly (not a hand-copied literal): every override command must start with
+    # ``pytest`` and contain no shell-quote char, so guardkit's ``test_cmd.split()`` (shell=False)
+    # yields intact whitespace-free args.
+    cfg = GenerateConfig.from_yaml("domains/qa-verifier/agent-config.yaml")
+    per_recipe = cfg.test_commands_per_recipe
+    assert per_recipe.get("guardkit", {}), "the shipped guardkit per-recipe overrides must be present"
+    for repo, per in per_recipe.items():
+        for recipe_id, cmd in per.items():
+            assert cmd.startswith("pytest "), (repo, recipe_id, cmd)
+            assert '"' not in cmd and "'" not in cmd, (repo, recipe_id, cmd)
+            assert cmd.split() == [t for t in cmd.split(" ") if t], (repo, recipe_id, cmd)
+
+
 def test_pinned_test_commands_obey_the_layer2_tokenisation_law(tmp_path):
     # THE LAYER-2 TOKENISATION LAW (B1, 2026-07-22). guardkit's CoachValidator runs a pinned
     # command via ``test_cmd.split()`` under shell=False (coach_validator ~L5422), NOT a shell.
@@ -925,6 +982,78 @@ def test_divergent_reject_banks_normally(tmp_path):
     for r in rows:
         validate_row(r)
     assert (tmp_path / "out" / "rejected.jsonl").read_text().strip() == ""
+
+
+# --------------------------------------------------------------------------------------
+# LAYER 4 scope-matched controls — a per-RECIPE test-command override runs a DIFFERENT scope than
+# the per-repo default, so the reject MUST be compared against a control regenerated under the SAME
+# command (else a scope-only difference masquerades as the defect). These regenerators key the
+# bundle off the worktree's recipe segment (a NEUTRAL hash — never the raw recipe id, which would
+# trip the cue-audit) so control/mutated/scope are all distinguishable.
+# --------------------------------------------------------------------------------------
+def _seg_hash(worktree: Path) -> str:
+    return hashlib.sha1(Path(worktree).name.encode()).hexdigest()[:10]
+
+
+class ScopeAwareDefectSurfaces:
+    """The mutated file IS in the pinned scope: the bundle depends on BOTH the recipe scope AND the
+    mutated content, so the reject DIVERGES from its scope-matched control (healthy recovery)."""
+
+    def regenerate(self, worktree: Path) -> dict:
+        wt = Path(worktree)
+        src = (wt / "guardkit/orchestrator/quality_gates/coach_validator.py").read_text()
+        b = dict(_GREEN)
+        b["profile_name"] = "scope-" + _seg_hash(wt)
+        b["independent_tests"] = {"digest": hashlib.sha1(src.encode()).hexdigest()[:12]}
+        return b
+
+
+class ScopeInvariantToDefect:
+    """The mutated file is OUTSIDE the pinned scope: the bundle depends ONLY on the recipe scope,
+    never the mutated content. So the reject bundle is byte-identical to its SCOPE-MATCHED control
+    (defect never surfaced in THIS scope) yet DIFFERS from the default-scope control. The guard must
+    refuse it — proving the engine compares against the scope-matched control, not the default."""
+
+    def regenerate(self, worktree: Path) -> dict:
+        b = dict(_GREEN)
+        b["profile_name"] = "scope-" + _seg_hash(Path(worktree))
+        return b
+
+
+def test_layer4_override_reject_banks_against_scope_matched_control(tmp_path):
+    cfg = _cfg(
+        tmp_path,
+        test_commands_per_recipe={"guardkit": {"R-DC03-producer": "pytest scopeX -q"}},
+    )
+    summary = _run(
+        cfg, [_producer_task()], regen=ScopeAwareDefectSurfaces(), emit_gold_negatives=False,
+    )
+    # the override recipe's mutated file is in-scope -> its bundle diverges from the SCOPE-MATCHED
+    # control -> it banks honestly (not refused).
+    assert summary.evidence_invariant_rejected == 0
+    assert summary.seeded_code_written == 1
+    assert summary.seeded_control_written == 1
+
+
+def test_layer4_scope_matched_control_refuses_invisible_defect(tmp_path):
+    # THE HONESTY GUARD. Without scope-matching the reject would be compared to the DEFAULT-scope
+    # control (different scope segment) and diverge TRIVIALLY -> a false reject row. With the
+    # scope-matched control the reject is byte-identical to its own-scope control -> correctly
+    # REFUSED. A green regression here would mean scope-only differences mint poison reject rows.
+    cfg = _cfg(
+        tmp_path,
+        test_commands_per_recipe={"guardkit": {"R-DC03-producer": "pytest scopeX -q"}},
+    )
+    summary = _run(
+        cfg, [_producer_task()], regen=ScopeInvariantToDefect(), emit_gold_negatives=False,
+    )
+    assert summary.evidence_invariant_rejected == 1  # refused against its scope-matched control
+    assert summary.seeded_code_written == 0
+    # the control still banks; the poison reject never reaches the writer.
+    assert summary.seeded_control_written == 1
+    rej = [json.loads(x) for x in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+    assert rej[0]["reason"] == "evidence_invariant_injection"
+    assert rej[0]["injection_recipe"] == "R-DC03-producer"
 
 
 def test_source_blind_refusal_covers_every_reject_leg_of_a_task(tmp_path):

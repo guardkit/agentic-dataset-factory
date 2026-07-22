@@ -160,6 +160,34 @@ regeneration:
     # + DETERMINISTIC.
     jarvis: "pytest features/feat-jarvis-004-fleet-registration-and-specialist-dispatch/test_feat_jarvis_004_fleet_registration_and_specialist_dispatch.py -k publishes -p no:cacheprovider -p no:warnings"
     study_tutor: "pytest tests/unit/knowledge/test_corpus_models.py -q -p no:cacheprovider"
+  # LAYER 4 — per-RECIPE test-scope OVERRIDE (2026-07-22 guardkit scope lane; receipts/
+  # guardkit-per-recipe-test-scope). The per-repo guardkit pin above (test_wiring_seam_real_factory)
+  # only exercises R-DC03-mockseam's mutated file; guardkit's OTHER anchoring recipes mutate
+  # DIFFERENT files, so their planted defect never reached the pinned scope and the guard honestly
+  # refused them (cycle-4's 24 evidence_invariant refusals, almost all guardkit). Each override
+  # below pins a recipe's OWN mutated-file test scope. The engine regenerates a control under the
+  # SAME command (scope-matched control — generate._run_seeded_code), so divergence proves the
+  # DEFECT surfaced, never a scope difference. Tokenisation law: every token whitespace-free
+  # (guardkit test_cmd.split() shell=False). Both SPIKE-validated on the real bridge (TASK-QAWE-001
+  # @ 799cefd0, integration profile, run twice): control clean-green, mutated DIVERGED with real
+  # evidence, DETERMINISTIC.
+  #   R-DC05-skipguard mutates tests/knowledge/test_seeding.py (weakens a skipif dep-guard to
+  #     always-skip). CONTROL: 54 passed / 4 skipped. MUTATED: 58 skipped — the skip-guard defeat
+  #     surfaces as the DC-05 skip-count divergence (green-with-skips; skips vs claims diverge).
+  #   R-ABSENT-junit mutates tests/unit/orchestrator/quality_gates/test_bdd_runner.py (marks the
+  #     module skip; because that file carries `from __future__ import annotations` the prepend
+  #     makes it a genuine collection failure). CONTROL: 50 passed. MUTATED: failure_class=
+  #     collection_error — the independent junit is ABSENT, the SMP-002 turn-2 absent-signal shape.
+  # NOT overridden (honest expected-misses — SOURCE-PACKAGE mutations shadowed by guardkit's editable
+  # install: `import guardkit.*` always resolves to the corpus tree, never the mutated worktree copy,
+  # proven with cwd=<worktree>): R-DC03-producer (coach_validator.py), R-DC05-sysmod
+  # (quality_gates/__init__.py), R-DC03-callsite (full_doc_parser.py source + unit test that stays
+  # green-by-design; the broken call site graphiti.py has no service-free covering test). Forcing a
+  # scope for these would be config for a dead path (the no-gold-plating discipline).
+  test_commands_per_recipe:
+    guardkit:
+      R-DC05-skipguard: "pytest tests/knowledge/test_seeding.py -q -p no:cacheprovider -p no:warnings"
+      R-ABSENT-junit: "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q -p no:cacheprovider -p no:warnings"
 
 output:
   dir: output/qa-verifier

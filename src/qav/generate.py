@@ -275,6 +275,19 @@ class GenerateConfig:
     # must include the mutated files' tests (layer 4) so a planted defect surfaces. Absent repo =>
     # the bridge falls back to guardkit's own detection (pre-fix behaviour).
     test_commands: dict[str, str] = field(default_factory=dict)
+    # LAYER 4 (per-RECIPE test-scope override): an OPTIONAL ``repo -> {recipe_id -> pytest command}``
+    # map that OVERRIDES the per-repo ``test_commands`` default for the NAMED recipes only. The
+    # per-repo command applies to ALL of a repo's recipes, but different recipes mutate different
+    # files; a recipe whose mutated-file tests live OUTSIDE the per-repo scope regenerates a bundle
+    # byte-identical to the no-op control and is honestly refused (``evidence_invariant_injection``).
+    # A per-recipe override pins that recipe's OWN mutated-file test scope so its planted defect
+    # surfaces as a real failing/absent/skip-masked test. Every command obeys the SAME laws as
+    # ``test_commands``: it MUST start with ``pytest``, every token whitespace-free (guardkit's
+    # ``test_cmd.split()`` shell=False tokenisation law), and it MUST stay control-green on the no-op
+    # (each override recipe is compared against a control regenerated under the SAME command — see
+    # ``_run_seeded_code`` scope-matched controls — so a trivial scope-difference can never masquerade
+    # as the defect). Absent recipe => the per-repo default. Empty => pre-override behaviour.
+    test_commands_per_recipe: dict[str, dict[str, str]] = field(default_factory=dict)
     # Independent-test subprocess timeout (seconds) threaded to CoachValidator.test_timeout.
     regen_test_timeout: int = 1800
 
@@ -318,6 +331,12 @@ class GenerateConfig:
             regen_task_type=regen.get("task_type"),
             test_commands={
                 str(k): str(v) for k, v in (regen.get("test_commands", {}) or {}).items()
+            },
+            test_commands_per_recipe={
+                str(repo): {
+                    str(rid): str(cmd) for rid, cmd in (per or {}).items()
+                }
+                for repo, per in (regen.get("test_commands_per_recipe", {}) or {}).items()
             },
             regen_test_timeout=int(regen.get("test_timeout", 1800)),
         )
@@ -1297,6 +1316,37 @@ def _run_seeded_code(
             control_bundle, worktree_path=str(control_worktree)
         )
         control_hash = bundle_content_hash(control_bundle)
+        # --- LAYER 4 scope-matched controls (per-recipe test-command overrides) ------------------
+        # A per-recipe override runs a DIFFERENT test scope than the per-repo default, so a reject
+        # under it would diverge from the DEFAULT-scope control TRIVIALLY (different tests ran) rather
+        # than because the defect surfaced — the exact false-divergence the guard exists to prevent.
+        # So each override recipe is compared against a control regenerated under its OWN command.
+        # One control per DISTINCT override command (cached), materialized at that recipe's worktree
+        # path so the regenerator selects the same pinned command. Recipes WITHOUT an override keep
+        # comparing against ``control_hash`` (the default-scope control) — this whole block is a
+        # no-op when no per-recipe overrides are configured for the repo (fully additive).
+        per_recipe_cmds = config.test_commands_per_recipe.get(src.repo, {})
+        scoped_control_hash: dict[str, str] = {}   # recipe_id -> matching-command control hash
+        _cmd_control_cache: dict[str, str] = {}    # command -> control hash (dedupe equal commands)
+        for recipe_id in recipe_ids:
+            cmd = per_recipe_cmds.get(recipe_id)
+            if not cmd:
+                continue
+            if cmd not in _cmd_control_cache:
+                scoped_worktree = _materialize_worktree(
+                    scratch_dir, src.repo, src.task, recipe_id, control.mutated_files,
+                    record_dir=src.record_dir,
+                )
+                try:
+                    scoped_bundle = regenerator.regenerate(scoped_worktree)
+                finally:
+                    shutil.rmtree(scoped_worktree, ignore_errors=True)
+                validate_bundle(scoped_bundle)
+                scoped_bundle = scrub_nondeterministic_bundle(
+                    scoped_bundle, worktree_path=str(scoped_worktree)
+                )
+                _cmd_control_cache[cmd] = bundle_content_hash(scoped_bundle)
+            scoped_control_hash[recipe_id] = _cmd_control_cache[cmd]
         # Reject-side: each weighted recipe (anchor-absent -> loud skip, never a silent no-op).
         for recipe_id in recipe_ids:
             if _seeded_limit_hit(config, writer):
@@ -1312,7 +1362,7 @@ def _run_seeded_code(
                 dc_class=result.dc_class, injection_recipe=recipe_id,
                 teacher=teacher, coach=coach, regenerator=regenerator,
                 scratch_dir=scratch_dir, schema_sha=schema_sha,
-                control_bundle_hash=control_hash,
+                control_bundle_hash=scoped_control_hash.get(recipe_id, control_hash),
             )
             if row:
                 summary.seeded_code_written += 1
