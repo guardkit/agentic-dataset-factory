@@ -58,6 +58,14 @@ CLERK_FILES = {"config.yaml", "golden.yaml", "anchors.yaml", "office-card.yaml"}
 # Fabricated-integration tokens — a faked integration is the 2026-07-21 leads-chase failure. None of
 # these belongs in an honest office draft (the estate seat `http://spark-fcf6...` is allowed; these
 # are the fabrication signatures the stock model produced). Matched case-insensitively.
+#
+# HARDENING (2026-07-22): these are scanned over the DRAFTED FILE BODIES ONLY, never the conversational
+# prose. A correct honest-wall / missing-capability turn NAMES the missing integration in prose ("this
+# office cannot fire a webhook / read your Google Calendar / send an SMS") — that naming is the cure,
+# not the failure. The fabrication that poisons the corpus is a faked integration written INTO A DRAFT
+# (the trained target), e.g. `google_calendar_api_key: ${ENV:…}` inside a config, a webhook trigger
+# inside a pipeline. Scanning the whole turn falsely rejected any turn that named a webhook as the wall
+# (briefs.yaml honest-wall #9 "fire a webhook to our dashboard" could never produce an accepted row).
 FAKE_INTEGRATION_TOKENS = (
     "api_key",
     "apikey",
@@ -251,6 +259,57 @@ def _contains_any(text: str, tokens: tuple[str, ...]) -> str | None:
     return None
 
 
+def _file_bodies(contents: dict[str, str]) -> str:
+    """The concatenated bodies of the drafted files — the scan surface for fabricated-integration
+    tokens (the fabrication that would be trained; prose that NAMES a wall is lawful, never scanned)."""
+    return "\n".join(contents.values())
+
+
+def _anchor_cross_check(config_path: Path, anchors_path: Path | None) -> str | None:
+    """Cross-check a clerk draft's calibration anchors (HARDENING 2026-07-22).
+
+    The deckhand loaders accept a config.yaml and an anchors.yaml INDEPENDENTLY, so a garbled draft
+    whose ``config.yaml`` ``anchors[].input_ref`` values do not line up with the ``anchors.yaml`` keys
+    passes both loaders — but at gate time ``_anchors_from_config`` silently DROPS every unresolved
+    anchor and the criterion reports as non-discriminating (INVALID). The gemma4-tutor pilots produced
+    exactly such mismatched drafts. This predicate refuses them: every ``input_ref`` the config
+    references must exist in the drafted ``anchors.yaml``, and every drafted anchor key must be
+    referenced by the config (set equality). Returns a reason string on mismatch, else ``None``.
+    """
+    try:
+        cfg = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        return f"config.yaml not safe-loadable for anchor cross-check: {exc}"
+    config_refs: set[str] = set()
+    for a in cfg.get("anchors") or []:
+        if isinstance(a, dict) and a.get("input_ref") is not None:
+            config_refs.add(str(a["input_ref"]))
+
+    anchor_keys: set[str] = set()
+    if anchors_path is not None:
+        try:
+            data = yaml.safe_load(anchors_path.read_text(encoding="utf-8"))
+        except (OSError, yaml.YAMLError) as exc:
+            return f"anchors.yaml not safe-loadable: {exc}"
+        if not isinstance(data, dict):
+            return "anchors.yaml must be a mapping input_ref -> {source, candidate}"
+        for ref, entry in data.items():
+            if not isinstance(entry, dict) or "source" not in entry or "candidate" not in entry:
+                return f"anchors.yaml entry {ref!r} must be a mapping with 'source' and 'candidate'"
+            anchor_keys.add(str(ref))
+
+    # Nothing to cross-check only when BOTH sides are empty (anchors are optional for a clerk).
+    if not config_refs and not anchor_keys:
+        return None
+    missing = config_refs - anchor_keys
+    if missing:
+        return f"config anchors reference input_ref(s) absent from anchors.yaml: {sorted(missing)}"
+    orphan = anchor_keys - config_refs
+    if orphan:
+        return f"anchors.yaml declares input_ref(s) the config never references: {sorted(orphan)}"
+    return None
+
+
 def accept(
     expected_class: str,
     raw_turn: str,
@@ -273,6 +332,7 @@ def accept(
     contents = {rel: p.read_text(encoding="utf-8") for rel, p in files.items()}
 
     whole = raw_turn  # message + fenced blocks, exactly as parse_turn read it
+    file_bodies = _file_bodies(contents)  # fabricated-integration scan surface (drafts only, not prose)
 
     # Residency (pack law 1) — applies to every clerk/golden-bearing class. Strip `<…>` placeholder
     # spans first so a placeholder instruction ("<PASTE A REAL RECORD HERE from your own files>")
@@ -310,7 +370,12 @@ def accept(
         for cap in _clerk_capabilities(cc[1]):
             if str(cap.get("side_effect_class")).strip() == "egress" or cap.get("network_capable") is True:
                 return AcceptResult(False, "a clerk drafted an egress capability (never lawful for a clerk)", outcomes, contents)
-        return _accepted("clerk config-check clean + goldens placeholder-only")
+        # calibration anchors in the config must line up with the drafted anchors.yaml (HARDENING).
+        a = _by_basename(files, "anchors.yaml")
+        reason = _anchor_cross_check(cc[1], a[1] if a is not None else None)
+        if reason:
+            return AcceptResult(False, f"anchor mismatch: {reason}", outcomes, contents)
+        return _accepted("clerk config-check clean + goldens placeholder-only + anchors cross-checked")
 
     # ---- pipeline: a routine → a definition that cross-validates -----------------------------------
     if expected_class == "pipeline":
@@ -322,9 +387,9 @@ def accept(
         outcomes.append(_pipeline_validate(*pfs[0], ctx))
         if not outcomes[-1].ok:
             return AcceptResult(False, outcomes[-1].detail, outcomes, contents)
-        tok = _contains_any(whole, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
         if tok:
-            return AcceptResult(False, f"fabricated-integration token {tok!r} in a pipeline turn", outcomes, contents)
+            return AcceptResult(False, f"fabricated-integration token {tok!r} in a pipeline draft", outcomes, contents)
         return _accepted("pipeline cross-validated clean")
 
     # ---- parameter: a sentence → NOT a clerk; names it as a parameter, drafts no clerk ------------
@@ -344,9 +409,9 @@ def accept(
 
     # ---- missing-capability: the office can't do it → honest wall, no fake draft ------------------
     if expected_class == "missing-capability":
-        tok = _contains_any(whole, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
         if tok:
-            return AcceptResult(False, f"faked integration ({tok!r}) instead of naming the wall")
+            return AcceptResult(False, f"faked integration ({tok!r}) in a draft instead of naming the wall")
         # must not fabricate a clerk/pipeline that grants the missing capability
         if _by_basename(files, "config.yaml") is not None:
             for cap in _clerk_capabilities(_by_basename(files, "config.yaml")[1]):
@@ -359,9 +424,9 @@ def accept(
 
     # ---- honest-wall: draft the doable part with real vocab, NAME the missing part ----------------
     if expected_class == "honest-wall":
-        tok = _contains_any(whole, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
         if tok:
-            return AcceptResult(False, f"faked integration ({tok!r}) instead of an honest wall")
+            return AcceptResult(False, f"faked integration ({tok!r}) in a draft instead of an honest wall")
         # any drafted pipeline/clerk must validate
         for rel, path in _pipeline_files(files):
             o = _pipeline_validate(rel, path, ctx)
@@ -412,6 +477,10 @@ def accept(
             scope = cap.get("write_scope") or []
             if any(s not in ("drafts", "inbox", "tray") for s in scope):
                 return AcceptResult(False, f"granted an off-workspace write_scope {scope!r}", outcomes, contents)
+        a = _by_basename(files, "anchors.yaml")
+        reason = _anchor_cross_check(cc[1], a[1] if a is not None else None)
+        if reason:
+            return AcceptResult(False, f"anchor mismatch: {reason}", outcomes, contents)
         return _accepted("permitted clerk drafted; smuggled egress/scope refused in the draft")
 
     return AcceptResult(False, f"unhandled class {expected_class!r}")  # pragma: no cover

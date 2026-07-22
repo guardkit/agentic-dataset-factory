@@ -40,5 +40,6 @@ the office's OWN checkers + a per-class predicate + the contamination gate (`acc
   turns). Never relax a checker to lift yield — the reject rate is a quality signal, not an obstacle.
 
 - **The four eval-held sessions are the pass exam, never training data.** They are the frozen re-sit
-  Rich judges unlabelled. The corpus's `eval.jsonl` is a *synthetic loss-only* split for training
-  monitoring — explicitly NOT the pass bar.
+  Rich judges unlabelled. The corpus's `val.jsonl` is a *synthetic loss-only* split for training
+  monitoring (a real, per-class-stratified, deterministic-by-`row_id`, disjoint ~10% held-out set) —
+  explicitly NOT the pass bar.

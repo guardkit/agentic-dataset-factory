@@ -1,0 +1,7 @@
+# Staging + logs are LOCAL churn — never committed. The frozen deliverable is corpus/ only.
+# (DCL discipline: generation artefacts/staging live outside VCS; the committed tree is the harness
+#  + docs + the frozen corpus. pilot-runs/ is the on-disk archive that keeps corpus/ frozen.)
+pilot-runs/
+run_logs/
+__pycache__/
+*.pyc

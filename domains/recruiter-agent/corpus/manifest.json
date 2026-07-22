@@ -1,0 +1,74 @@
+{
+  "domain": "recruiter-agent",
+  "visibility": "private (DF-008)",
+  "frozen_at": "2026-07-22T19:00:57+00:00",
+  "source_run_dirs": [
+    "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-full"
+  ],
+  "player_models": [
+    "workhorse"
+  ],
+  "counts": {
+    "rows": 773,
+    "train": 696,
+    "val": 77,
+    "dedup_across_runs": 0
+  },
+  "holdout_fraction": 0.1,
+  "split_method": "per-class stratified, deterministic by sha256(row_id), disjoint by row_id",
+  "by_class": {
+    "clerk-from-examples": {
+      "total": 191,
+      "train": 172,
+      "val": 19
+    },
+    "honest-wall-not-faked": {
+      "total": 93,
+      "train": 84,
+      "val": 9
+    },
+    "injection-probe": {
+      "total": 40,
+      "train": 36,
+      "val": 4
+    },
+    "missing-capability-wall": {
+      "total": 120,
+      "train": 108,
+      "val": 12
+    },
+    "parameter-not-clerk": {
+      "total": 120,
+      "train": 108,
+      "val": 12
+    },
+    "pipeline-from-sentence": {
+      "total": 113,
+      "train": 102,
+      "val": 11
+    },
+    "placeholder-goldens": {
+      "total": 96,
+      "train": 86,
+      "val": 10
+    }
+  },
+  "contamination_denylist": {
+    "phrases": 21,
+    "held_file_hashes": 10,
+    "held_corpus_seen": true,
+    "eval_held_sessions": [
+      "2026-07-17-friday-week-in-review",
+      "2026-07-18-mailroom-clerk",
+      "2026-07-18-meeting-notes-clerk",
+      "2026-07-18-leads-chase-pipeline"
+    ]
+  },
+  "serve_contract": {
+    "system": "recruiter seed system_prompt (vocab-in-prompt)",
+    "user": "office_manager.hire.loop.build_user_turn",
+    "assistant": "raw drafting turn (message + ```file:``` blocks parse_turn reads)"
+  },
+  "note": "val is a loss-only monitoring split, NOT the pass exam \u2014 the four banked sessions are the exam.",
+  "seed": "recruiter-phase1"
+}

@@ -10,23 +10,40 @@ grant while claiming to ignore it. This corpus is the durable cure — the DCL p
 
 **The one mental model (borrowed verbatim from DCL): the office's OWN checkers are the boss, not the
 model.** Every row is admitted ONLY if the office's real validators pass its drafts AND it matches the
-request's authoritative sorting label. A strong teacher (`gpt-oss-120b` on the Spark) merely
+request's authoritative sorting label. A strong teacher (`workhorse` on the Spark) merely
 *proposes* the drafting turn; `deckhand config-check` and `office pipeline validate` *decide*. A bad
 run can waste time; it can never poison the corpus with drafts the office would refuse.
+
+### The teacher is `workhorse` (and why NOT `gpt-oss-120b`) — a recorded wall
+
+The teacher is **`workhorse`** (Qwen3.6-35B-A3B) — the SAME model family the DCL corpus used as its
+proven teacher, and the exact model the 2026-07-21 gate exam ran against (the stock candidate).
+**`gpt-oss-120b` CANNOT be used as the teacher on this Spark (recorded 2026-07-22):** the llama-swap
+residents (coach 26B + workhorse 35B + embed, all `ttl:0 --no-mmap`, ~90 GiB of the 121 GiB unified
+memory) leave no room, so the 120b server OOMs on start (`exited prematurely`). This is a memory-
+residency wall, not a code bug; do **not** attempt to load 120b and do **not** touch the llama-swap
+config. `workhorse` is a **thinking** model, but the harness sends `chat_template_kwargs:{enable_thinking:
+false}` (`player.enable_thinking: false`) to **disable** the thinking channel: measured **~5x faster**
+(71s → 15s per clerk turn) and serve-faithful — the tuned recruiter is a non-thinking 4B, so a
+non-thinking target matches its serve contract. (Even with thinking on, the reasoning lands in a
+separate `reasoning_content` field the harness never reads, so there is no `<think>` leak either way.)
+`max_tokens` is 6000 so up to four drafted files fit comfortably.
 
 ---
 
 ## The one-minute version
 
-1. Point the harness at the Spark's llama-swap API (`http://spark-fcf6:9000/v1`, seat `gpt-oss-120b`).
+1. Point the harness at the Spark's llama-swap API (`http://spark-fcf6:9000/v1`, seat `workhorse`).
 2. Run it **under office-manager's own venv** — that venv carries `office_manager` + `deckhand`
    (the checkers) + `pydantic` + `yaml`; the harness itself uses only stdlib `urllib` for HTTP, so
    no extra deps are needed.
 3. The harness authors each brief, runs the office checkers on every draft, feeds the checker's named
-   error back once (a bounded repair), and writes only checker-clean, class-matching, contamination-
-   clean rows.
-4. Read `manifest.json`; the corpus is `train.jsonl` + `eval.jsonl` (a loss-only split) under
-   `output/recruiter-agent/`. **Private (DF-008).**
+   error back once (a bounded repair), and **streams** every checker-clean, class-matching,
+   contamination-clean row into a staging **run dir** under `pilot-runs/` (crash-safe: append per row).
+4. **Freeze** the frozen `corpus/` from one or more run dirs in a second phase (`--freeze`): global
+   dedup by `row_id` and a real, per-class-stratified, deterministic-by-`row_id` ~10% held-out
+   `val.jsonl`. The corpus (`train.jsonl` + `val.jsonl` + `manifest.json`) is written ONCE, and lives
+   under `domains/recruiter-agent/corpus/`. **Private (DF-008).** All churn stays in `pilot-runs/`.
 
 ---
 
@@ -51,9 +68,10 @@ protocol `parse_turn` parses. So targets are NOT fence-stripped; the fences are 
 
 ## Prerequisites
 
-- The Spark's llama-swap is up and serves `gpt-oss-120b`:
+- The Spark's llama-swap is up and serves `workhorse`:
   `curl -s http://spark-fcf6:9000/v1/models` lists it. (Model-swapping between seats is llama-swap's
-  job — just name the model; do not touch its config.)
+  job — just name the model; do not touch its config. `gpt-oss-120b` is unavailable as a teacher —
+  see the recorded wall above.)
 - Run from a box that can reach `spark-fcf6:9000` **and** import the office checkers — i.e.
   office-manager's own venv (`office-manager/.venv`). Inference happens on the Spark seat; the harness
   + checkers run CPU-only wherever you launch them (not a GPU job).
@@ -72,13 +90,13 @@ Two smokes, in order — spend zero model calls until the offline one is green:
 cd ~/Projects/appmilla_github/office-manager
 OFFICE_AGENTS_ROOT=/tmp ./.venv/bin/python \
   ../agentic-dataset-factory/domains/recruiter-agent/selftest_acceptance.py
-# expect: ALL GREEN (14 PASS/FAIL cases + the contamination guard)
+# expect: ALL GREEN (18 PASS/FAIL cases incl. both hardenings + the contamination guard)
 
 # 2. PILOT — a small cross-class batch end-to-end through the REAL Spark + acceptance path:
 DOMAIN=~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent
 OFFICE_AGENTS_ROOT=/tmp PYTHONPATH="$DOMAIN" ./.venv/bin/python "$DOMAIN/run_recruiter_generation.py" \
-  --config "$DOMAIN/agent-config.yaml" --sample-per-class 3
-# reads output/recruiter-agent/{train,eval,rejected}.jsonl + manifest.json
+  --config "$DOMAIN/agent-config.yaml" --sample-per-class 2 --run-dir pilot-workhorse
+# streams into pilot-runs/pilot-workhorse/{accepted,rejected}.jsonl + run-manifest.json
 ```
 
 Read a few accepted rows and a few `rejected.jsonl` reasons. A high reject rate is a QUALITY signal
@@ -86,23 +104,40 @@ Read a few accepted rows and a few `rejected.jsonl` reasons. A high reject rate 
 
 ---
 
-## The full run — exact command
+## The full run — two phases (generate, then freeze)
+
+**Phase A — GENERATE (streaming, crash-safe).** Long job: launch it detached (`nohup`/`tmux`) and
+poll; each accepted row is appended+flushed to the run dir immediately, so a crash loses only the
+in-flight call, and re-running against the same `--run-dir` resumes without duplicating.
 
 ```bash
 cd ~/Projects/appmilla_github/office-manager
 DOMAIN=~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent
-# tmux so the run survives an SSH drop; the harness is fresh-start (backs prior output to *.bak):
-tmux new -s recruiter-gen
-OFFICE_AGENTS_ROOT=/tmp PYTHONPATH="$DOMAIN" ./.venv/bin/python "$DOMAIN/run_recruiter_generation.py" \
-  --config "$DOMAIN/agent-config.yaml" --author-reps 3 \
-  2>&1 | tee "$DOMAIN/../../run_logs/recruiter_gen_$(date +%Y%m%d-%H%M%S).log"
-# detach: Ctrl-b d   reattach: tmux attach -t recruiter-gen
+OFFICE_AGENTS_ROOT=/tmp PYTHONPATH="$DOMAIN" nohup ./.venv/bin/python \
+  "$DOMAIN/run_recruiter_generation.py" \
+  --config "$DOMAIN/agent-config.yaml" --author-reps 12 --run-dir run-full \
+  > "$DOMAIN/pilot-runs/run-full.out" 2>&1 &
+# poll: wc -l "$DOMAIN/pilot-runs/run-full/accepted.jsonl"; tail "$DOMAIN/run_logs/recruiter_gen_*.log"
 ```
 
-`--author-reps K` authors every brief K× (fresh calls); distinct valid turns coexist as distinct rows
-(content-addressed `row_id`), byte-identical duplicates dedupe. K≈3 over the seed briefs reaches the
-~450-row target (see `COVERAGE-PLAN.md`). Grow the corpus by adding briefs to `briefs.yaml` or raising
-K — never by relaxing a checker.
+`--author-reps K` authors every brief K× (fresh calls at temp 0.6); distinct valid turns coexist as
+distinct rows (content-addressed `row_id`), byte-identical duplicates dedupe. The seed briefs at K≈12
+target the ~450-row plan (see `COVERAGE-PLAN.md`); the achieved total is an honest count, not a target
+to fudge — a class that will not generate at acceptable quality is a **finding**. Grow the corpus by
+adding briefs to `briefs.yaml` or raising K — never by relaxing a checker.
+
+**Phase B — FREEZE (writes the frozen corpus once).**
+
+```bash
+OFFICE_AGENTS_ROOT=/tmp PYTHONPATH="$DOMAIN" ./.venv/bin/python \
+  "$DOMAIN/run_recruiter_generation.py" \
+  --config "$DOMAIN/agent-config.yaml" --freeze run-full
+# writes corpus/{train.jsonl,val.jsonl,manifest.json} ONCE (global dedup + real 10% val split).
+```
+
+You may pass several run dirs to `--freeze` (e.g. `run-full run-topup`) to combine them; dedup by
+`row_id` is global across them. Generation logs land under `<domain>/run_logs/`, never the shared
+repo-root `run_logs/`.
 
 ---
 
@@ -121,22 +156,35 @@ K — never by relaxing a checker.
    label verified per row"), plus: placeholder-only goldens (pack law 2); residency (pack law 1);
    honest walls not faked integrations; the injection-probe draft grants no egress/off-allowlist/
    escaped scope (scored on what it GRANTS, not what it CLAIMS — the say-safe-do-unsafe lesson).
-4. **Bounded repair** — a refused draft gets ONE repair pass with the checker's named error fed back
-   (the pack's draft→validate→redraft loop); still-refused → `rejected.jsonl`, never hand-patched.
-5. **Contamination gate** — the whole row + every draft file is scanned against the eval-held denylist
+4. **Bounded repair (FRESH single-shot)** — a refused draft (or an otherwise-clean turn that leaks,
+   see 5) gets ONE repair pass. The pass is a **fresh single-shot re-prompt**, NOT a multi-turn "that
+   was wrong, fix it" continuation: the one hard requirement is folded into a fresh copy of the
+   original prompt with an instruction to satisfy it SILENTLY. A continuation primes the teacher to
+   narrate a correction ("here is the corrected draft") — which is a defective target, because the
+   served recruiter drafts once and has no prior draft (train==serve). Still-refused → `rejected.jsonl`,
+   never hand-patched.
+5. **Prose-leak guard** — the turn's owner-facing MESSAGE (never the file bodies) is scanned for
+   repair-narration phrases ("corrected draft", "I've updated", "the checker", "re-emit", …). A leak
+   triggers the fresh repair; a leak that survives the repair → `rejected.jsonl`. This keeps every
+   trained target a clean first-and-only owner turn.
+6. **Contamination gate** — the whole row + every draft file is scanned against the eval-held denylist
    (`denylist.py`); any hit is refused. The four banked sessions are NEVER training data.
 
 ---
 
 ## When it finishes
 
-- `manifest.json` — counts (attempted / accepted / rejected / deduped / contaminated / train / eval),
-  per-class tallies, the denylist summary, the serve-contract record. `visibility: private (DF-008)`.
-- `train.jsonl` / `eval.jsonl` — ShareGPT rows. `eval.jsonl` is a **loss-only** split for training
-  monitoring; it is NOT the pass exam. **The pass exam is the four banked sessions** — Rich's
-  attended, unlabelled re-sit — which are never in this corpus by construction.
-- Self-verify a sample: every accepted row's `metadata.checkers` carries the verbatim checker detail;
-  spot-read 3–4 accepted turns for vocabulary discipline and 3–4 `rejected.jsonl` reasons.
+- `corpus/manifest.json` (the FROZEN manifest) — row totals + per-class `{total, train, val}`, the
+  `source_run_dirs`, the `player_models`, the denylist summary, the serve-contract record, and the
+  `split_method`. `visibility: private (DF-008)`. Each staging run also has its own
+  `pilot-runs/<run>/run-manifest.json` (attempted / accepted / rejected / deduped / contaminated).
+- `corpus/train.jsonl` / `corpus/val.jsonl` — ShareGPT rows. `val.jsonl` is a real, per-class-
+  stratified, deterministic-by-`row_id`, **disjoint** ~10% held-out split — a **loss-only** monitoring
+  set, NOT the pass exam. **The pass exam is the four banked sessions** — Rich's attended, unlabelled
+  re-sit — which are never in this corpus by construction (the denylist enforces it).
+- Self-verify a sample: every accepted row's `metadata.checkers` carries the verbatim checker detail
+  and `metadata.provenance` carries the seat/model/timestamp/accept_attempt; spot-read 3–4 accepted
+  turns for vocabulary discipline and 3–4 `rejected.jsonl` reasons.
 
 ## What NOT to do
 
@@ -159,8 +207,10 @@ K — never by relaxing a checker.
 | `briefs.yaml` | the coverage plan as data: the seven classes, per-class target rows, seed owner requests |
 | `acceptance.py` | the acceptance path — the office's OWN checkers + per-class predicates + the contamination gate |
 | `denylist.py` | the eval-held contamination denylist (distinctive-phrase floor + live file-hash set) |
-| `generate.py` | the generation engine (teacher seat via urllib, materialise→check→repair→write, manifest) |
-| `run_recruiter_generation.py` | the driver entrypoint |
+| `generate.py` | the engine: `run_generation` (teacher via urllib, materialise→check→repair→**stream** to a run dir) + `freeze_corpus` (dedup + real 10% val split → frozen `corpus/`) |
+| `run_recruiter_generation.py` | the driver: GENERATE (default) / FREEZE (`--freeze`); logs to `<domain>/run_logs/` |
+| `pilot-runs/` | staging run dirs (`accepted.jsonl` streamed crash-safe, `rejected.jsonl`, `run-manifest.json`) + archived pilots — all corpus churn lives here |
+| `corpus/` | the FROZEN deliverable, written once by freeze: `train.jsonl` + `val.jsonl` + `manifest.json` |
 | `agent-config.yaml` | the run config (teacher seat, paths, reps, holdout) |
 | `selftest_acceptance.py` | the OFFLINE smoke — proves acceptance + denylist + checkers with zero model calls |
 | `COVERAGE-PLAN.md` | the coverage plan write-up (each class → the 2026-07-21 failure it cures + target counts) |
