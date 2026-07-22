@@ -71,11 +71,43 @@ def _find(files: dict[str, str], probe: str, what: str) -> str:
     return hits[0]
 
 
+def _first_anchor(
+    files: dict[str, str], *variants: Callable[[dict[str, str]], Mutation]
+) -> Mutation:
+    """Per-repo anchor-variant dispatch (the coordinator's MINIMAL-mechanism ruling, coach-checked).
+
+    A single recipe reproduces one DC class across MULTIPLE corpus repos, but the verbatim source
+    constructs it anchors on differ per repo (guardkit's ``chunk_threshold`` ``__init__`` kwarg vs
+    study_tutor's ``CorpusChunk`` pydantic field). One anchor STRING cannot match both, so a recipe's
+    ``plan`` may carry an ORDERED list of per-repo anchor variants; the first whose shape is present
+    wins (first-unique-match). Every variant plants the SAME ``dc_class`` / ``family`` / mutation
+    semantics — only the ANCHOR STRINGS differ (the ed00704 recipes-anchors exception). The corpus
+    trees are disjoint, so at most one variant's anchor is ever present in a given file map.
+
+    If NO variant's anchor is present the recipe raises :class:`AnchorNotFound` LOUDLY (never a silent
+    no-op — the FEAT-DD4F law), reporting every variant's reason so the miss is auditable.
+    """
+    reasons: list[str] = []
+    for variant in variants:
+        try:
+            return variant(files)
+        except AnchorNotFound as exc:
+            reasons.append(str(exc))
+    raise AnchorNotFound("no per-repo anchor variant matched — tried: " + " | ".join(reasons))
+
+
 # --------------------------------------------------------------------------------------
 # DC-03 · composition seam (call-site drift / runner-without-producer / soft-fail dead
 # wiring / mocked seam). The plurality class — no structural cure. GOAL.md criterion 1.
 # --------------------------------------------------------------------------------------
 def _plan_dc03_callsite(files: dict[str, str]) -> Mutation:
+    """SMP-003 call-site drift, DC-03. Per-repo anchor variants (guardkit first, then study_tutor);
+    every variant plants the same retired-contract drift — a caller keeps passing a member the
+    callee has dropped. First-unique-match wins (the trees are disjoint)."""
+    return _first_anchor(files, _plan_dc03_callsite_guardkit, _plan_dc03_callsite_study_tutor)
+
+
+def _plan_dc03_callsite_guardkit(files: dict[str, str]) -> Mutation:
     """SMP-003 shape: drop a kwarg from a class __init__ + its DIRECT unit test, leave the
     production call site passing the retired kwarg. Unit green; the call site is broken.
 
@@ -105,6 +137,43 @@ def _plan_dc03_callsite(files: dict[str, str]) -> Mutation:
         finding_locus=(
             f"{prod[0]} — call site still passes retired kwarg chunk_threshold after "
             f"{cls} __init__ dropped it; only the injected-dependency unit test in {unit} was updated"
+        ),
+    )
+
+
+def _plan_dc03_callsite_study_tutor(files: dict[str, str]) -> Mutation:
+    """SMP-003 call-site-drift shape, study_tutor variant (FEAT-70A4 / PRV tree @ 94f3331).
+
+    Real corpus construct: the ``CorpusChunk`` pydantic-v2 model in
+    ``src/study_tutor/knowledge/corpus_models.py`` declares a REQUIRED ``chunk_index: int`` field
+    under ``model_config = ConfigDict(extra="forbid")``, and its call sites — the loader
+    (TASK-PRV-002), the retrieval / quote-verifier consumers, and the unit payloads in
+    ``tests/unit/knowledge/test_corpus_models.py`` — all instantiate ``CorpusChunk(…, chunk_index=N)``.
+
+    Retiring the field from the model's contract while every caller still passes it IS the SMP-003
+    retired-member drift, expressed in study_tutor's construct vocabulary: the dropped ``chunk_index``
+    field is the analog of guardkit's dropped ``chunk_threshold`` kwarg. Because the contract is
+    ``extra="forbid"``, each surviving call site's instantiation now raises ``ValidationError`` — the
+    dead call site GENUINELY DIES, and the service-free unit scope (``test_corpus_models.py``, the
+    pinned ``study_tutor`` test_command) catches it as real failing tests. One edit, one file; the
+    NOTHING-else self-check holds.
+
+    The ``= None`` default on the preceding ``citation_anchor`` field makes the anchor probe unique
+    to this module across the scoped map (the markdown design docs write ``citation_anchor:
+    CitationAnchor | None`` without the default; ``.guardkit`` records are excluded from the map)."""
+    module = _find(
+        files,
+        r"citation_anchor: CitationAnchor \| None = None",
+        "study_tutor CorpusChunk model (corpus_models.py)",
+    )
+    return Mutation(
+        edits=[Edit(module, r"\n    chunk_index: int\n", "\n", min_count=1)],
+        finding_locus=(
+            f"{module} — required field chunk_index retired from CorpusChunk's extra='forbid' "
+            "contract while its call sites (the corpus loader TASK-PRV-002, the retrieval / "
+            "quote-verifier consumers, and the test_corpus_models unit payloads) still pass "
+            "chunk_index=; every surviving instantiation now raises ValidationError "
+            "(retired-member call-site drift; the service-free unit scope catches it)"
         ),
     )
 

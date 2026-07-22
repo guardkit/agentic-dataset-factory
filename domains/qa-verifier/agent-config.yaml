@@ -126,13 +126,17 @@ regeneration:
   # returncode-127 wall). The command MUST start with ``pytest`` so guardkit runs it under the repo's
   # pinned venv interpreter. LAYER 4 — the scope MUST (a) include the active recipes' mutated-file
   # tests so a planted DC-03/DC-05 defect surfaces as a real failing test, and (b) stay GREEN on the
-  # no-op control (so the control's approve label is honest). guardkit is the only repo with active
-  # seeded_code recipes on the current corpus (study_tutor recipes don't anchor; the other roots are
-  # harvest-only). The scope below is the one the 2026-07-21 SPIKE validated: control clean-green,
-  # R-DC03-mockseam surfaced 4 real FAILED tests, run-twice deterministic. BROADEN it (staying
-  # control-green) before enabling recipes whose targets live outside tests/orchestrator.
+  # no-op control (so the control's approve label is honest). The guardkit scope below is the one the
+  # 2026-07-21 SPIKE validated: control clean-green, R-DC03-mockseam surfaced 4 real FAILED tests,
+  # run-twice deterministic. The study_tutor scope is the 2026-07-22 SPIKE-validated service-free
+  # unit surface: R-DC03-callsite (study_tutor variant — retiring CorpusChunk.chunk_index) surfaces
+  # as real ValidationError failing tests, the no-op control stays clean-green, run-twice
+  # deterministic. BROADEN either (staying control-green) before enabling recipes whose targets live
+  # outside the pinned file. study_tutor now anchors R-DC03-callsite; its other 10 recipes remain
+  # honest expected-misses (guardkit-shaped or out-of-scope) — see receipts/study-tutor-reject-anchors.
   test_commands:
     guardkit: "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider"
+    study_tutor: "pytest tests/unit/knowledge/test_corpus_models.py -q -p no:cacheprovider"
 
 output:
   dir: output/qa-verifier

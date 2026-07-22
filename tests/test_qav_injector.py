@@ -195,6 +195,76 @@ def test_callsite_leaves_the_production_call_site_broken():
     assert prod in result.finding["locus"]
 
 
+# --- study_tutor per-repo anchor variant (R-DC03-callsite) ---------------------------
+# Verbatim CorpusChunk construct lifted from study-tutor src/study_tutor/knowledge/corpus_models.py
+# at the approved sha 94f3331 (FEAT-70A4 / TASK-PRV-001), plus the unit-payload call sites from
+# tests/unit/knowledge/test_corpus_models.py that instantiate CorpusChunk(..., chunk_index=N). The
+# fixture proves the study_tutor anchor matches the real code shape, not an assumed one.
+STUDY_TUTOR_CORPUS_MODELS = (
+    "class CorpusChunk(BaseModel):\n"
+    '    """A single retrievable chunk of source material."""\n\n'
+    '    model_config = ConfigDict(extra="forbid")\n\n'
+    "    text: str\n"
+    "    source_type: SourceType\n"
+    "    source_path: str\n"
+    "    text_name: str = Field(min_length=1)\n"
+    "    citation_anchor: CitationAnchor | None = None\n"
+    "    chunk_index: int\n"
+)
+STUDY_TUTOR_TEST_PAYLOAD = (
+    "def _primary_chunk_payload() -> dict:\n"
+    "    return dict(\n"
+    '        text="Is this a dagger which I see before me?",\n'
+    "        source_type=SourceType.PRIMARY_TEXT,\n"
+    '        source_path="/corpus/primary/macbeth/act-2.txt",\n'
+    '        text_name="Macbeth",\n'
+    "        citation_anchor=PlayCitationAnchor(act=2, scene=1, line=33),\n"
+    "        chunk_index=12,\n"
+    "    )\n"
+)
+STUDY_TUTOR_FIXTURE = {
+    "src/study_tutor/knowledge/corpus_models.py": STUDY_TUTOR_CORPUS_MODELS,
+    "tests/unit/knowledge/test_corpus_models.py": STUDY_TUTOR_TEST_PAYLOAD,
+}
+
+
+def test_dc03_callsite_study_tutor_variant_retires_the_field_and_nothing_else():
+    """The study_tutor anchor variant of R-DC03-callsite: retire CorpusChunk.chunk_index from the
+    extra='forbid' model contract. It plants in the model file ONLY (the payload call site that
+    still passes chunk_index= is left broken, which is the defect the unit scope surfaces)."""
+    module = "src/study_tutor/knowledge/corpus_models.py"
+    payload = "tests/unit/knowledge/test_corpus_models.py"
+    result = inject(dict(STUDY_TUTOR_FIXTURE), "R-DC03-callsite")
+
+    assert result.dc_class == "DC-03"
+    assert result.changed_files == [module]  # model only
+    assert payload not in result.changed_files
+    # the field is genuinely gone from the contract
+    assert "chunk_index: int" not in result.mutated_files[module]
+    # the call site still passes chunk_index= — the dead call site the extra='forbid' contract kills
+    assert "chunk_index=12" in result.mutated_files[payload]
+    assert "chunk_index" in result.finding["locus"]
+    assert module in result.finding["locus"]
+
+
+def test_dc03_callsite_variants_are_mutually_exclusive_across_disjoint_trees():
+    """First-unique-match: the guardkit fixture triggers the guardkit variant, the study_tutor
+    fixture triggers the study_tutor variant, and neither anchor is present in the other's tree."""
+    gk = inject(dict(FIXTURES["R-DC03-callsite"]), "R-DC03-callsite")
+    st = inject(dict(STUDY_TUTOR_FIXTURE), "R-DC03-callsite")
+    assert "full_doc_parser.py" in gk.finding["locus"]
+    assert "corpus_models.py" in st.finding["locus"]
+    assert set(gk.changed_files) != set(st.changed_files)
+
+
+def test_dc03_callsite_raises_loudly_when_no_variant_anchors():
+    """When neither the guardkit nor the study_tutor anchor is present, _first_anchor re-raises
+    AnchorNotFound loudly (never a silent no-op) and names every variant it tried."""
+    with pytest.raises(AnchorNotFound) as exc:
+        inject({"unrelated.py": "x = 1\n"}, "R-DC03-callsite")
+    assert "no per-repo anchor variant matched" in str(exc.value)
+
+
 def test_expected_miss_recipes_are_recorded_but_still_plant_on_their_fixture():
     """The recipes recorded as corpus expected-misses are faithful, not broken: each still plants
     its labelled defect on a realistic in-memory fixture. The miss is corpus-specific (verified out
