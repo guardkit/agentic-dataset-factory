@@ -1130,7 +1130,11 @@ def _gate_and_build(
             bundle_schema_sha=bundle_schema_sha, reconstruction_fidelity=None,
             injection_recipe=injection_recipe,
         )
-    except RowValidationError as exc:
+    except ValueError as exc:
+        # ValueError covers RowValidationError AND json.JSONDecodeError: a teacher <think>
+        # carrying its own ```json fence makes parse_assistant_content match the WRONG fence
+        # ("Extra data" — the 2026-07-22 cycle-6 mid-run crash). Totality promise: a loud
+        # schema_invalid RESULT, never a crash.
         summary.schema_rejected += 1
         return "rejected", None, {**reject_base, "reason": "schema_invalid", "detail": str(exc)}
     # rationale-consistent-with-label — the injected Coach's only job (NOT content judgment).
@@ -1570,7 +1574,9 @@ def _run_harvest(
         )
         try:
             row = build_harvest_row(art, outcome, think=think, split=split)
-        except RowValidationError as exc:
+        except ValueError as exc:
+            # Same totality law as the seeded site: JSONDecodeError from a fence-bearing
+            # teacher <think> must be a RESULT, never an uncaught crash.
             summary.schema_rejected += 1
             writer.write_rejected({**reject_base, "reason": "schema_invalid", "detail": str(exc)})
             continue

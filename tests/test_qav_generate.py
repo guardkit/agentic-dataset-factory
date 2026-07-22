@@ -1098,3 +1098,24 @@ def test_evidence_empty_still_wins_over_divergence_guard(tmp_path):
     assert summary.evidence_empty_rejected == 2  # the reject leg AND the control leg
     rej = [json.loads(l) for l in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
     assert all(r["reason"] == "evidence_empty_bundle" for r in rej)
+
+
+def test_teacher_think_with_its_own_json_fence_is_a_loud_reject_never_a_crash(tmp_path):
+    """The 2026-07-22 cycle-6 mid-run crash: a teacher <think> carrying its OWN ```json fence
+    makes parse_assistant_content (inside build_row's validate_row) match the WRONG fence and
+    raise json JSONDecodeError "Extra data" — a bare ValueError the old except missed, killing
+    the whole run. The totality promise: a loud schema_invalid RESULT, and the run continues."""
+    cfg = _cfg(tmp_path)
+    # two poison shapes: fence content that is valid-but-wrong json (mis-shaped verdict) and
+    # fence content with trailing junk (the literal JSONDecodeError "Extra data" crash shape).
+    for poisoned in (
+        'I reviewed it.\n```json\n{"speculation": true}\n```\nDone thinking.',
+        'I reviewed it.\n```json\n{"speculation": true} trailing junk\n```\nDone.',
+    ):
+        summary = _run(cfg, [_producer_task()], teacher=StubTeacher(output=poisoned),
+                       emit_gold_negatives=False)
+        assert summary.schema_rejected >= 1, poisoned
+        assert summary.seeded_code_written == 0, poisoned
+        rej = [json.loads(line) for line in (tmp_path / "out" / "rejected.jsonl").read_text().splitlines()]
+        assert any(r["reason"] == "schema_invalid" for r in rej), poisoned
+        import shutil; shutil.rmtree(tmp_path / "out", ignore_errors=True)
