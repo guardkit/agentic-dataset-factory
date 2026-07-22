@@ -40,16 +40,42 @@ The concrete pattern list was PINNED EMPIRICALLY against the two-run spike diff 
 mutated tree twice and every surface that differed was added here until the two scrubbed bundles
 hashed byte-identical). Extend ``NONDET_TEXT_SUBS`` ONLY with a diff that proves a new jitter
 surface — never speculatively (over-scrubbing could erase real defect signal).
+
+THE DOCUMENTED LIST-ORDER CANONICALIZATION — ``CANONICALIZE_LIST_KEYS`` (a list of dicts whose
+ELEMENT ORDER carries no evidence is re-sorted into a stable order):
+
+  * ``findings`` — guardkit's analyzer emits its ``mocked_seam.findings`` (and the sibling
+    ``wiring`` / analyzer ``findings`` arrays) in a NON-DETERMINISTIC ORDER between two runs of the
+    SAME tree: the identical set of findings (same ``symbol`` / ``lineno`` / ``why`` tuples) comes
+    back PERMUTED. Proven by the 2026-07-22 study_tutor two-run bridge diff — the mutated bundle's
+    ``mocked_seam.findings[]`` swapped ``pipeline_module``/``adapter_module`` positions and permuted
+    their linenos while every finding TUPLE was preserved. Left unsorted this breaks the scrub's own
+    invariant (two regenerations of one tree hash differently) AND — critically — is an order-noise
+    hole in the evidence-divergence guard: a source-blind reject whose finding-SET equals its
+    control's could hash DIFFERENTLY by order alone and slip past the guard as a false divergence
+    (the same "defeat dedup by noise" failure ``NONDET_TEXT_SUBS`` closes for timing). Sorting a
+    findings list by its own SCRUBBED content is information-PRESERVING (the set + multiplicity are
+    untouched; only order changes), so it can only STRENGTHEN the guard, never erase a real defect:
+    a differing finding-SET still differs after the sort. This is the ONLY safe list to canonicalize
+    speculatively — it re-orders, it never drops — unlike a key-drop or a text-sub. Extend
+    ``CANONICALIZE_LIST_KEYS`` only for a list whose order is likewise proven noise.
 """
 
 from __future__ import annotations
 
 import copy
+import json
 import re
 from typing import Any
 
 # Keys dropped recursively (pure wall-clock jitter, no defect signal).
 NONDETERMINISTIC_BUNDLE_KEYS: frozenset[str] = frozenset({"duration_seconds"})
+
+# Keys whose value, when it is a list of dicts, is re-sorted by canonical (scrubbed) element content
+# — order is a reporting artifact, not evidence (see the module note). Sorting preserves the finding
+# SET + multiplicity; it never drops signal, so unlike NONDETERMINISTIC_BUNDLE_KEYS / NONDET_TEXT_SUBS
+# it is safe to apply structurally.
+CANONICALIZE_LIST_KEYS: frozenset[str] = frozenset({"findings"})
 
 # (regex, replacement) — ordered; each applied to every string leaf of the bundle.
 NONDET_TEXT_SUBS: tuple[tuple["re.Pattern[str]", str], ...] = (
@@ -91,13 +117,26 @@ def scrub_nondeterministic_bundle(
         if wp:
             path_subs.append((wp, "<worktree>"))
 
+    def _canonicalize(value: Any) -> Any:
+        """Re-sort a scrubbed list of dicts into a stable order by canonical content. No-op for a
+        list that is not entirely dicts (order there may be meaningful — leave it untouched)."""
+        if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+            return sorted(value, key=lambda v: json.dumps(v, sort_keys=True, ensure_ascii=False))
+        return value
+
     def _scrub(node: Any) -> Any:
         if isinstance(node, dict):
-            return {
-                k: _scrub(v)
-                for k, v in node.items()
-                if k not in NONDETERMINISTIC_BUNDLE_KEYS
-            }
+            out: dict[str, Any] = {}
+            for k, v in node.items():
+                if k in NONDETERMINISTIC_BUNDLE_KEYS:
+                    continue
+                scrubbed = _scrub(v)
+                # Canonicalize order-noise lists AFTER their elements are scrubbed, so the sort key
+                # is computed on the stable (jitter-free) content.
+                if k in CANONICALIZE_LIST_KEYS:
+                    scrubbed = _canonicalize(scrubbed)
+                out[k] = scrubbed
+            return out
         if isinstance(node, list):
             return [_scrub(v) for v in node]
         if isinstance(node, str):

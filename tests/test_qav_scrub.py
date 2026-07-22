@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 
 from qav.scrub import (
+    CANONICALIZE_LIST_KEYS,
     NONDET_TEXT_SUBS,
     NONDETERMINISTIC_BUNDLE_KEYS,
     scrub_nondeterministic_bundle,
@@ -160,3 +161,77 @@ def test_text_subs_are_compiled_patterns():
     assert len(NONDET_TEXT_SUBS) >= 5
     for pat, repl in NONDET_TEXT_SUBS:
         assert hasattr(pat, "sub") and isinstance(repl, str)
+
+
+# --------------------------------------------------------------------------------------
+# Documented list-order canonicalization — the 2026-07-22 study_tutor mocked_seam finding.
+# guardkit's analyzer returns findings in a NON-DETERMINISTIC ORDER; the set is identical.
+# --------------------------------------------------------------------------------------
+def test_findings_list_order_canonicalized():
+    # Two runs of the SAME tree: identical mocked_seam finding SET, PERMUTED order (the exact shape
+    # of the study_tutor two-run bridge diff). After scrub they must hash byte-identical.
+    run1 = {
+        "gathering_status": "complete",
+        "mocked_seam": {"findings": [
+            {"symbol": "pipeline_module", "lineno": 1382, "why": "Mock of non-authored target: pipeline_module"},
+            {"symbol": "adapter_module", "lineno": 1462, "why": "Mock of non-authored target: adapter_module"},
+        ]},
+    }
+    run2 = {
+        "gathering_status": "complete",
+        "mocked_seam": {"findings": [
+            {"symbol": "adapter_module", "lineno": 1462, "why": "Mock of non-authored target: adapter_module"},
+            {"symbol": "pipeline_module", "lineno": 1382, "why": "Mock of non-authored target: pipeline_module"},
+        ]},
+    }
+    assert _hash(run1) != _hash(run2)  # raw: order-split
+    s1 = scrub_nondeterministic_bundle(run1)
+    s2 = scrub_nondeterministic_bundle(run2)
+    assert _hash(s1) == _hash(s2)  # scrubbed: order canonicalized -> identical
+    assert "findings" in CANONICALIZE_LIST_KEYS
+
+
+def test_findings_canonicalization_preserves_a_real_set_difference():
+    # A GENUINELY different finding SET (an extra finding — a real defect surfacing) must STILL
+    # differ after canonicalization: sorting removes order-noise, never a real divergence.
+    control = {"mocked_seam": {"findings": [
+        {"symbol": "a", "lineno": 1, "why": "x"},
+    ]}}
+    reject = {"mocked_seam": {"findings": [
+        {"symbol": "a", "lineno": 1, "why": "x"},
+        {"symbol": "b", "lineno": 2, "why": "y"},  # the real extra finding
+    ]}}
+    sc = scrub_nondeterministic_bundle(control)
+    sr = scrub_nondeterministic_bundle(reject)
+    assert _hash(sc) != _hash(sr)
+
+
+def test_findings_canonicalization_uses_scrubbed_element_content():
+    # The sort key is computed on the SCRUBBED element, so two findings differing only by jitter
+    # (duration_seconds / timing) still canonicalize to the same order + content.
+    run1 = {"mocked_seam": {"findings": [
+        {"symbol": "b", "lineno": 2, "duration_seconds": 0.9, "why": "in 0.34s"},
+        {"symbol": "a", "lineno": 1, "duration_seconds": 0.1, "why": "in 0.71s"},
+    ]}}
+    run2 = {"mocked_seam": {"findings": [
+        {"symbol": "a", "lineno": 1, "duration_seconds": 0.4, "why": "in 0.12s"},
+        {"symbol": "b", "lineno": 2, "duration_seconds": 0.5, "why": "in 0.88s"},
+    ]}}
+    s1 = scrub_nondeterministic_bundle(run1)
+    s2 = scrub_nondeterministic_bundle(run2)
+    assert _hash(s1) == _hash(s2)
+
+
+def test_non_findings_lists_keep_their_order():
+    # Canonicalization is scoped to CANONICALIZE_LIST_KEYS: an ordered list under another key
+    # (e.g. a sequence of gate steps) must NOT be re-sorted.
+    b = {"gate_history": [{"step": "z"}, {"step": "a"}, {"step": "m"}]}
+    s = scrub_nondeterministic_bundle(b)
+    assert [d["step"] for d in s["gate_history"]] == ["z", "a", "m"]
+
+
+def test_findings_list_of_scalars_untouched():
+    # A findings list that is NOT all-dicts (order may matter / not comparable) is left as-is.
+    b = {"findings": ["c", "a", "b"]}
+    s = scrub_nondeterministic_bundle(b)
+    assert s["findings"] == ["c", "a", "b"]
