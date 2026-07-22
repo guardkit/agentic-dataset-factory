@@ -1,0 +1,31 @@
+# recruiter-agent generation config (2026-07-22). Attended run on a box that can reach the Spark's
+# llama-swap AND import the office checkers (office-manager's own venv). The deterministic truth
+# source is the office's OWN validators (deckhand config-check + office pipeline validate), never a
+# model. Datasets are PRIVATE (DF-008); the four eval-held sessions are NEVER training data.
+
+domain: recruiter-agent
+
+player:                       # the teacher: authors the candidate drafting turn (checker is the boss)
+  provider: local
+  model: gpt-oss-120b         # a served seat on the Spark's llama-swap
+  endpoint: http://spark-fcf6:9000/v1
+
+corpus:
+  # the recruiter seed's system_prompt is the row's system message (serve-faithful, vocab-in-prompt).
+  recruiter_seed_config: ~/Projects/appmilla_github/office-manager/seed/agents/recruiter/config.yaml
+  vocab_reference: ~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/recruiter-vocab-reference.md
+  briefs: ~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/briefs.yaml
+  # the eval-held exam — read ONLY to compute the contamination denylist (never trained on).
+  held_corpus_root: ~/office-authoring
+
+generation:
+  temperature: 0.6
+  max_tokens: 3000
+  author_reps: 1              # author each brief K× (fresh calls); distinct valid turns dedupe by row_id
+  repair_rounds: 1            # bounded checker-feedback repair (the pack's draft->validate->redraft)
+  holdout_fraction: 0.08      # stratified loss-only eval split (NOT the pass exam — the 4 sessions are)
+  seed: recruiter-phase1
+
+output:
+  dir: ~/Projects/appmilla_github/agentic-dataset-factory/output/recruiter-agent
+  visibility: private         # DF-008
