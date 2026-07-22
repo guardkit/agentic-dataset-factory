@@ -136,6 +136,29 @@ regeneration:
   # honest expected-misses (guardkit-shaped or out-of-scope) — see receipts/study-tutor-reject-anchors.
   test_commands:
     guardkit: "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider"
+    # jarvis (B1, 2026-07-22 SPIKE-validated — receipts/per-repo-test-command-pins). The ONLY
+    # target-repo pin of the forge/jarvis/nats_core sweep: forge (5 tasks) + nats_core (1 task)
+    # anchor ZERO reject recipes → honest expected-miss, NO pin (all 11 recipes ANCHOR_SKIP:
+    # guardkit-shaped or non-unique on their trees). jarvis's R-DC08-{undefstep,pendmask} both
+    # anchor on the ONE BDD glue file below, mutating the shared background step
+    # ``@given("Jarvis is starting up with a configured NATS endpoint")``. That file is 43-failed
+    # /2-passed at the approved sha (feat-004's other scenarios are honestly ``scenarios_pending``
+    # → StepDefinitionNotFoundError, the FEAT-BDDM convention), so the WHOLE-file scope is NOT
+    # control-green. ``-k publishes`` selects EXACTLY the two TASK-J004-007 scenarios carrying the
+    # mutated background step (control: 2 passed / 43 deselected — GREEN + service-free, uses
+    # nats_core.InMemoryManifestRegistry, no broker). LAYER-2 tokenisation law: guardkit runs the
+    # command via ``test_cmd.split()`` (coach_validator ~L5422, shell=False), so every arg MUST be
+    # whitespace-free — ``-k publishes`` (a SINGLE token uniquely matching publishes/republishes
+    # across all 45 names) replaces a quoted ``-k "a or b"`` (which would tokenise into broken
+    # args). ``-p no:warnings`` suppresses the pytest UNKNOWN-MARK warnings summary, whose line
+    # ORDER is non-deterministic across runs (conftest.py:59 iterating tags set-wise) and lands in
+    # ``independent_tests.raw_output`` — a scrub-untouched field; suppressing it AT SOURCE makes the
+    # pendmask (skip-evidence) leg byte-deterministic. SPIKE (real bridge, integration profile,
+    # TASK-JNB-001, run twice): CONTROL green; R-DC08-undefstep DIVERGED + real failing-test
+    # evidence (failure_class=collection_error — the deleted step-def breaks collection) +
+    # DETERMINISTIC; R-DC08-pendmask DIVERGED (2-skipped vs 2-passed = the honest masking signature)
+    # + DETERMINISTIC.
+    jarvis: "pytest features/feat-jarvis-004-fleet-registration-and-specialist-dispatch/test_feat_jarvis_004_fleet_registration_and_specialist_dispatch.py -k publishes -p no:cacheprovider -p no:warnings"
     study_tutor: "pytest tests/unit/knowledge/test_corpus_models.py -q -p no:cacheprovider"
 
 output:

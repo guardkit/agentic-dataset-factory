@@ -493,6 +493,48 @@ def test_config_yaml_regeneration_defaults(tmp_path):
     assert cfg.regen_test_timeout == 1800
 
 
+def test_config_yaml_loads_multi_repo_test_commands(tmp_path):
+    # B1 (2026-07-22): the per-repo pin sweep threads MORE THAN ONE repo command through
+    # from_yaml -> GenerateConfig.test_commands (guardkit + a jarvis-shaped BDD pin). The
+    # engine/regenerator select per repo by key; a dropped or mis-keyed pin would silently
+    # fall a repo back to guardkit's stack-misdetecting auto-detection (the render-collapse wall).
+    yaml_path = tmp_path / "agent-config.yaml"
+    yaml_path.write_text(
+        "domain: qa-verifier\n"
+        "corpus:\n  guardkit: /g\n  jarvis: /j\n"
+        "regeneration:\n"
+        "  task_type: integration\n"
+        "  test_commands:\n"
+        "    guardkit: pytest tests/orchestrator -q -p no:cacheprovider\n"
+        "    jarvis: pytest features/x/test_x.py -k publishes -p no:cacheprovider -p no:warnings\n",
+        encoding="utf-8",
+    )
+    cfg = GenerateConfig.from_yaml(yaml_path)
+    assert cfg.test_commands["guardkit"] == "pytest tests/orchestrator -q -p no:cacheprovider"
+    assert cfg.test_commands["jarvis"] == (
+        "pytest features/x/test_x.py -k publishes -p no:cacheprovider -p no:warnings"
+    )
+
+
+def test_pinned_test_commands_obey_the_layer2_tokenisation_law(tmp_path):
+    # THE LAYER-2 TOKENISATION LAW (B1, 2026-07-22). guardkit's CoachValidator runs a pinned
+    # command via ``test_cmd.split()`` under shell=False (coach_validator ~L5422), NOT a shell.
+    # So a quoted multi-word token like ``-k "a or b"`` tokenises into broken args
+    # (['-k', '"a', 'or', 'b"']) and the pin silently mis-scopes. Every pinned command must
+    # therefore (1) start with ``pytest`` (so guardkit pins it under the repo venv) and
+    # (2) contain NO shell-quote characters — each argument is a single whitespace-free token.
+    # This test is the executable guard for the exact footgun the jarvis pin was designed around
+    # (``-k publishes`` — a single discriminating token — instead of ``-k "publishes or ..."``).
+    for cmd in (
+        "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider",
+        "pytest features/x/test_x.py -k publishes -p no:cacheprovider -p no:warnings",
+    ):
+        assert cmd.startswith("pytest ")
+        assert '"' not in cmd and "'" not in cmd
+        # shell=False tokenisation is exactly str.split(); every token must be intact under it.
+        assert cmd.split() == [t for t in cmd.split(" ") if t]
+
+
 class _JitteryRegenerator(StubRegenerator):
     """A regenerator whose bundle carries a non-deterministic ``duration_seconds`` + a pytest
     timing/tmp tail (the render-collapse jitter surface) alongside a per-worktree-unique field."""
