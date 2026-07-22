@@ -566,6 +566,13 @@ def test_shipped_per_recipe_pins_obey_the_tokenisation_law():
     cfg = GenerateConfig.from_yaml("domains/qa-verifier/agent-config.yaml")
     per_recipe = cfg.test_commands_per_recipe
     assert per_recipe.get("guardkit", {}), "the shipped guardkit per-recipe overrides must be present"
+    # SHADOW-CLAIM RECOVERY (2026-07-22): the two guardkit SOURCE-package recipes mis-recorded as
+    # editable-install expected-misses are now RECOVERED — `guardkit` is a plain sys.path-append
+    # editable (cwd=<worktree> wins over the .pth), so the mutated worktree source imports and the
+    # planted defect surfaces. Their scopes must ship (receipts/guardkit-shadow-claim-recovery).
+    gk = per_recipe.get("guardkit", {})
+    assert gk.get("R-DC03-producer"), "the shipped guardkit R-DC03-producer per-recipe scope must be present"
+    assert gk.get("R-DC03-callsite"), "the shipped guardkit R-DC03-callsite per-recipe scope must be present"
     # ANCHOR-DIVERSITY (cycle-5): jarvis gained a DC-05 skip-guard anchor (its second DC-class),
     # which needs its OWN scope (the per-repo default covers the DC-08 BDD anchor, not the skip-guard).
     assert per_recipe.get("jarvis", {}).get("R-DC05-skipguard"), (

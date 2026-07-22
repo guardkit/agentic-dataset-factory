@@ -178,12 +178,13 @@ regeneration:
   #     module skip; because that file carries `from __future__ import annotations` the prepend
   #     makes it a genuine collection failure). CONTROL: 50 passed. MUTATED: failure_class=
   #     collection_error — the independent junit is ABSENT, the SMP-002 turn-2 absent-signal shape.
-  # NOT overridden (honest expected-misses — SOURCE-PACKAGE mutations shadowed by guardkit's editable
-  # install: `import guardkit.*` always resolves to the corpus tree, never the mutated worktree copy,
-  # proven with cwd=<worktree>): R-DC03-producer (coach_validator.py), R-DC05-sysmod
-  # (quality_gates/__init__.py), R-DC03-callsite (full_doc_parser.py source + unit test that stays
-  # green-by-design; the broken call site graphiti.py has no service-free covering test). Forcing a
-  # scope for these would be config for a dead path (the no-gold-plating discipline).
+  # 2026-07-22 UPDATE: the editable-install SHADOW claim recorded here was FALSIFIED by the cycle-5
+  # coach and two of the three SOURCE-PACKAGE recipes are now RECOVERED (see the R-DC03-producer /
+  # R-DC03-callsite pins + note below). The remaining honest expected-miss is R-DC05-sysmod
+  # (quality_gates/__init__.py): it stubs `sys.modules['guardkitfactory']`, but guardkitfactory is
+  # GENUINELY installed (PEP 660 finder) so the stub-guard is inert — the sever changes no observable
+  # test outcome (empirically confirmed control==mutated). That one stays unpinned (a dead path;
+  # no-gold-plating).
   # ANCHOR-DIVERSITY (2026-07-22 cycle-5 constraint; receipts/anchor-diversity-dc05-jarvis-2026-07-22).
   # jarvis was MONO-DC-class (DC-08 only), so its 4 same-sha tasks collapsed one mutation shape under
   # dedup (the deduped=14 constraint). R-DC05-skipguard is now extended to jarvis via the
@@ -202,6 +203,27 @@ regeneration:
     guardkit:
       R-DC05-skipguard: "pytest tests/knowledge/test_seeding.py -q -p no:cacheprovider -p no:warnings"
       R-ABSENT-junit: "pytest tests/unit/orchestrator/quality_gates/test_bdd_runner.py -q -p no:cacheprovider -p no:warnings"
+      # 2026-07-22 SHADOW-CLAIM RECOVERY (cycle-5 coach correction; receipts/guardkit-shadow-claim-recovery).
+      # The two SOURCE-PACKAGE recipes below were mis-recorded as editable-install expected-misses. The
+      # coach's import-model probe FALSIFIED that: `guardkit` is installed via a PLAIN sys.path-append
+      # (.venv/.../_editable_impl_guardkit_py.pth = the bare corpus-root string), NOT a meta_path finder
+      # (only `guardkitfactory` is finder-based, PEP 660). gather_evidence runs the independent test with
+      # cwd=<worktree> (coach_validator.py:3810/3977), and pytest's rootdir/conftest insertion puts the
+      # worktree root at sys.path[0] AHEAD of the .pth corpus entry — so `import guardkit.*` binds to the
+      # MUTATED worktree copy, not the corpus tree. Verified with the real guardkit venv pytest, cwd=wt.
+      #   R-DC03-producer mutates guardkit/orchestrator/quality_gates/coach_validator.py (severs the
+      #     wiring producer: `result = analyze_wiring(...)` -> `result = None`). The service-free unit
+      #     scope below patches `_is_wiring_factory_available`=True + `analyze_wiring` and asserts a
+      #     POPULATED wiring envelope; the sever makes `_run_wiring_analysis` return None. CONTROL: 18
+      #     passed. MUTATED: 9 failed / 9 passed (the populated-envelope assertions). DIVERGED + DETERMINISTIC.
+      #   R-DC03-callsite mutates guardkit/integrations/graphiti/parsers/full_doc_parser.py (drops the
+      #     chunk_threshold kwarg from FullDocParser.__init__; the body still binds `self._chunk_threshold
+      #     = chunk_threshold`, so every FullDocParser() now raises NameError) + its direct unit test.
+      #     The direct unit scope below imports the mutated source. CONTROL: 50 passed. MUTATED: 49
+      #     failed / 1 passed. DIVERGED + DETERMINISTIC. Both SPIKE-validated on the real bridge (integration
+      #     profile, TASK-QAWE-001 @ 799cefd0, run twice). Tokenisation law: every token whitespace-free.
+      R-DC03-producer: "pytest tests/orchestrator/test_qawe_003_mocked_seam.py -q -p no:cacheprovider -p no:warnings"
+      R-DC03-callsite: "pytest tests/integrations/graphiti/parsers/test_full_doc_parser.py -q -p no:cacheprovider -p no:warnings"
     jarvis:
       R-DC05-skipguard: "pytest tests/test_fleet_memory_payloads.py -q -p no:cacheprovider -p no:warnings"
 
