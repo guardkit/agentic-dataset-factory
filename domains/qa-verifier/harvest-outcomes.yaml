@@ -404,3 +404,207 @@ outcomes:
       record_path: forge/docs/reviews/feat-spl-002-post-merge-review-2026-07-06.md
       sha: "34b17d0"
       rule: MP-R
+
+  # ===================================================================================
+  # BATCH 2026-07-22 (CARD #2) — the 10 evidence-derived labels of
+  # curation/derived-outcomes-2-2026-07-21.yaml, RATIFIED VERBATIM by Rich 2026-07-22
+  # ("approve the batch", zero strikes, against curation/batch-review-card-2-2026-07-21.md).
+  # Provenance kept verbatim from the derived yaml. THE REPO-KEY LAW: repo values use the
+  # corpus.roots key spellings (specialist_agent / study_tutor / jarvis / guardkit). The
+  # derived yaml's preset `split:` fields are DROPPED — split assignment belongs to the
+  # engine's own law (qav.generate.assign_split) at row creation.
+  # HEADLINE: 6 rejects, ALL harvest-mode NON-GOLD train-side (the census's binding "train
+  # reject side = 0" constraint), + 4 approves. Every reject bundle is verbatim on disk
+  # (all_gates_passed=true, honesty 1.0); its reject label is EARNED by an external committed
+  # record (fix commit / review / live-gate), never by mutation — the sanctioned harvest reject
+  # path, which never touches the seeded evidence-divergence guard. The card's u2_resolution
+  # (forge GN-4 = TASK-MP-011) is NOT folded — it adds no new row (it firms an existing gold,
+  # awaiting Rich's separate CONFIRM), so it is not banked here.
+  # New derivation rules (each ratified with its labels):
+  #   OA-R  reject iff a committed operator-assist FIX COMMIT records the task was
+  #         Coach-approved AND corrects a real product defect in that task's OWN module the
+  #         coach's scope missed. ground_truth_source=operator_caught. Excludes ratification
+  #         config flips, ruff/lint, sibling-test-only updates.
+  #   RC-R  reject iff a committed post-autobuild review/"coach-of-coaches" fix commit records
+  #         a real product defect in the coach-approved task's own surface (outside the
+  #         smoke-gate scope) and fixes it. ground_truth_source=merge_review_caught.
+  #   LG-R  reject iff a committed fix commit records a real product defect in the
+  #         coach-approved task's own surface FOUND LIVE (on-device gate blocker) and fixed it.
+  #         ground_truth_source=live_gate_caught.
+  #   A1-J  (as batch 1) approve iff the feature-tracker YAML records final_decision==approved
+  #         (jarvis has no merge_summary.json), merge clean + ancestor + independent post-merge
+  #         live-gate exercised the runtime + no post-approval fix names the task.
+  #   retro-affirmed-fix-held  approve iff the SAME committed merge-review retro that CAUGHT a
+  #         sibling escape (proven discriminating power) affirmatively records THIS task closing
+  #         the gap under an independent adversarial re-run, and no later fix names the task.
+  # ===================================================================================
+
+  # --- Rule A1-J (jarvis feature-tracker approve; no merge_summary.json exists for jarvis) ---
+  - repo: jarvis
+    feature: FEAT-28FF
+    task: TASK-JNB-002
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"             # merge sha (RATIFIED approve provenance sha)
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-002 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (Notification-sink seam + queued hook); merge 736399b '7 tasks Coach-approved, suite 2390 pass/0 fail'; JNB-009 live v1 hardening ALL GREEN (9200266) exercised the wired bridge runtime; NO post-approval product fix names JNB-002 (the only JNB fixes 9e2e0b6/eaf9a21 are TEST-only and name JNB-005/006)."
+
+  - repo: jarvis
+    feature: FEAT-28FF
+    task: TASK-JNB-003
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-003/coach_evidence_turn_3.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-003 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (Lifecycle wiring - construct+bind SlackNotifier in build_app_state); JNB-009 live-gate exercised exactly this wired runtime (bind/lifecycle) ALL GREEN; no post-approval fix names JNB-003. CAVEAT: implementation_mode=direct — the DC-14 false-green class; mitigant is the JNB-009 live runtime exercise, not the bundle."
+
+  - repo: jarvis
+    feature: FEAT-28FF
+    task: TASK-JNB-008
+    run: "autobuild/FEAT-28FF"
+    sha: "736399b"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    bundle_path: jarvis/.guardkit/autobuild/TASK-JNB-008/coach_evidence_turn_5.json
+    provenance:
+      record_path: jarvis/.guardkit/features/FEAT-28FF.yaml   # TASK-JNB-008 result.final_decision: approved
+      sha: "736399b"
+      rule: A1-J
+      note: "tracker final_decision=approved (v1 scenario test matrix, plain pytest); took 5 coach turns, terminal green (10/10 AC, ugly-green); no post-approval fix names JNB-008; the JNB-009 live matrix passed on the same wiring."
+
+  # --- Rule retro-affirmed-fix-held (guardkit) — WEAKEST approve; strike-me-first candidate ---
+  - repo: guardkit
+    feature: FEAT-0E6D
+    task: TASK-QAV-006
+    run: "autobuild/FEAT-0E6D"
+    sha: "fe949bb0"           # merge sha (Phase-0 gate-set complete)
+    ground_truth_source: coach_correct
+    ugly_green: true
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    bundle_path: guardkit/.guardkit/worktrees/FEAT-0E6D/.guardkit/autobuild/TASK-QAV-006/coach_evidence_turn_4.json
+    provenance:
+      record_path: guardkit/docs/retro/qa-verifier-state-consolidation-2026-07-04.md
+      sha: "fe949bb0"
+      rule: retro-affirmed-fix-held
+      note: "QAV-006 is the PRODUCER that closed the QAV-005 (GN-3) runner-without-producer escape. The SAME consolidation retro that CAUGHT QAV-005 (it is the GN-3 source; proven discriminating power) affirmatively records QAV-006 'BUILT + MERGED, 4 adversarial turns, 291 tests green; fs-01 verdict-flip now real, dogfood un-softened'; no later fix names QAV-006. ADVERSARIAL CAVEAT: self-authored retro; bundle AC-met is thin (1/7). Approve side is not the binding constraint — safe to strike."
+
+  # --- Rule OA-R (specialist_agent — operator-assist fix commits that state 'Coach-approved but...') ---
+  - repo: specialist_agent
+    feature: FEAT-DF12
+    task: TASK-DFEM-004
+    run: "autobuild/FEAT-DF12"
+    sha: "418c046"           # operator-assist fix commit
+    ground_truth_source: operator_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved (all-gates-green) but the independent-test scope missed 3 regressions in test_feature_plan_gates.py: RV-6 per-row completeness MIS-PARSED the authoritative positional table format (| decision point | chosen default | status |), rejecting conformant /feature-plan output; RV-5 added an unconditional `corrections` key to validation.json, breaking the pinned four-key accepted-plan contract shape. Pre-fix: 4 gate failures + 1 dispatch failure on the full suite."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-004/coach_evidence_turn_1.json
+    provenance:
+      record_path: "specialist-agent@418c046 (operator-assist fix commit: 'DFEM-004 was Coach-approved but its independent-test scope missed three regressions')"
+      sha: "418c046"
+      rule: OA-R
+
+  - repo: specialist_agent
+    feature: FEAT-DF12
+    task: TASK-DFEM-006
+    run: "autobuild/FEAT-DF12"
+    sha: "03e4914"
+    ground_truth_source: operator_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved (8/8 AC green) but VIOLATED its core AC: built a 287-line SELF-CONSISTENT SHADOW schema (src/specialist_agent/qa/formats/pass_bar.py re-implementing PassBar/PassBarCriterion/RegisteredAt) and imported the emitter+tests from it — the exact opposite of 'construct against the REAL guardkit.qa.formats.pass_bar, define no own model'. The Coach missed it BECAUSE the shadow is internally consistent (textbook self-consistent-fake seam). Carried real bugs: head_sha param/function name collision; scenario_ref/class_/model_dump_yaml/EvidenceKind API diverging from the shipped model."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-006/coach_evidence_turn_1.json
+    provenance:
+      record_path: "specialist-agent@03e4914 (operator-assist fix commit: 'DFEM-006 was Coach-approved (8/8) but VIOLATED its core AC ... shadow schema ... Coach missed it because the shadow is internally consistent')"
+      sha: "03e4914"
+      rule: OA-R
+
+  - repo: specialist_agent
+    feature: FEAT-DF12
+    task: TASK-DFEM-007
+    run: "autobuild/FEAT-DF12"
+    sha: "cf2abe3"
+    ground_truth_source: operator_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved (turn 2) but 2 defects the Coach's scope missed: (1) DF-007 division-of-labour VIOLATION — with no explicit target_repo the emitter fell back to a CWD-relative target_repo_qa='qa' and wrote pass-bars into whatever repo the tool RAN FROM (its own repo), breaking the repo-mutation-free precondition (forge Mode P owns the authoritative write); (2) 5 leaked qa/pass-bar-*.yaml artifacts written into the worktree root by that fallback were swept into the checkpoint commit. Env-hygiene aspect noted; primary defect is the write-target/division-of-labour seam."
+    bundle_path: specialist-agent/.guardkit/worktrees/FEAT-DF12/.guardkit/autobuild/TASK-DFEM-007/coach_evidence_turn_2.json
+    provenance:
+      record_path: "specialist-agent@cf2abe3 (operator-assist fix commit: 'DFEM-007 (Coach-approved turn 2) ... had two defects the Coach scope missed')"
+      sha: "cf2abe3"
+      rule: OA-R
+
+  # --- Rule RC-R (study_tutor — post-autobuild 'coach-of-coaches' / Fable review catches) ---
+  - repo: study_tutor
+    feature: FEAT-AUTH-002
+    task: TASK-KCA2-002
+    run: "autobuild/FEAT-AUTH-002"
+    sha: "255e0b54"          # Fable review-catch fix commit
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved but the post-autobuild coach-of-coaches pass found the change made HTTPAuthConfig.resolver a REQUIRED ctor arg, breaking 5 direct-construction callsites in cli/gamification tests — outside the tests/unit/http smoke-gate scope the coach ran, and violating the task's own 'existing tests pass unchanged' AC. Signature/callsite drift (same class as GN-2). Fix: resolver defaults to None -> __post_init__ builds TableTokenResolver (src/study_tutor/http/auth.py)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA2-002/coach_evidence_turn_1.json
+    provenance:
+      record_path: "study-tutor@255e0b54 (Fable review-catch fix: 'Post-autobuild coach-of-coaches pass found 6 regressions outside the ... smoke-gate scope: KCA2-002 made HTTPAuthConfig.resolver a required ctor arg, breaking 5 direct-construction callsites')"
+      sha: "255e0b54"
+      rule: RC-R
+
+  # --- Rule LG-R (study_tutor — live on-device KC-G3 gate blocker) ---
+  - repo: study_tutor
+    feature: FEAT-AUTH-003
+    task: TASK-KCA3-001
+    run: "autobuild/FEAT-AUTH-003"
+    sha: "8c438eba"          # live-catch fix commit (found at C4 on device)
+    ground_truth_source: live_gate_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved (turn 1, 5/5) but added a MANUAL VIEW intent-filter for the redirect scheme on MainActivity while flutter_appauth's RedirectUriReceiverActivity already registers it via the appAuthRedirectScheme placeholder. Two handlers -> Android twin-entry app-chooser on every Keycloak redirect, and routing to MainActivity STRANDS the pending token exchange. Duplicate-handler composition seam, found LIVE on device (KC-G3 blocker at checkpoint C4). Fix removed the manual handler (single documented handler remains)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA3-001/coach_evidence_turn_1.json
+    provenance:
+      record_path: "study-tutor@8c438eba (live-catch fix: 'KCA3-001 added a manual VIEW intent-filter ... Two handlers ... strands the pending token exchange (KC-G3 blocker, found live at C4)')"
+      sha: "8c438eba"
+      rule: LG-R
+
+  # --- Rule RC-R — FLAGGED AMBIGUOUS: strike-me-first reject ---
+  - repo: study_tutor
+    feature: FEAT-AUTH-003
+    task: TASK-KCA3-003
+    run: "autobuild/FEAT-AUTH-003"
+    sha: "b3960225"          # Fable review-catch fix commit
+    ground_truth_source: merge_review_caught
+    disposition: consumable
+    ratified: "Rich 2026-07-22 approve-the-batch (card #2)"
+    finding:
+      class: DC-03
+      locus: "Coach-approved (10/11 AC, 5 turns) but the discarded whenComplete-derived future re-raised SignInCancelled/SignInFailed as UNCAUGHT zone errors, failing the cancel-vs-failure seam test despite the code's surface-correct try/catch — the returned-future seam was never wired. Fix folds whenComplete into signIn's returned future (app/lib/adapters/keycloak_identity_provider.dart)."
+    bundle_path: study-tutor/.guardkit/autobuild/TASK-KCA3-003/coach_evidence_turn_5.json
+    provenance:
+      record_path: "study-tutor@b3960225 (Fable review-catch fix: 'fold whenComplete into signIn's returned future ... re-raised SignInCancelled/SignInFailed as uncaught zone errors ... (coach critical)')"
+      sha: "b3960225"
+      rule: RC-R
+      note: "ADVERSARIAL FLAG: the fix message tags the seam '(coach critical)' and the bundle is 10/11 AC (one criterion unmet) — the coach may have PARTIALLY known this seam was weak rather than being fully blind. If Rich reads it as coach-aware-then-approved-anyway it is still a held-on-a-broken-seam escape; if coach-caught, strike this row. Weakest reject of the six."
