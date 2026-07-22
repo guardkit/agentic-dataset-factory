@@ -68,4 +68,11 @@ services:
 
 volumes:
   # Holds the GGUF. Populate once — see README ("Getting the model into the volume").
+  # A stable `name:` is REQUIRED: without it, `docker compose up` creates a project-namespaced
+  # volume (`<project>_recruiter-model`) that does NOT match the bare `recruiter-model` volume the
+  # README's Option A populates by hand — the seat would then mount an EMPTY volume and crash-loop
+  # ("gguf_init_from_file: failed to open GGUF file ... No such file or directory"). Pinning the
+  # name makes Option A's `docker volume create recruiter-model` and this compose refer to the SAME
+  # volume.
   recruiter-model:
+    name: recruiter-model
