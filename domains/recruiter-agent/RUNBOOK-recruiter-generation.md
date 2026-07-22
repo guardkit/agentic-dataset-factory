@@ -143,7 +143,7 @@ repo-root `run_logs/`.
 
 ## What the harness does, per row (the acceptance path — `acceptance.py`)
 
-1. **Author** — the teacher (`gpt-oss-120b`) is handed the recruiter's own operating rules, the closed
+1. **Author** — the teacher (`workhorse`; see the recorded 120b wall above) is handed the recruiter's own operating rules, the closed
    vocabulary (`recruiter-vocab-reference.md`), the request's authoritative sorting, and the owner
    request; it emits the drafting turn.
 2. **Materialise + check** — `parse_turn` slices the turn; each `file:` block is written to a tempdir
