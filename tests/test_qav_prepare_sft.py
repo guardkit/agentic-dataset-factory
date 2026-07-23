@@ -242,3 +242,51 @@ def test_reject_without_findings_fails(tmp_path, monkeypatch):
     rc, out = run_main(tmp_path, train_src, eval_src, man, monkeypatch)
     assert rc == 1
     assert not (out / "train-qav.jsonl").exists()
+
+
+# --------------------------------------------------------------------------------------
+# Frozen-exam cross-check WIDENING (QAV v3): the check now covers BOTH train AND eval staged rows.
+# The v3 minted eval-side pair rows, so an eval-split leak must be caught — the as-shipped
+# train-only check would have waved it through.
+# --------------------------------------------------------------------------------------
+_EXAM_PHRASE = ("the behavioural oracle producer call site was severed vacuously under a soft fail "
+                "guard in this feature")
+
+
+def _fleet_evals_with_exam(tmp_path) -> Path:
+    bdir = tmp_path / "fe" / "tasks" / "qav-held-gn1" / "input" / "bundles" / "b0"
+    bdir.mkdir(parents=True)
+    (bdir / "bundle.json").write_text(
+        json.dumps({"honesty": {"verified": False}, "note": _EXAM_PHRASE}), encoding="utf-8")
+    return tmp_path / "fe"
+
+
+def test_frozen_exam_crosscheck_unit_scans_both_splits():
+    briefs = {"qav-held-gn1": json.dumps({"note": _EXAM_PHRASE})}
+    leak_user = '## Evidence bundle\n```json\n{"note": "' + _EXAM_PHRASE + '"}\n```'
+    clean = qav_row("q-t1", split="train")
+    leaky_eval = qav_row("q-e1", verdict="approve", split="eval_qav", user=leak_user)
+    # train-only clean, but the eval row reproduces the exam body -> the widened check fails.
+    res = prep.frozen_exam_crosscheck([clean], [leaky_eval], briefs)
+    assert res["status"] == "fail"
+    assert res["eval_rows_compared"] == 1 and res["train_rows_compared"] == 1
+    assert any(h["split"] == "eval" for h in res["hits"])
+    # and it PASSES when neither split leaks.
+    ok = prep.frozen_exam_crosscheck([clean], [qav_row("q-e2", verdict="approve", split="eval_qav")],
+                                     briefs)
+    assert ok["status"] == "pass"
+
+
+def test_eval_split_leak_fails_the_hard_gate_end_to_end(tmp_path):
+    fe = _fleet_evals_with_exam(tmp_path)
+    leak_user = '## Evidence bundle\n```json\n{"note": "' + _EXAM_PHRASE + '"}\n```'
+    clean = qav_row("q-t1", split="train")  # a clean train row (train-only check would pass)
+    leaky_eval = qav_row("q-e1", verdict="approve", split="eval_qav", user=leak_user)
+    train_src, eval_src, man = make_sources(
+        tmp_path, train=[clean], ev=[leaky_eval], manifest=_manifest([clean]))
+    out = tmp_path / "out"
+    argv = ["--train-src", str(train_src), "--eval-src", str(eval_src), "--manifest-src", str(man),
+            "--fleet-evals-dir", str(fe), "--out-dir", str(out), "--date", "2026-07-23"]
+    rc = prep.main(argv)
+    assert rc == 1  # the eval leak trips the hard gate (widened crosscheck)
+    assert not (out / "eval-qav.jsonl").exists()  # nothing staged when a hard gate is red

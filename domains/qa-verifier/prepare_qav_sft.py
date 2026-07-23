@@ -362,28 +362,35 @@ def load_exam_bundle_text(fleet_evals_dir: Path) -> dict[str, str]:
     return briefs
 
 
-def frozen_exam_crosscheck(train_rows: list[dict], briefs: dict[str, str]) -> dict:
-    """Assert no staged TRAIN row's user content reproduces any held-out exam bundle's
-    distinctive text (normalized 8-gram shingle overlap). The gold negatives (GN-1..GN-4) and
-    honest-green exam bundles are the deploy gate — a train row that reproduces one contaminates
-    the A/B. Belt-and-braces over the factory's own contamination_check (SCOPE §3.1 delta 1d)."""
+def frozen_exam_crosscheck(train_rows: list[dict], eval_rows: list[dict],
+                           briefs: dict[str, str]) -> dict:
+    """Assert no staged row's user content reproduces any held-out exam bundle's distinctive text
+    (normalized 8-gram shingle overlap), over BOTH the train AND the eval split. The gold negatives
+    (GN-1..GN-4) and honest-green exam bundles are the deploy gate — a staged row that reproduces one
+    contaminates the A/B whichever split it lands in. QAV v3 minted eval-side rows (the four
+    eval-hash tasks' contrast pairs), so the eval split must be crosschecked too — the as-shipped
+    train-only check would let an eval leak through (DESIGN §3 law 3). Belt-and-braces over the
+    factory's own contamination_check (SCOPE §3.1 delta 1d)."""
     exam_shingles = {name: shingles(body) for name, body in briefs.items()}
     total = sum(len(s) for s in exam_shingles.values())
     hits: list[dict] = []
-    for row in train_rows:
+    checked = [("train", r) for r in train_rows] + [("eval", r) for r in eval_rows]
+    for split, row in checked:
         user_text = " ".join(normalize_words(user_content(row)))
         for name, sh in exam_shingles.items():
             for shard in sh:
                 if shard in user_text:
-                    hits.append({"row_id": row_id(row), "exam": name, "shingle": shard})
+                    hits.append({"split": split, "row_id": row_id(row), "exam": name, "shingle": shard})
                     break
     return {
         "status": "pass" if not hits else "fail",
         "method": f"normalized {SHINGLE_N}-gram shingle substring overlap, exam bundle body vs "
-                  f"train row user content",
+                  f"staged row user content (train AND eval)",
         "exams_compared": sorted(exam_shingles),
         "exam_shingles_total": total,
+        "rows_compared": len(checked),
         "train_rows_compared": len(train_rows),
+        "eval_rows_compared": len(eval_rows),
         "hits": hits[:20],
     }
 
@@ -509,7 +516,7 @@ def main(argv=None) -> int:
     # ---- 4. Contamination (train/eval) + frozen-exam cross-check ------------------------
     contam = train_eval_intersection(train_rows, eval_rows)
     briefs = load_exam_bundle_text(fleet_evals_dir)
-    exam_check = frozen_exam_crosscheck(train_rows, briefs)
+    exam_check = frozen_exam_crosscheck(train_rows, eval_rows, briefs)
 
     # ---- 5. Class-balance tripwire (SCOPE §3 delta 4) ----------------------------------
     balance = balance_tripwire(train_rows, manifest_src)
@@ -685,7 +692,8 @@ def _print_gates(*, merged, train_rows, eval_rows, verify_fails, leak_hits, cont
     print(f"{'contamination (train/eval)':<32}{_status(contam['status'] == 'pass'):<8}"
           f"row_id ∩ = {contam['intersection']} (must be 0)")
     print(f"{'frozen-exam cross-check':<32}{_status(exam_check['status'] == 'pass'):<8}"
-          f"{exam_check['train_rows_compared']} train rows vs "
+          f"{exam_check['rows_compared']} staged rows "
+          f"(train={exam_check['train_rows_compared']}+eval={exam_check['eval_rows_compared']}) vs "
           f"{exam_check['exam_shingles_total']} shingles from {len(briefs)} exams "
           f"{exam_check['exams_compared']}; hits={len(exam_check['hits'])}")
     bstat = {"pass": "PASS", "fail": "FAIL", "record": "RECORD"}[balance["status"]]

@@ -98,6 +98,27 @@ ENGINE WORK-PACKAGE (all engine-side, no frozen file):**
 (`generate.py:424-449`) — `complete` and `partial_gate_abort` both pass, a typo'd
 `gathering_status` silently becomes an evidence-empty reject, so the spike asserts it):**
 
+**v1.2 AMENDMENT (post-spike NO-GO, 2026-07-23 late): the populate-with-defect doctrine.**
+The boundary spikes proved regenerated control bundles NEVER carry `runtime_parity`, and carry
+`wiring`/`bdd` only on study_tutor spines (record-replayed, not gathered, under the integration
+profile) — so any recipe guarded on severing a populated field is anchor-absent corpus-wide on
+guardkit/jarvis spines and the pair-atomic law banks ZERO axis-A pairs. The label-honesty rule
+underneath: **on a spine whose approve control already has a field null, nulling cannot be a
+reject signal (the corpus would contradict itself same-task); the reject side must ADD
+defect-bearing evidence.** Therefore: `A-dc03` = POPULATE `wiring` with deterministic
+defect-bearing call-site evidence (missing-kwargs / production call sites unexercised — the
+GN-4 anchor vocabulary), plan_audit untouched-null, suites green → DC-03; `CTRL-comp` =
+populate `wiring` HEALTHY (its anti-shortcut mate, fires everywhere); `C-dc08` = POPULATE
+`bdd_authoring_sweep` with a defect-bearing sweep (undefined steps on scenarios the task owed
+— the SMP-002 populated-sweep DC-08 sub-shape), plus a new `CTRL-bdd` approve mate (healthy
+sweep) on the same BDD-owning tasks. The pure null-vacancy DC-03 shape is still taught — via
+`C-dc03` on study_tutor wiring-owning spines (controls carry `wiring` populated, so nulling
+honestly diverges), and the ownership rule from the approve side via `CTRL-comp`'s
+bdd-null-not-owned. HONEST CAP: the GN-1 pure bdd-null shape and GN-3 pure oracle-null shape
+have no same-task pair construction (the contradiction above) — named, not hidden. Also
+adopted from the build coach: a post-run pair-census sibling-parity assertion (the §3.6
+receipt promise) lands in the engine/driver.
+
 Axis A — the attractor cut (DC-12 ↔ DC-03), same task, same spine:
 - `R-BUNDLE-PAIR-A-dc12` (reject DC-12): populate `plan_audit` as a violation block
   (status=violation, severity=high, `missing_files` derived cue-clean per the

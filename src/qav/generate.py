@@ -78,6 +78,13 @@ from qav.record_recipes import (
     RUN_RECORD_FILENAME,
     apply_record_recipe,
 )
+from qav.bundle_pairs import (
+    EVAL_COHORT_TASKS,
+    PAIR_GROUPS,
+    PAIR_RECIPES,
+    apply_pair_recipe,
+    task_pair_plan,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -255,6 +262,14 @@ class GenerateConfig:
             r: (0.0 if r == "R-RECORD-DC05-skipmask" else 1.0) for r in RECORD_RECIPES
         }
     )
+    # --- contrast-pair family knob (QAV v3 R-BUNDLE-PAIR-* class-boundary pairs, 2026-07-23) -------
+    # The contrast-pair path (``_run_contrast_pairs``) mints class-boundary minimal pairs on each
+    # source task's in-run regenerated CONTROL bundle. It rides its OWN budget — the max number of
+    # pair-path rows banked — DISJOINT from the legacy ``seeded_bundle_cap`` (whose base
+    # seeded_code+control EXCLUDES record rows and would admit only ~22). Eval-cohort tasks are
+    # processed FIRST so budget truncation can never starve eval (DESIGN §3 law 6). Target ~96
+    # candidates ⇒ ~80 banked; the default 96 is a safety ceiling the real run does not reach.
+    contrast_pair_budget: int = 96
     output_dir: str = "output/qa-verifier"
     manifest_path: str = "domains/qa-verifier/manifests/qav-phase1-train.manifest.json"
     scratch_dir: str = "output/qa-verifier/_scratch"
@@ -335,6 +350,7 @@ class GenerateConfig:
             record_recipes=gen.get("record_recipes") or {
                 r: (0.0 if r == "R-RECORD-DC05-skipmask" else 1.0) for r in RECORD_RECIPES
             },
+            contrast_pair_budget=int(gen.get("contrast_pair_budget", 96)),
             output_dir=out.get("dir", "output/qa-verifier"),
             manifest_path=out.get(
                 "manifest", "domains/qa-verifier/manifests/qav-phase1-train.manifest.json"
@@ -532,7 +548,10 @@ def cue_audit(bundle: dict[str, Any]) -> list[str]:
     for s in _CUE_SENTINELS:
         if s in low:
             issues.append(f"cue sentinel {s!r} present in bundle")
-    for rid in RECIPES:
+    # Every engine recipe-id namespace — the frozen code recipes AND the record-native
+    # (R-RECORD-*) + contrast-pair (R-BUNDLE-PAIR-*) families (belt-and-braces: a recipe id
+    # leaking into evidence text is a synthetic cue whatever family minted the row).
+    for rid in (*RECIPES, *RECORD_RECIPES, *PAIR_RECIPES):
         if rid.lower() in low:
             issues.append(f"recipe id {rid!r} leaked into bundle evidence")
     if '"..."' in blob or "…" in blob:
@@ -1068,6 +1087,21 @@ class GenerationSummary:
     record_no_record: int = 0               # a source task had a record_dir but no readable record
     seeded_bundle_written: int = 0
     seeded_bundle_capped: int = 0  # candidates dropped by the ≤cap share rule
+    # contrast-pair family (QAV v3 R-BUNDLE-PAIR-* class-boundary pairs; generation_mode is
+    # "seeded_bundle" — direct control-bundle mutations, pair-atomically banked). The four DESIGN §3
+    # law-6 receipts + a two-field banked census.
+    pairs_banked: int = 0                   # atomic pairs (BOTH reject sides banked together)
+    pair_hash_collisions: int = 0           # loud in-engine refusals: control/side-a/side-b not distinct
+    pair_sibling_dropped: int = 0           # sides dropped because a pair could not bank atomically
+    contrast_pair_capped: int = 0           # candidate sides dropped by the contrast_pair_budget
+    contrast_pair_reject_written: int = 0   # banked reject rows from the pair path (census)
+    contrast_pair_control_written: int = 0  # banked approve-control rows from the pair path (census)
+    # Post-run sibling-parity census (DESIGN §3 law 6 / §3.6 receipt promise): after the pair path
+    # banks every task, verify each banked A/B-axis (atomic-pair) side has its same-task sibling
+    # banked. Pair-atomic banking makes an orphan structurally impossible — this is the belt-and-
+    # braces receipt (loud counters, NEVER a crash).
+    pair_census_sides_banked: int = 0       # total A/B-axis (atomic-pair) reject sides banked
+    pair_census_orphans: int = 0            # banked A/B sides whose same-task sibling is absent (== 0)
     # Discovered final-turn bundles skipped because their (repo, task) has NO committed
     # provenance in the union pool (no merge_summary source task AND no ratified consumable
     # outcome) — the approved-sha honesty law, counted not just logged (never a guessed sha).
@@ -1290,6 +1324,30 @@ def run_generation(
                     "their regenerated bundles were byte-identical to their task's no-op control "
                     "bundle (no reject label may ride evidence the defect never reached)",
                     summary.evidence_invariant_rejected, EVIDENCE_INVARIANT_REASON,
+                )
+            # --- contrast pairs (QAV v3 class-boundary R-BUNDLE-PAIR-* rows) -------------------
+            # Sibling of the seeded pipelines: mints same-spine minimal pairs + matched approve
+            # controls on each source task's in-run regenerated CONTROL bundle, eval-cohort tasks
+            # FIRST, pair-atomically, under its OWN contrast_pair_budget. Rows emit
+            # generation_mode="seeded_bundle" with the pair recipe id in injection_recipe.
+            _run_contrast_pairs(
+                config, writer, summary, source_tasks,
+                teacher=teacher, coach=coach, regenerator=regenerator,
+                scratch_dir=scratch_dir, schema_sha=schema_sha,
+            )
+            if summary.pair_hash_collisions or summary.pair_sibling_dropped:
+                logger.warning(
+                    "CONTRAST PAIRS: %d hash-collision refusal(s), %d sibling(s) dropped for "
+                    "pair-atomicity — no lone pair side banks (three-distinct-hashes + pair-atomic "
+                    "laws, DESIGN §3)",
+                    summary.pair_hash_collisions, summary.pair_sibling_dropped,
+                )
+            if summary.pair_census_orphans:
+                logger.warning(
+                    "CONTRAST PAIRS: post-run census found %d orphan A/B side(s) (banked without a "
+                    "same-task sibling) across %d banked side(s) — pair-atomic banking should make "
+                    "this impossible (DESIGN §3 law 6 sibling-parity receipt)",
+                    summary.pair_census_orphans, summary.pair_census_sides_banked,
                 )
 
         # --- harvest (inert-clean when no outcomes supplied) ------------------------------
@@ -1610,6 +1668,302 @@ def _run_seeded_record(
                 summary.seeded_record_written += 1
             else:
                 summary.seeded_record_control_written += 1
+
+
+# --------------------------------------------------------------------------------------
+# Contrast pairs — the QAV v3 class-boundary minimal-pair path (R-BUNDLE-PAIR-* family).
+#
+# A sibling of the seeded pipelines that operates on each source task's in-run regenerated,
+# scrubbed CONTROL bundle (all source tasks reachable — including the four eval-hash tasks whose
+# records regenerate fine but carry NO disk-discoverable bundle). It mints same-spine minimal
+# pairs whose single differing signal flips the owning class (axes A/B, pair-atomic) plus
+# cross-task ownership sides (axis C) and matched approve controls — the cure the v2 attribution
+# diagnosis names (DESIGN §0-§2). Rows emit generation_mode="seeded_bundle" with the pair recipe id
+# in injection_recipe (the family key falls through to the frozen-allowlisted mode). Three laws are
+# enforced HERE, in-engine: (1) three-distinct-hashes per pair (scrubbed control vs side-a vs
+# side-b — any collision is a loud ``pair_hash_collision`` refusal; the divergence guard never fires
+# for bundle rows and silent row_id dedup first-writer-wins is the label race this preempts);
+# (2) pair-atomic banking (both sides gate-accepted or both routed loudly to rejected.jsonl — a
+# teacher/coach dropping one side can never bank a lone sibling); (3) eval-cohort-first ordering +
+# an OWN contrast_pair_budget (budget truncation can never starve eval).
+# --------------------------------------------------------------------------------------
+_PAIR_CONTROL_SEG = "R-PAIR-CONTROL"  # the pair path's per-task control-regeneration worktree segment
+
+
+def _eval_first_order(source_tasks: list[SourceTask]) -> list[SourceTask]:
+    """Source tasks with the four eval-hash cohort tasks FIRST (stable within each group) — so a
+    contrast_pair_budget truncation lands on train, never on the free eval-side coverage seam."""
+    eval_first = [s for s in source_tasks if (s.repo, s.task) in EVAL_COHORT_TASKS]
+    rest = [s for s in source_tasks if (s.repo, s.task) not in EVAL_COHORT_TASKS]
+    return eval_first + rest
+
+
+def _contrast_banked(summary: GenerationSummary) -> int:
+    return summary.contrast_pair_reject_written + summary.contrast_pair_control_written
+
+
+def _run_contrast_pairs(
+    config: GenerateConfig,
+    writer: OutputWriter,
+    summary: GenerationSummary,
+    source_tasks: list[SourceTask],
+    *,
+    teacher: ModelClient,
+    coach: CoachClient,
+    regenerator: BundleRegenerator,
+    scratch_dir: Path,
+    schema_sha: str,
+) -> None:
+    """The contrast-pair path over every source task (eval cohort FIRST). For each task with any
+    in-scope pair recipe: regenerate the scrubbed CONTROL bundle once, apply the axis-A/B pairs
+    pair-atomically and the approve controls / axis-C sides singly, banking under the own budget."""
+    if not PAIR_RECIPES:
+        return
+    budget = config.contrast_pair_budget
+    # try/finally so the post-run sibling-parity census (DESIGN §3 law 6 / §3.6) ALWAYS runs — even
+    # on a _seeded_limit_hit early return mid-loop.
+    try:
+        for src in _eval_first_order(source_tasks):
+            if (src.repo, src.task) in GOLD_SOURCE_TASKS:
+                continue
+            if _seeded_limit_hit(config, writer):
+                return
+            groups, singles = task_pair_plan(src.repo, src.task)
+            if not groups and not singles:
+                continue
+            # Regenerate the task's CONTROL bundle (the spine every pair rides), scrubbed + hashed.
+            control = inject_control(dict(src.files))
+            control_worktree = _materialize_worktree(
+                scratch_dir, src.repo, src.task, _PAIR_CONTROL_SEG, control.mutated_files,
+                record_dir=src.record_dir,
+            )
+            try:
+                control_bundle = regenerator.regenerate(control_worktree)
+            finally:
+                shutil.rmtree(control_worktree, ignore_errors=True)
+            validate_bundle(control_bundle)
+            control_bundle = scrub_nondeterministic_bundle(
+                control_bundle, worktree_path=str(control_worktree)
+            )
+            control_hash = bundle_content_hash(control_bundle)
+            provenance = {
+                "repo": src.repo, "feature": src.feature, "task": src.task,
+                "run": src.run, "sha": src.sha,
+            }
+            # Split per (repo, task, seeded_bundle) — every pair row of one task shares it (no straddle).
+            split = assign_split(
+                src.repo, src.task, _family_of(None, "seeded_bundle"),
+                holdout_fraction=config.holdout_fraction, seed=config.seed,
+            )
+            # Atomic pairs first (the flagship boundary), then single controls / axis-C sides.
+            for _group_id, members in groups:
+                if _seeded_limit_hit(config, writer):
+                    return
+                if _contrast_banked(summary) + 2 > budget:
+                    summary.contrast_pair_capped += 2
+                    continue
+                _bank_contrast_pair(
+                    writer, summary, src, provenance, split, control_bundle, control_hash,
+                    members[0], members[1],
+                    teacher=teacher, coach=coach, schema_sha=schema_sha,
+                )
+            for rid in singles:
+                if _seeded_limit_hit(config, writer):
+                    return
+                if _contrast_banked(summary) + 1 > budget:
+                    summary.contrast_pair_capped += 1
+                    continue
+                _bank_contrast_single(
+                    writer, summary, src, provenance, split, control_bundle, control_hash, rid,
+                    teacher=teacher, coach=coach, schema_sha=schema_sha,
+                )
+    finally:
+        # DESIGN §3 law 6 / §3.6 receipt promise: the post-run sibling-parity census.
+        _pair_census(writer, summary)
+
+
+def _pair_census(writer: OutputWriter, summary: GenerationSummary) -> None:
+    """Post-run sibling-parity census (DESIGN §3 law 6 / §3.6 receipt promise). After the pair path
+    banks every task, verify each banked A/B-axis (atomic-pair) side has its same-task sibling banked.
+
+    Pair-atomic banking (``_bank_contrast_pair``) makes an orphan structurally impossible, so this is
+    a belt-and-braces RECEIPT: it groups every banked ``R-BUNDLE-PAIR-*`` pair-side row by
+    ``(repo, task, pair_group)``, counts sides + orphans into the summary, and logs LOUDLY. It NEVER
+    crashes the run — a non-zero ``pair_census_orphans`` is a recorded refusal, not an exception."""
+    # (repo, task, pair_group) -> the set of banked member recipe ids for that atomic pair.
+    banked: dict[tuple[str, str, str], set[str]] = {}
+    for row in (*writer.train_rows, *writer.eval_rows):
+        meta = row.get("metadata", {})
+        rid = meta.get("injection_recipe")
+        recipe = PAIR_RECIPES.get(rid) if isinstance(rid, str) else None
+        if recipe is None or recipe.pair_group is None:
+            continue
+        prov = meta.get("provenance", {})
+        key = (prov.get("repo"), prov.get("task"), recipe.pair_group)
+        banked.setdefault(key, set()).add(rid)
+    for (repo, task, group), members in sorted(banked.items()):
+        expected = set(PAIR_GROUPS.get(group, ()))
+        missing = expected - members
+        summary.pair_census_sides_banked += len(members)
+        if missing:
+            summary.pair_census_orphans += len(members)
+            logger.warning(
+                "PAIR CENSUS ORPHAN %s/%s pair=%s — banked %s but sibling(s) %s absent; pair-atomic "
+                "banking should make this impossible (DESIGN §3 law 6 receipt, not a crash)",
+                repo, task, group, sorted(members), sorted(missing),
+            )
+    if summary.pair_census_sides_banked and not summary.pair_census_orphans:
+        logger.info(
+            "PAIR CENSUS OK: %d atomic-pair side(s) banked, every side has its same-task sibling "
+            "(DESIGN §3 law 6 sibling-parity)",
+            summary.pair_census_sides_banked,
+        )
+
+
+def _pair_reject_base(src: SourceTask, recipe_id: str) -> dict[str, Any]:
+    return {
+        "repo": src.repo, "task": src.task,
+        "generation_mode": "seeded_bundle", "injection_recipe": recipe_id,
+    }
+
+
+def _bank_contrast_pair(
+    writer: OutputWriter,
+    summary: GenerationSummary,
+    src: SourceTask,
+    provenance: dict[str, Any],
+    split: str,
+    control_bundle: dict[str, Any],
+    control_hash: str,
+    id_a: str,
+    id_b: str,
+    *,
+    teacher: ModelClient,
+    coach: CoachClient,
+    schema_sha: str,
+) -> None:
+    """Bank one axis-A/B pair PAIR-ATOMICALLY: both sides gate-accepted, or BOTH routed loudly to
+    rejected.jsonl. The three-distinct-hashes law (control vs side-a vs side-b) is a loud in-engine
+    refusal BEFORE any teacher call — no lone sibling can bank a label race."""
+    res_a = apply_pair_recipe(control_bundle, id_a)
+    res_b = apply_pair_recipe(control_bundle, id_b)
+    if res_a is None or res_b is None:
+        # A side's anchor is absent on this task's control bundle — the pair cannot form; drop BOTH.
+        summary.pair_sibling_dropped += 2
+        for rid, missing in ((id_a, res_a is None), (id_b, res_b is None)):
+            writer.write_rejected({
+                **_pair_reject_base(src, rid), "reason": "pair_anchor_absent",
+                "detail": (
+                    f"contrast-pair {id_a}+{id_b} could not form: "
+                    f"{'this side' if missing else 'the sibling side'}'s anchor is absent in the "
+                    "regenerated control bundle (pair-atomic: no lone side banks)"
+                ),
+            })
+        return
+    hash_a = bundle_content_hash(res_a.mutated_bundle)
+    hash_b = bundle_content_hash(res_b.mutated_bundle)
+    if len({control_hash, hash_a, hash_b}) != 3:
+        summary.pair_hash_collisions += 1
+        logger.warning(
+            "CONTRAST-PAIR HASH COLLISION %s/%s pair=%s+%s — scrubbed control / side-a / side-b are "
+            "not three distinct content hashes (control %s, a %s, b %s); refusing the pair (the "
+            "silent alternative is row_id dedup first-writer-wins, a label race)",
+            src.repo, src.task, id_a, id_b, control_hash[:16], hash_a[:16], hash_b[:16],
+        )
+        for rid, side_hash in ((id_a, hash_a), (id_b, hash_b)):
+            writer.write_rejected({
+                **_pair_reject_base(src, rid), "reason": "pair_hash_collision",
+                "detail": (
+                    "scrubbed control vs side-a vs side-b are not three distinct bundle content "
+                    "hashes — the pair is refused so no lone sibling can win a row_id dedup race"
+                ),
+                "bundle_content_sha256": side_hash, "control_content_sha256": control_hash,
+            })
+        return
+    status_a, row_a, reject_a = _gate_and_build(
+        bundle=res_a.mutated_bundle, label=res_a.label, provenance=provenance, split=split,
+        generation_mode="seeded_bundle", dc_class=res_a.dc_class, injection_recipe=id_a,
+        bundle_schema_sha=schema_sha, teacher=teacher, coach=coach, summary=summary,
+        control_bundle_hash=None,
+    )
+    status_b, row_b, reject_b = _gate_and_build(
+        bundle=res_b.mutated_bundle, label=res_b.label, provenance=provenance, split=split,
+        generation_mode="seeded_bundle", dc_class=res_b.dc_class, injection_recipe=id_b,
+        bundle_schema_sha=schema_sha, teacher=teacher, coach=coach, summary=summary,
+        control_bundle_hash=None,
+    )
+    if status_a == "accepted" and status_b == "accepted" and row_a is not None and row_b is not None:
+        wrote_a = writer.write_row(row_a)
+        wrote_b = writer.write_row(row_b)
+        summary.contrast_pair_reject_written += int(wrote_a) + int(wrote_b)
+        summary.deduped += int(not wrote_a) + int(not wrote_b)
+        if wrote_a and wrote_b:
+            summary.pairs_banked += 1
+        return
+    # At least one side failed the gate — pair-atomic law refuses BOTH loudly.
+    summary.pair_sibling_dropped += 2
+    for rid, status, reject in ((id_a, status_a, reject_a), (id_b, status_b, reject_b)):
+        if status == "accepted":
+            writer.write_rejected({
+                **_pair_reject_base(src, rid), "reason": "pair_sibling_dropped",
+                "detail": (
+                    "this side gated clean but its pair sibling failed the gate; pair-atomic "
+                    "banking refuses a lone contrast side"
+                ),
+            })
+        else:
+            writer.write_rejected(reject or {**_pair_reject_base(src, rid), "reason": "gate_rejected"})
+
+
+def _bank_contrast_single(
+    writer: OutputWriter,
+    summary: GenerationSummary,
+    src: SourceTask,
+    provenance: dict[str, Any],
+    split: str,
+    control_bundle: dict[str, Any],
+    control_hash: str,
+    recipe_id: str,
+    *,
+    teacher: ModelClient,
+    coach: CoachClient,
+    schema_sha: str,
+) -> None:
+    """Bank one single contrast row (an approve control or an axis-C ownership side). Anchor-absent
+    is a loud drop; a mutated bundle byte-identical to the control is a loud ``pair_hash_collision``
+    (a no-op mutation). Otherwise gate + write individually."""
+    res = apply_pair_recipe(control_bundle, recipe_id)
+    if res is None:
+        summary.pair_sibling_dropped += 1
+        writer.write_rejected({
+            **_pair_reject_base(src, recipe_id), "reason": "pair_anchor_absent",
+            "detail": "the recipe's anchor is absent in the regenerated control bundle (loud skip)",
+        })
+        return
+    if bundle_content_hash(res.mutated_bundle) == control_hash:
+        summary.pair_hash_collisions += 1
+        writer.write_rejected({
+            **_pair_reject_base(src, recipe_id), "reason": "pair_hash_collision",
+            "detail": "mutated bundle is byte-identical to the control (a no-op mutation)",
+            "control_content_sha256": control_hash,
+        })
+        return
+    status, row, reject = _gate_and_build(
+        bundle=res.mutated_bundle, label=res.label, provenance=provenance, split=split,
+        generation_mode="seeded_bundle", dc_class=res.dc_class, injection_recipe=recipe_id,
+        bundle_schema_sha=schema_sha, teacher=teacher, coach=coach, summary=summary,
+        control_bundle_hash=None,
+    )
+    if status == "accepted" and row is not None:
+        if writer.write_row(row):
+            if res.verdict == "reject":
+                summary.contrast_pair_reject_written += 1
+            else:
+                summary.contrast_pair_control_written += 1
+        else:
+            summary.deduped += 1
+    else:
+        writer.write_rejected(reject or {})
 
 
 def _run_seeded_bundle(

@@ -36,6 +36,12 @@ generation:
   mode: seeded_defect        # seeded_defect | harvest | both
   require_fenced_json: true  # assistant must emit the OUTPUT-CONTRACT §3 verdict object
   seeded_bundle_cap: 0.25    # max share of seeded rows via bundle mutation (PLAN §2)
+  # QAV v3 class-boundary contrast pairs (R-BUNDLE-PAIR-*, DESIGN-qav-v3-contrast-pairs). The
+  # _run_contrast_pairs path mints same-spine minimal pairs + matched approve controls on each
+  # source task's in-run regenerated CONTROL bundle, eval-cohort tasks FIRST, pair-atomically. Its
+  # OWN budget (max pair-path rows banked), DISJOINT from seeded_bundle_cap. Target ~96 candidates
+  # ⇒ ~80 banked; the default is a safety ceiling the surgical run does not reach.
+  contrast_pair_budget: 96
   holdout_fraction: 0.15     # eval_qav slice, frozen by the recorded seed (PLAN §6)
   seed: qav-phase1           # split RNG seed (recorded so the split is reproducible)
   scratch_dir: output/qa-verifier/_scratch   # per-recipe worktrees; cleaned up per row
