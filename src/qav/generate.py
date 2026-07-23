@@ -73,6 +73,11 @@ from qav.injector import (
 )
 from qav.manifest import build_manifest, check_balance, validate_manifest
 from qav.recipes import RECIPES, AnchorNotFound
+from qav.record_recipes import (
+    RECORD_RECIPES,
+    RUN_RECORD_FILENAME,
+    apply_record_recipe,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -237,6 +242,19 @@ class GenerateConfig:
     holdout_fraction: float = 0.15
     seeded_bundle_cap: float = 0.25
     recipes: dict[str, float] = field(default_factory=lambda: {r: 1.0 for r in RECIPES})
+    # --- seeded_record family knobs (WS2-B11 record-native reject classes, 2026-07-23) ---------
+    # Per-recipe weights for the R-RECORD-* record-native mutations (DC-12/DC-14/DC-05), the same
+    # weight semantics as ``recipes``: a recipe with weight 0 is OFF, positives run high-weight-first.
+    # The record family threads as generation_mode="seeded_code" (real regen over a mutated worktree
+    # INPUT — the materialized run-record — not a direct bundle edit), so it is NOT share-capped like
+    # ``seeded_bundle``: it is exactly the reject-side class diversity the attribution diagnosis
+    # (RESULTS-qav-ft-v1) says the corpus must GROW; the global ``limit`` bounds total volume.
+    # Default: DC-12 + DC-14 recipes ON at 1.0; DC-05 (medium-fidelity, spike-gated) OFF at 0.0.
+    record_recipes: dict[str, float] = field(
+        default_factory=lambda: {
+            r: (0.0 if r == "R-RECORD-DC05-skipmask" else 1.0) for r in RECORD_RECIPES
+        }
+    )
     output_dir: str = "output/qa-verifier"
     manifest_path: str = "domains/qa-verifier/manifests/qav-phase1-train.manifest.json"
     scratch_dir: str = "output/qa-verifier/_scratch"
@@ -314,6 +332,9 @@ class GenerateConfig:
             holdout_fraction=gen.get("holdout_fraction", 0.15),
             seeded_bundle_cap=gen.get("seeded_bundle_cap", 0.25),
             recipes=gen.get("recipes") or {r: 1.0 for r in RECIPES},
+            record_recipes=gen.get("record_recipes") or {
+                r: (0.0 if r == "R-RECORD-DC05-skipmask" else 1.0) for r in RECORD_RECIPES
+            },
             output_dir=out.get("dir", "output/qa-verifier"),
             manifest_path=out.get(
                 "manifest", "domains/qa-verifier/manifests/qav-phase1-train.manifest.json"
@@ -586,6 +607,7 @@ def _materialize_worktree(
     files: dict[str, str],
     *,
     record_dir: str | None = None,
+    record_override: dict[str, Any] | None = None,
 ) -> Path:
     """Write ``files`` (the mutated tree) into a fresh per-recipe scratch worktree and return
     its path. The regenerator runs guardkit ``gather_evidence`` over this tree.
@@ -595,7 +617,14 @@ def _materialize_worktree(
     exact path guardkit gather_evidence reads (``TaskArtifactPaths.TASK_WORK_RESULTS``). Without
     this, ``.guardkit`` (gitignored in the corpus) is absent from the checkout and gather_evidence
     short-circuits to the evidence-empty ``missing_results`` bundle the round-3 spike proved poison.
-    Reconstruction of the authentic record, never fabrication (see ``qav.discover`` module note)."""
+    Reconstruction of the authentic record, never fabrication (see ``qav.discover`` module note).
+
+    ``record_override`` (the ``seeded_record`` family) OVERWRITES the materialized
+    ``task_work_results.json`` with a record-recipe-mutated record AFTER the verbatim artifacts land,
+    so ``gather_evidence`` replays the mutation through the real machinery (the plan_audit passthrough
+    / honesty file-existence checks the source tree cannot reach). Only the one record artifact is
+    replaced — the sibling player/coach turn records stay verbatim. It is only honored when
+    ``record_dir`` is also set (there is no verbatim record to overwrite otherwise)."""
     worktree = scratch_dir / repo / task / recipe_id
     if worktree.exists():
         shutil.rmtree(worktree)
@@ -608,7 +637,30 @@ def _materialize_worktree(
         from qav.discover import materialize_run_record
 
         materialize_run_record(Path(record_dir), worktree, task)  # pragma: no cover - generation run
+        if record_override is not None:
+            from qav.discover import _AUTOBUILD_REL
+
+            record_path = worktree / _AUTOBUILD_REL / task / RUN_RECORD_FILENAME
+            record_path.parent.mkdir(parents=True, exist_ok=True)
+            record_path.write_text(
+                json.dumps(record_override, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
     return worktree
+
+
+def load_task_work_record(record_dir: str | Path) -> dict[str, Any] | None:
+    """Read the authentic ``task_work_results.json`` from a resolved run-record directory (the
+    ``seeded_record`` family's mutation input). Returns the parsed record dict, or ``None`` when the
+    record is absent/unreadable/not-a-dict — a LOUD skip the caller counts (``record_no_record``),
+    never a fabricated record (the ``qav.discover`` reconstruction-never-fabrication law)."""
+    path = Path(record_dir) / RUN_RECORD_FILENAME
+    if not path.is_file():
+        return None
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    return record if isinstance(record, dict) else None
 
 
 # --------------------------------------------------------------------------------------
@@ -1008,6 +1060,12 @@ def load_harvest_outcomes(path: str | Path | None) -> LoadedOutcomes:
 class GenerationSummary:
     seeded_code_written: int = 0
     seeded_control_written: int = 0
+    # seeded_record family (record-native reject classes DC-12/DC-14/DC-05; generation_mode is
+    # "seeded_code" — real regen over a mutated worktree INPUT, the materialized run-record).
+    seeded_record_written: int = 0          # record-native REJECT rows banked
+    seeded_record_control_written: int = 0  # record-native APPROVE calibration rows banked
+    record_anchor_skipped: int = 0          # a record recipe's anchor was absent (loud, not silent)
+    record_no_record: int = 0               # a source task had a record_dir but no readable record
     seeded_bundle_written: int = 0
     seeded_bundle_capped: int = 0  # candidates dropped by the ≤cap share rule
     # Discovered final-turn bundles skipped because their (repo, task) has NO committed
@@ -1152,6 +1210,15 @@ def _gate_and_build(
 # --------------------------------------------------------------------------------------
 def _weighted_recipe_ids(config: GenerateConfig) -> list[str]:
     active = {rid: w for rid, w in config.recipes.items() if rid in RECIPES and w > 0}
+    return sorted(active, key=lambda r: (-active[r], r))
+
+
+def _weighted_record_recipe_ids(config: GenerateConfig) -> list[str]:
+    """Active ``R-RECORD-*`` recipe ids, high-weight-first (weight 0 => OFF) — the ``seeded_record``
+    family's per-recipe knob, mirroring ``_weighted_recipe_ids``."""
+    active = {
+        rid: w for rid, w in config.record_recipes.items() if rid in RECORD_RECIPES and w > 0
+    }
     return sorted(active, key=lambda r: (-active[r], r))
 
 
@@ -1387,6 +1454,22 @@ def _run_seeded_code(
         if row:
             summary.seeded_control_written += 1
 
+        # --- seeded_record: record-native reject classes (DC-12/DC-14/DC-05) --------------------
+        # Mutate the materialized run-record BEFORE gather replays it — reaches the plan_audit /
+        # honesty / claim-vs-skip evidence that source-tree injection structurally cannot (recipes.py
+        # documents DC-12/DC-14 as EXPECTED-MISS for source injection). Threads as
+        # generation_mode="seeded_code" (real regen over a mutated worktree INPUT — the record), with
+        # injection_recipe in the disjoint R-RECORD-* namespace. Each reject reuses the task's ALREADY
+        # regenerated no-op ``control_hash`` as its divergence-guard baseline (a record mutation that
+        # never surfaced hashes equal to control and is honestly refused). Controls are approve rows —
+        # never hashed, never refused. Requires the authentic record on disk (record_dir); tiny test
+        # fixtures without one skip the family (like seeded_code's real regeneration).
+        _run_seeded_record(
+            config, writer, summary, src, provenance, control, control_hash,
+            teacher=teacher, coach=coach, regenerator=regenerator,
+            scratch_dir=scratch_dir, schema_sha=schema_sha,
+        )
+
 
 def _seeded_row_from_injection(
     config: GenerateConfig,
@@ -1407,6 +1490,7 @@ def _seeded_row_from_injection(
     schema_sha: str,
     control_bundle_hash: str | None = None,
     pre_regenerated_bundle: dict[str, Any] | None = None,
+    record_override: dict[str, Any] | None = None,
 ) -> bool:
     """Materialise the mutated worktree, regenerate the REAL bundle, gate + write. Returns True
     iff a fresh (non-duplicate) row was written.
@@ -1414,13 +1498,15 @@ def _seeded_row_from_injection(
     ``pre_regenerated_bundle`` (the control leg) skips materialise+regenerate and gates the
     already-regenerated bundle — the evidence-divergence guard's baseline regeneration IS the
     control row's bundle, never a second draw. ``control_bundle_hash`` (reject legs) arms the
-    guard in ``_gate_and_build``."""
+    guard in ``_gate_and_build``. ``record_override`` (the ``seeded_record`` family) replaces the
+    materialized ``task_work_results.json`` with a record-recipe mutation before regeneration, so the
+    plan_audit/honesty divergence is earned through the real gather machinery."""
     if pre_regenerated_bundle is not None:
         bundle = pre_regenerated_bundle
     else:
         worktree = _materialize_worktree(
             scratch_dir, src.repo, src.task, result.recipe_id, result.mutated_files,
-            record_dir=src.record_dir,
+            record_dir=src.record_dir, record_override=record_override,
         )
         try:
             bundle = regenerator.regenerate(worktree)
@@ -1448,6 +1534,82 @@ def _seeded_row_from_injection(
         return False
     writer.write_rejected(reject or {})
     return False
+
+
+def _run_seeded_record(
+    config: GenerateConfig,
+    writer: OutputWriter,
+    summary: GenerationSummary,
+    src: SourceTask,
+    provenance: dict[str, Any],
+    control: InjectionResult,
+    control_hash: str,
+    *,
+    teacher: ModelClient,
+    coach: CoachClient,
+    regenerator: BundleRegenerator,
+    scratch_dir: Path,
+    schema_sha: str,
+) -> None:
+    """The ``seeded_record`` family for one source task: for each active R-RECORD-* recipe, mutate
+    the authentic run-record (pure), materialize a worktree with CLEAN source + the mutated record,
+    regenerate through the real machinery, and gate/write. Reject rows arm the divergence guard with
+    the task's no-op ``control_hash`` (a mutation that never surfaced is refused); approve controls
+    are never hashed. A recipe whose anchor is absent is a LOUD ``record_anchor_skipped``, never a
+    silent no-op (the FEAT-DD4F law)."""
+    record_recipe_ids = _weighted_record_recipe_ids(config)
+    if not record_recipe_ids:
+        return
+    # The family needs the authentic record on disk (like seeded_code's real regeneration). Tiny
+    # test fixtures without a record_dir skip it; a configured-but-unreadable record is a loud count.
+    if not src.record_dir:
+        return
+    record = load_task_work_record(src.record_dir)
+    if record is None:
+        summary.record_no_record += 1
+        logger.info(
+            "SEEDED_RECORD skip %s/%s — record_dir set but no readable task_work_results.json",
+            src.repo, src.task,
+        )
+        return
+    for rr_id in record_recipe_ids:
+        if _seeded_limit_hit(config, writer):
+            return
+        applied = apply_record_recipe(record, rr_id)
+        if applied is None:
+            summary.record_anchor_skipped += 1
+            logger.info(
+                "SEEDED_RECORD anchor absent %s/%s recipe=%s (loud skip, never a silent no-op)",
+                src.repo, src.task, rr_id,
+            )
+            continue
+        # A lightweight InjectionResult carrying the CLEAN source under this recipe's own worktree
+        # path segment (so two record recipes never collide) — the source is untouched; the mutation
+        # rides the record_override below.
+        record_result = InjectionResult(
+            recipe_id=rr_id,
+            dc_class=applied.dc_class or "",
+            family="seeded_record",
+            mutated_files=dict(control.mutated_files),
+            changed_files=[],
+            diff="",
+            finding=applied.finding or {},
+        )
+        is_reject = applied.verdict == "reject"
+        row = _seeded_row_from_injection(
+            config, writer, summary, src, provenance, record_result,
+            verdict_label=applied.label, generation_mode="seeded_code",
+            dc_class=applied.dc_class, injection_recipe=rr_id,
+            teacher=teacher, coach=coach, regenerator=regenerator,
+            scratch_dir=scratch_dir, schema_sha=schema_sha,
+            control_bundle_hash=control_hash if is_reject else None,
+            record_override=applied.mutated_record,
+        )
+        if row:
+            if is_reject:
+                summary.seeded_record_written += 1
+            else:
+                summary.seeded_record_control_written += 1
 
 
 def _run_seeded_bundle(
