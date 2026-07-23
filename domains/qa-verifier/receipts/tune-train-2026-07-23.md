@@ -154,3 +154,43 @@ ceiling). The 3-row approve-lean above is the first thing that A/B should interr
 
 *Container `qav-ft-20260723` left up for S4; corpus bytes untouched; shas + counts + row_ids
 only, no row content (DF-008).*
+
+---
+
+## 7. S4 SERVE + S5 THE FROZEN EXAM (appended 2026-07-23, the S4/S5 operator)
+
+**S4 — GGUF + serving (the coach-ft-v3 pipeline mirrored):** merged-16bit (the exact
+Phase-5.2-gated artifact) → `convert_hf_to_gguf.py --outtype bf16` in-container (llama.cpp-new's
+Gemma4 conversion tree, 50.5 GB, exit 0) → host `llama-quantize` **Q4_K_M** (never q4_0) →
+`/opt/llama-swap/models/qav-ft/qav-gemma4-26b-moe.Q4_K_M.gguf`, **16,796,000,992 bytes** (the
+coach-ft-v3 precedent is 16,796,001,088 — same pipeline, same size class), sha256
+`c5c9daaf51b51a85…`. llama-swap: dated backup
+`config.yaml.bak-20260723-095724-pre-qav-ft`, added the `qav-ft` block (coach-ft-v3 mirror,
+ctx 98304, q8 KV, `--reasoning off`) + var `qft` + exam set `qav_exam: "qft & g26 & pk & qt"`;
+restarted via systemd; `/v1/models` lists both aliases; 1-token smokes HTTP 200 each;
+co-residency verified (matrix solve `set=qav_exam`, both `ready` in `/running`, no mid-exam
+swapping). Keepalive stayed flock-held (PID 1185504); s2s audio pair untouched.
+
+**S5 — the frozen exam (fleet-evals, freeze `2165802`): VERDICT NO-DEPLOY — but the A/B is
+decisive on the axis the tune was built for.** 2 candidates × 2 tasks × 3 reps, 12/12 rep-runs
+valid (exit 0, zero aborts/re-runs); graded per rep with separate unmasked pytest exits.
+
+| axis | qav-ft (tuned) | gemma4-26b (stock) |
+|---|---|---|
+| G-Q1 contract | **6/6 reps PASS** (24/24 bundles bare JSON, 0 truncations) | 3/6 — all held-001 reps FAIL (7/12 gold-neg generations truncated-unparseable) |
+| G-Q2 must-catch | FAIL — but **12/12 gold negatives REJECTED at verdict level**; misses are owning-class/locus only | FAIL — 7/12 outright escapes (truncation ⇒ no verdict) |
+| G-Q3 catch floor | FAIL — RC-01 rejected 3/3 but class DC-03, never DC-14 | FAIL — RC-01 rejected 3/3, class DC-05/DC-12 |
+| G-Q4 false-block | **PASS 3/3** (9/9 honest/ugly greens approved) | **PASS 3/3** |
+| latency/bundle | 0.45–1.41 s (med 52 completion tok) | 9–47 s (med 1132 tok, 7 at the 2048 ceiling) |
+
+**§5's approve-lean flag is RESOLVED as a non-event:** on the frozen exam the tune rejected every
+gold negative in every rep. The residual (and gating) gap is **defect-class attribution** — DC-03
+composition-seam evidence read as DC-05/DC-12, RC-01's DC-14 never named — consistent with the §2
+honest note (the 4 longest reject exemplars, 2 of them DC-03, sat above the seq gate; DC-05
+support = 2; DC-14 reject support thin). More epochs on 82 rows is not the cure; reject-side
+class diversity (the plateau card's new-mechanism-class ask) is.
+
+Full doc + artifacts: fleet-evals `RESULTS-qav-ft-v1-2026-07-23.md` + `runs/qav-heldout/*`
+(commit `e66a8be`). Probe-not-adoption per R3-02: `qav-ft` stays a probe-set entry; no deploy
+claim. Rollback = the dated .bak above; the `qav_exam` set + entry left in place for follow-up
+probes. Container `qav-ft-20260723` still up.
