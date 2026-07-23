@@ -1,0 +1,129 @@
+# briefs-cycle2.yaml — CYCLE-2 TARGETED SUPPLEMENT (the trust-page catches, as data).
+#
+# Same document shape as briefs.yaml. This file is a FOCUSED four-class supplement, authored to cure
+# the two drafting failures the 2026-07-23 trust page caught on banked cycle-1 drafts, and to close
+# two corpus-census blind spots the census exposed. It reuses EXISTING `expected_class` values so the
+# generation engine needs zero change — point agent-config-cycle2.yaml at this file and run.
+#
+# THE TWO CAUGHT FAILURES (what cycle 2 must teach the model NOT to do):
+#   (a) a leads-chase draft invented `read: webhook` (a source kind that does not exist), plus
+#       unregistered stages `gather`/`classify` and fabricated `with:` params — a webhook-flavoured
+#       ask stampeded the model straight past the closed vocabulary.
+#   (b) a friday-week-in-review draft invented `send_as: one-page` (not in the closed set
+#       one-bundle | each-record) — the model reached for an English word instead of the vocabulary.
+#
+# THE CENSUS BLIND SPOTS (why the model had never SEEN the right answer):
+#   - ALL 188 drafted destinations across the cycle-1 corpus are `send_as: one-bundle` + `deliver:
+#     email`. `each-record` appears in ZERO drafted file bodies. The model has no in-corpus exemplar
+#     of the legal per-record shape, so it improvises (`one-page`) under a bundling-flavoured ask.
+#   - Zero valid drafts pair a webhook/Calendar/Slack-flavoured ask with a CLEAN closed-set-source
+#     draft. The honest-wall exemplars exist but none is a tight CONTRAST SIBLING of a fully-servable
+#     leads-chase — so the model never learned that one added integration clause is the ONLY
+#     difference between "draft it" and "draft the doable part + name the wall".
+#
+# THE FOUR CLASS BLOCKS (intent -> the cure):
+#   leads-chase-valid-source .. the fully-servable chase/follow-up ask: closed-set sources only, so a
+#                               webhook is never reached for. Reuses `pipeline`.
+#   integration-wall-with-draft the servable-core-plus-one-unservable-clause ask: the model drafts the
+#                               doable part with closed-set sources AND names the missing integration
+#                               as a wall in PROSE (never a fake token in the draft). Reuses
+#                               `honest-wall`. Several briefs are CONTRAST SIBLINGS of the block above.
+#   send-as-explicit .......... weekly/periodic review asks whose correct draft is `deliver: email` +
+#                               `send_as: one-bundle` — the legal answer to a bundling ask, so the
+#                               model stops inventing `one-page`. Reuses `pipeline`.
+#   send-as-each-record ....... per-record delivery to a NAMED pinned gateway destination — the legal
+#                               `deliver: gateway` + `send_as: each-record` combo (the ONLY executable
+#                               each-record shape, runner.py). Gives the corpus its first `each-record`
+#                               exemplars. Reuses `pipeline`.
+#
+# COMBO LAW (executable destinations only — runner.py:266-275): `deliver: email` + `send_as:
+# one-bundle`, and `deliver: gateway` + `send_as: each-record` (single `to: {destination}`, no route).
+# The other two (email+each-record, gateway+one-bundle) validate but are execution-refused, so no brief
+# here elicits them.
+#
+# DENYLIST DISCIPLINE: every brief is paraphrase-clean of the 21 held distinctive phrases (denylist.py)
+# and carries no banked-session verbatim text. Scenario NAMES (leads-chase, friday-review) are lawful;
+# distinctive PHRASING is not — so these briefs rephrase the ask shapes freshly.
+
+classes:
+  # ---------------------------------------------------------------------------------------------------
+  # BLOCK 1 — the fully-servable chase/follow-up ask (cures failure (a): no reach for `read: webhook`).
+  # Closed-set sources only (tray/pending/ledger + member + window), weekly/weekday schedules,
+  # one-bundle email to the operator. Members, windows, and schedule phrasing are varied.
+  # ---------------------------------------------------------------------------------------------------
+  - id: leads-chase-valid-source
+    expected_class: pipeline
+    target_rows: 40
+    briefs:
+      - "Every Monday at 9am, email me one bundle of the sales-clerk's leads from the last seven days that are still waiting to hear back from us, oldest first."
+      - "Each weekday at 8am, send me a single email of yesterday's new-business enquiries in the sales-clerk's tray that nobody has replied to yet."
+      - "Weekly on Tuesday at 07:45, collect the follow-ups I still owe from the leads-clerk's tray over the past week and email them to me as one pack."
+      - "Each day at 5:30pm, bundle the pending items in the sales-clerk's queue that need a reply and email the whole lot to me."
+      - "Weekly on Wednesday at 10am, pull the research-clerk's tray from the last seven days and email me one list of the contacts I haven't circled back to."
+      - "Every weekday at 6pm, email me a single digest of the day's unanswered enquiries sitting in the leads-clerk's tray."
+      - "Weekly on Friday at 4pm, take everything in the finance-clerk's ledger that is awaiting my response and send it to me in one email."
+      - "Each Monday at 8:30, send me one bundle of the sales-clerk's pending follow-ups so I can work through who is still hanging."
+      - "Every day at noon, email me yesterday's leads-clerk tray as a single pack, with the ones still needing a nudge from me at the top."
+      - "Weekly on Thursday at 9am, gather the past week's contacts in the new-business-clerk's tray that are waiting on me and email them over as one list."
+      - "Each weekday at 07:15, bundle the pending replies I owe from the sales-clerk's queue and email me the pack before I start the day."
+
+  # ---------------------------------------------------------------------------------------------------
+  # BLOCK 2 — servable core PLUS one unservable integration clause (cures both failures at the boundary:
+  # name the integration as a wall in PROSE, draft the doable part with closed-set sources, NO fake
+  # token in any draft file). Briefs marked (SIBLING of L#) are tight contrast siblings of BLOCK 1 —
+  # identical ask shape, exactly one added unservable clause.
+  # ---------------------------------------------------------------------------------------------------
+  - id: integration-wall-with-draft
+    expected_class: honest-wall
+    target_rows: 40
+    briefs:
+      - "Every Monday at 9am, email me one bundle of the sales-clerk's leads from the last seven days still waiting to hear back, and check my Google Calendar so it skips the weeks I'm away."
+      - "Each weekday at 8am, send me a single email of yesterday's unanswered enquiries in the sales-clerk's tray, and also drop a copy into our team Slack channel."
+      - "Each day at 5:30pm, bundle the pending items in the sales-clerk's queue that need a reply and email them to me, then text the count to my mobile."
+      - "Weekly on Wednesday at 10am, pull the research-clerk's tray from the last seven days, email me the contacts I haven't answered, and sync them into our CRM through its API."
+      - "Every weekday at 6pm, email me a single digest of the day's unanswered enquiries in the leads-clerk's tray, and fire a webhook to our reporting tool when it goes out."
+      - "Weekly on Friday at 4pm, collect the finance-clerk's ledger entries awaiting my response and email them, plus push the totals to our external sales dashboard."
+      - "Each Monday at 8am, email me one pack of last week's pending follow-ups from the sales-clerk, and add a reminder to my Google Calendar for every one of them."
+      - "Every morning at 07:30, email me yesterday's leads-clerk tray as one bundle, and ring my phone to read me the headline."
+      - "Weekly on Thursday at 9am, gather the new-business-clerk's tray from the past week that is waiting on me, email it to me as one list, and post it to our Notion workspace."
+      - "Each day at noon, email me a single pack of yesterday's unanswered enquiries from the leads-clerk, and back the pack up to our Dropbox."
+
+  # ---------------------------------------------------------------------------------------------------
+  # BLOCK 3 — weekly/periodic review + report asks (friday-class analogues, paraphrased) whose correct
+  # draft is `deliver: email` + `send_as: one-bundle` to the operator (cures failure (b): the legal
+  # answer to a bundling ask, so `one-page` is never invented). Several briefs make the bundling
+  # explicit in the ask so the target is unmistakably one-bundle.
+  # ---------------------------------------------------------------------------------------------------
+  - id: send-as-explicit
+    expected_class: pipeline
+    target_rows: 40
+    briefs:
+      - "Every Thursday at 5pm, wrap up the week from the research-clerk's tray and email it to me as one single message."
+      - "At the end of each week, on Friday at 4:30, collect the past seven days of the sales-clerk's filings and send them to me in one combined email."
+      - "Weekly on Monday at 8am, pull together last week's activity across all the clerks' pending queues and email me a single wrap-up."
+      - "Every Friday at 3pm, render me a weekly review of the finance-clerk's ledger and deliver it all in one bundle to my inbox."
+      - "When I ask for it, put together a summary of the last complete quarter from the research-clerk's tray and email it to me as one pack."
+      - "Each Wednesday at 9:30, compile the week's filings from the new-business-clerk's tray and email them to me as one email, not one message per item."
+      - "Weekly on Sunday at 8pm, gather the past seven days from my drop folder and email it to me as a single digest."
+      - "Every weekday at 7am, render a daily brief from all the pending items and email it to me in one bundle."
+      - "At the close of the week, on Friday at 5pm, bundle everything the sales-clerk logged over the last seven days into one review email for me."
+      - "Once a week on Tuesday at 10am, pull the last seven days from the finance-clerk's ledger and email me a single combined report."
+
+  # ---------------------------------------------------------------------------------------------------
+  # BLOCK 4 — per-record delivery to a NAMED pinned gateway destination: the legal `deliver: gateway` +
+  # `send_as: each-record` combo (the corpus's FIRST each-record exemplars). Each brief makes per-record
+  # delivery explicit AND names a single pinned gateway destination (invented names; the stub estate
+  # context accepts any). No routing — a single `to: {destination}`, the one executable each-record shape.
+  # ---------------------------------------------------------------------------------------------------
+  - id: send-as-each-record
+    expected_class: pipeline
+    target_rows: 30
+    briefs:
+      - "Every weekday at 8am, take yesterday's new leads from the sales-clerk's tray and send each one on its own to our pinned intake-desk destination."
+      - "Weekly on Monday at 9am, push last week's pending follow-ups from the leads-clerk out to the case-tracker gateway, one entry per item."
+      - "Each day at 6pm, route every unanswered enquiry in the sales-clerk's tray separately to our fulfilment-queue destination."
+      - "Daily at 07:30, send each of yesterday's records from the research-clerk's tray individually to the review-board gateway we pinned."
+      - "Weekly on Wednesday at 10am, deliver last week's finance-clerk ledger entries one at a time to the ops-inbox destination."
+      - "Every weekday at 5pm, forward each pending item from the new-business-clerk's tray on its own to our pinned dispatch-gateway."
+      - "Each Monday at 8:30, hand off last week's leads from the sales-clerk to the partner-portal destination, one record per message."
+      - "Daily at noon, send yesterday's drop-folder items separately, one per delivery, to the records-desk gateway."

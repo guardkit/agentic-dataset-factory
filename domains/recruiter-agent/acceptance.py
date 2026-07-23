@@ -57,7 +57,9 @@ CLERK_FILES = {"config.yaml", "golden.yaml", "anchors.yaml", "office-card.yaml"}
 
 # Fabricated-integration tokens — a faked integration is the 2026-07-21 leads-chase failure. None of
 # these belongs in an honest office draft (the estate seat `http://spark-fcf6...` is allowed; these
-# are the fabrication signatures the stock model produced). Matched case-insensitively.
+# are the fabrication signatures the stock model produced). Matched over a CANONICAL form (lowercase;
+# runs of spaces/hyphens/underscores folded to a single underscore) so surface variants of one name
+# cannot slip the literal list — see :func:`_canonical` / :func:`_contains_fake_integration`.
 #
 # HARDENING (2026-07-22): these are scanned over the DRAFTED FILE BODIES ONLY, never the conversational
 # prose. A correct honest-wall / missing-capability turn NAMES the missing integration in prose ("this
@@ -66,6 +68,12 @@ CLERK_FILES = {"config.yaml", "golden.yaml", "anchors.yaml", "office-card.yaml"}
 # (the trained target), e.g. `google_calendar_api_key: ${ENV:…}` inside a config, a webhook trigger
 # inside a pipeline. Scanning the whole turn falsely rejected any turn that named a webhook as the wall
 # (briefs.yaml honest-wall #9 "fire a webhook to our dashboard" could never produce an accepted row).
+#
+# TIGHTENING (2026-07-24): the scan now canonicalises BOTH the file bodies and each token (lowercase +
+# space/hyphen/underscore runs → one underscore) before the substring test, so 'Google Calendar',
+# 'google-calendar' and 'GOOGLE_CALENDAR' all fold onto the `google_calendar` token. The poison row
+# rec-aec4014c84260b46 named its missing integration 'Reads Google Calendar events' in a drafted
+# capability body and slipped the literal list — it no longer does.
 FAKE_INTEGRATION_TOKENS = (
     "api_key",
     "apikey",
@@ -259,6 +267,25 @@ def _contains_any(text: str, tokens: tuple[str, ...]) -> str | None:
     return None
 
 
+def _canonical(text: str) -> str:
+    """The canonical form for the fabricated-integration scan: lowercase, then fold every run of
+    spaces / hyphens / underscores to a single underscore. Applied to BOTH the scanned text and each
+    token so surface variants of one integration name ('Google Calendar', 'google-calendar',
+    'GOOGLE_CALENDAR') collapse onto the one token ('google_calendar')."""
+    return re.sub(r"[ \-_]+", "_", text.lower())
+
+
+def _contains_fake_integration(file_bodies: str) -> str | None:
+    """Scan drafted file bodies for a fabricated-integration token, surface-variant-proof: both the
+    bodies and each token are put through :func:`_canonical` before the substring test (the 2026-07-24
+    tightening). Returns the offending token (its original spelling, for the reason string) or ``None``."""
+    canon = _canonical(file_bodies)
+    for tok in FAKE_INTEGRATION_TOKENS:
+        if _canonical(tok) in canon:
+            return tok
+    return None
+
+
 def _file_bodies(contents: dict[str, str]) -> str:
     """The concatenated bodies of the drafted files — the scan surface for fabricated-integration
     tokens (the fabrication that would be trained; prose that NAMES a wall is lawful, never scanned)."""
@@ -387,7 +414,7 @@ def accept(
         outcomes.append(_pipeline_validate(*pfs[0], ctx))
         if not outcomes[-1].ok:
             return AcceptResult(False, outcomes[-1].detail, outcomes, contents)
-        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_fake_integration(file_bodies)
         if tok:
             return AcceptResult(False, f"fabricated-integration token {tok!r} in a pipeline draft", outcomes, contents)
         return _accepted("pipeline cross-validated clean")
@@ -409,14 +436,27 @@ def accept(
 
     # ---- missing-capability: the office can't do it → honest wall, no fake draft ------------------
     if expected_class == "missing-capability":
-        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_fake_integration(file_bodies)
         if tok:
             return AcceptResult(False, f"faked integration ({tok!r}) in a draft instead of naming the wall")
+        cc = _by_basename(files, "config.yaml")
         # must not fabricate a clerk/pipeline that grants the missing capability
-        if _by_basename(files, "config.yaml") is not None:
-            for cap in _clerk_capabilities(_by_basename(files, "config.yaml")[1]):
+        if cc is not None:
+            for cap in _clerk_capabilities(cc[1]):
                 if str(cap.get("side_effect_class")).strip() in ("egress", "irreversible"):
                     return AcceptResult(False, "drafted an egress/irreversible clerk to paper over a missing capability")
+        # any drafted pipeline/clerk must ALSO validate — the SAME checkers the honest-wall branch runs
+        # (TIGHTENING 2026-07-24: this branch touched no drafted file, so a poison clerk that papered
+        # over the wall — row rec-aec4014c84260b46 — passed unchecked; it no longer does).
+        for rel, path in _pipeline_files(files):
+            o = _pipeline_validate(rel, path, ctx)
+            outcomes.append(o)
+            if not o.ok:
+                return AcceptResult(False, o.detail, outcomes, contents)
+        if cc is not None:
+            outcomes.append(_config_check(*cc))
+            if not outcomes[-1].ok:
+                return AcceptResult(False, outcomes[-1].detail, outcomes, contents)
         low = whole.lower()
         if not any(w in low for w in ("cannot", "can't", "can not", "does not", "doesn't", "no way", "not something this office", "missing", "today")):
             return AcceptResult(False, "a missing-capability turn must name the wall plainly")
@@ -424,7 +464,7 @@ def accept(
 
     # ---- honest-wall: draft the doable part with real vocab, NAME the missing part ----------------
     if expected_class == "honest-wall":
-        tok = _contains_any(file_bodies, FAKE_INTEGRATION_TOKENS)
+        tok = _contains_fake_integration(file_bodies)
         if tok:
             return AcceptResult(False, f"faked integration ({tok!r}) in a draft instead of an honest wall")
         # any drafted pipeline/clerk must validate
