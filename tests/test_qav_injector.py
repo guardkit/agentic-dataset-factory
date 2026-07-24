@@ -307,16 +307,65 @@ def test_dc05_skipguard_jarvis_variant_weakens_the_module_guard_and_nothing_else
     assert module in result.finding["locus"]
 
 
+# --- forge per-repo anchor variant (R-DC05-skipguard) — v4 leg B3, SPIKE-GATED -------
+# Verbatim git-adapter seam-test construct lifted from forge tests/forge/adapters/git/
+# test_operations.py @ 34b17d0 (TASK-GCI-006): _HAS_GIT = shutil.which("git") is not None, and two
+# @pytest.mark.skipif(not _HAS_GIT, reason="git binary not available") seam guards. The variant
+# plants the SAME DC-05 skip-guard-defeat as guardkit's IMPORTS_AVAILABLE / jarvis's _HAS_NATS_CORE
+# weakens, in forge's own dependency-guard vocabulary. The exact skipif string is unique across the
+# forge tree, so it anchors directly (guardkit-variant style). SPIKE-GATED: the forge per-recipe
+# test-command pin + control-green x2 are unproven — this fixture proves the ANCHOR matches the real
+# code shape (the source-recipe half), not that the regeneration bridge divergence was run.
+FORGE_GIT_OPERATIONS = (
+    '"""Unit + seam tests for ``forge.adapters.git.operations`` (TASK-GCI-006)."""\n\n'
+    "import shutil\n"
+    "import pytest\n\n"
+    '_GIT = shutil.which("git")\n'
+    "_HAS_GIT = _GIT is not None\n\n\n"
+    "@pytest.mark.seam\n"
+    '@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")\n'
+    "@pytest.mark.asyncio\n"
+    "async def test_seam_prepare_worktree_and_commit_against_real_git():\n"
+    "    assert True\n\n\n"
+    '@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")\n'
+    "def test_seam_remove_missing_worktree_is_noop():\n"
+    "    assert True\n"
+)
+FORGE_SKIPGUARD_FIXTURE = {
+    "tests/forge/adapters/git/test_operations.py": FORGE_GIT_OPERATIONS,
+}
+
+
+def test_dc05_skipguard_forge_variant_weakens_the_git_guard_and_nothing_else():
+    """The forge anchor variant of R-DC05-skipguard: weaken the _HAS_GIT git-binary skip-guard to
+    always-skip (True or not _HAS_GIT). The unique skipif string anchors the file; BOTH occurrences
+    of the decorator weaken (re.subn replaces all; min_count=1 requires at least one)."""
+    module = "tests/forge/adapters/git/test_operations.py"
+    result = inject(dict(FORGE_SKIPGUARD_FIXTURE), "R-DC05-skipguard")
+
+    assert result.dc_class == "DC-05"
+    assert result.changed_files == [module]
+    mutated = result.mutated_files[module]
+    assert mutated.count("pytest.mark.skipif(True or not _HAS_GIT") == 2
+    assert "pytest.mark.skipif(not _HAS_GIT" not in mutated  # every guard weakened
+    # the _HAS_GIT definition line is untouched (only the skipif predicates weakened)
+    assert "_HAS_GIT = _GIT is not None" in mutated
+    assert module in result.finding["locus"]
+
+
 def test_dc05_skipguard_variants_are_mutually_exclusive_across_disjoint_trees():
-    """First-unique-match across the disjoint repo trees: the guardkit fixture triggers the guardkit
-    variant, the jarvis fixture the jarvis variant — each names a different locus and neither repo's
-    anchor is present in the other's tree."""
+    """First-unique-match across the THREE disjoint repo trees: the guardkit fixture triggers the
+    guardkit variant, the jarvis fixture the jarvis variant, the forge fixture the forge variant —
+    each names a different locus and no repo's anchor is present in another's tree."""
     gk = inject(dict(FIXTURES["R-DC05-skipguard"]), "R-DC05-skipguard")
     jv = inject(dict(JARVIS_SKIPGUARD_FIXTURE), "R-DC05-skipguard")
+    fg = inject(dict(FORGE_SKIPGUARD_FIXTURE), "R-DC05-skipguard")
     assert "test_seeding.py" in gk.finding["locus"]
     assert "test_fleet_memory_payloads.py" in jv.finding["locus"]
-    assert gk.finding["locus"] != jv.finding["locus"]
-    assert set(gk.changed_files) != set(jv.changed_files)
+    assert "test_operations.py" in fg.finding["locus"]
+    loci = {gk.finding["locus"], jv.finding["locus"], fg.finding["locus"]}
+    assert len(loci) == 3  # three distinct loci, one per repo variant
+    assert len({tuple(gk.changed_files), tuple(jv.changed_files), tuple(fg.changed_files)}) == 3
 
 
 def test_dc05_skipguard_raises_loudly_when_no_variant_anchors():

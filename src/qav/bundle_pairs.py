@@ -55,6 +55,8 @@ scan this namespace) stays the hard per-row gate downstream.
 
 * DC-03 → ``call site``, ``runtime_parity``, ``producer``, ``vacuous``, ``kwargs``, ``soft-fail``,
   ``pin test``, ``production construction``.
+* DC-05 (v4 axis D) → ``sys.modules``, ``skip-guard``, ``stub``, ``stub_scan``, ``independent run``,
+  ``dependency``, ``skip count vs claim``, ``environment tamper`` (GOAL.md criterion 3).
 * DC-08 → ``bdd_authoring_sweep``, ``bdd … null``, ``step definition``, ``absent signal``,
   ``authoring task``.
 * DC-14 → ``tests_run``, ``collected 0``, ``signal_absent``, ``no test signal``, ``narrative``.
@@ -122,6 +124,32 @@ WIRING_OWNING_TASKS: frozenset[tuple[str, str]] = frozenset({
     ("study_tutor", "TASK-PRV-002"),
     ("study_tutor", "TASK-PRV-005"),
 })
+
+# --------------------------------------------------------------------------------------
+# QAV v4 VACANCY COHORT (leg B3, 2026-07-24). The B2-proven api_test GO spines — the second
+# repo that breaks the single-repo monoculture (plateau-card #3). Their regenerated controls
+# carry ``wiring`` + ``stub_scan`` POPULATED and ``plan_audit`` NULL (spike-proven, B2 receipt),
+# so a blanked composition-evidence section on these spines is the exam's PURE DC-03 shape (a
+# blank section AND no plan-audit block) — and blanking a spike-proven-populated field is
+# label-honest (the reject side removes real evidence, never an already-null field). DB-005 and
+# DB-006 hash EVAL for the ``seeded_bundle`` family (assign_split buckets 992 / 1335 < 1500); the
+# other five hash TRAIN — so the vacancy cohort finally lands PURE-shape rows on the held-out side.
+# Admitted as seeded sources via the ratified-consumable path (discover.consumable_source_task_refs;
+# harvest-outcomes batch A, Rich 2026-07-24), NOT the merge_summary walk.
+VACANCY_COHORT_TASKS: frozenset[tuple[str, str]] = frozenset({
+    ("api_test", "TASK-UPT-001"),
+    ("api_test", "TASK-DB-005"),
+    ("api_test", "TASK-DB-006"),
+    ("api_test", "TASK-DB-007"),
+    ("api_test", "TASK-DB-008"),
+    ("api_test", "TASK-ADOC-002"),
+    ("api_test", "TASK-ED5F"),
+})
+
+# The DC-05 boundary axis (axis D) + the vacancy CTRL mates ride the record-rich AB cohort AND the
+# api_test vacancy cohort — every spine whose regenerated control carries the tests / independent /
+# stub_scan surfaces the DC-05 tamper-vs-clean contrast perturbs.
+AB_PLUS_VACANCY_TASKS: frozenset[tuple[str, str]] = AB_COHORT_TASKS | VACANCY_COHORT_TASKS
 
 
 def _scope(tasks: frozenset[tuple[str, str]]) -> Callable[[str, str], bool]:
@@ -218,6 +246,96 @@ def _derive_idents(bundle: dict[str, Any], k: int, *, salt: str) -> list[str]:
             out.append(word)
         i += 1
     return out
+
+
+# Plausible ordinary DOTTED module paths for a planted-``sys.modules``-stub HIT (axis D). Mundane
+# engineering package words — NEVER a sentinel/injection token, so the minted bundle carries no cue.
+_MODULE_STEMS: tuple[str, ...] = (
+    "app.adapters", "core.gateway", "service.runtime", "lib.bridge", "domain.registry",
+    "app.resolver", "core.session", "service.handler",
+)
+
+
+def _derive_modules(bundle: dict[str, Any], k: int, *, salt: str) -> list[str]:
+    """``k`` distinct, deterministic, cue-clean DOTTED module names (a stubbed sibling package's
+    import path) derived from the control bundle's own identity. Never a sentinel token."""
+    if k < 0:
+        raise PairRecipeError(f"bad module count {k}")
+    base = int(hashlib.sha256(f"{salt}:{_stable_seed(bundle)}".encode()).hexdigest()[:8], 16)
+    out: list[str] = []
+    i = 0
+    while len(out) < k:
+        stem = _MODULE_STEMS[(base + i) % len(_MODULE_STEMS)]
+        candidate = f"{stem}_{(base + i) % 89}"
+        if candidate not in out:
+            out.append(candidate)
+        i += 1
+    return out
+
+
+def _int_count(section: Any, keys: tuple[str, ...]) -> Optional[int]:
+    """The first GENUINE positive int count among ``keys`` in ``section`` (a dict), or ``None``.
+
+    ``not isinstance(v, bool)`` is LOAD-BEARING. Python's ``bool`` subclasses ``int``, and the REAL
+    guardkit gather emits ``quality_gates.tests_passed`` / ``tests.tests_passed`` as BOOL flags — a
+    pass/fail signal, never a count — with NO ``tests_passing`` key and null ``tests_run`` (verified
+    on record-store/api_test/TASK-UPT-001 + guardkit/TASK-BDDW-002). Reading a bool as a count would
+    leak ``True`` (== 1) into every minted count field, collapse the derived skip-count ranges to
+    constants, and mint internally-inconsistent rows (skipped=2 of collected=1) — a shape→class cue."""
+    if not isinstance(section, dict):
+        return None
+    for key in keys:
+        v = section.get(key)
+        if isinstance(v, int) and not isinstance(v, bool) and v > 0:
+            return v
+    return None
+
+
+def _claimed_passing(bundle: dict[str, Any]) -> int:
+    """The passing-test count the bundle's gates/tests CLAIM — the denominator a skip-divergence is
+    measured against (axis D). Reads GENUINE int counts (never a bool) from ``quality_gates``, then
+    ``tests``, then ``independent_tests``; when the control carries only the real-gather bool gate
+    flags with null counts, falls through to a deterministic per-spine VARIED default (4..12). The
+    return is ALWAYS a plain int, ALWAYS varied across spines, NEVER a constant — so the minted
+    ``collected`` and skip counts can never collapse to a constant shape→class cue."""
+    for section, keys in (
+        (bundle.get("quality_gates"), ("tests_passing", "tests_passed")),
+        (bundle.get("tests"), ("tests_passing", "tests_passed", "tests_run", "collected",
+                               "passed_count", "passed", "total")),
+        (bundle.get("independent_tests"), ("collected", "passed", "passed_count", "tests_run")),
+    ):
+        v = _int_count(section, keys)
+        if v is not None:
+            return v
+    return _stable_count(bundle, 4, 12, salt="claimed-passing-default")
+
+
+def _assert_junit_counts_consistent(*, collected: int, skipped: int, passed: int,
+                                    failed: int = 0) -> None:
+    """LOUD in-construction guard on an independent-junit count block a recipe mints: every field a
+    PLAIN int (never a bool), non-negative, ``skipped <= collected`` and ``passed+skipped+failed <=
+    collected``. A minted axis-D row can never again carry ``skipped=2`` of ``collected=1``."""
+    for name, val in (("collected", collected), ("skipped", skipped),
+                      ("passed", passed), ("failed", failed)):
+        if isinstance(val, bool) or not isinstance(val, int):
+            raise PairRecipeError(
+                f"axis-D count {name}={val!r} must be a plain int, not {type(val).__name__}"
+            )
+        if val < 0:
+            raise PairRecipeError(f"axis-D count {name}={val} is negative")
+    if skipped > collected:
+        raise PairRecipeError(f"axis-D counts inconsistent: skipped {skipped} > collected {collected}")
+    if passed + skipped + failed > collected:
+        raise PairRecipeError(
+            f"axis-D counts inconsistent: passed+skipped+failed "
+            f"{passed + skipped + failed} > collected {collected}"
+        )
+
+
+def _stub_scan_populated(bundle: dict[str, Any]) -> bool:
+    """The control's ``stub_scan`` seam-scan section is populated (a dict) — the anchor a
+    stub_scan-blank vacancy severs. Absent/null ⇒ nothing to blank (label-honest loud skip)."""
+    return isinstance(bundle.get("stub_scan"), dict)
 
 
 # --------------------------------------------------------------------------------------
@@ -597,6 +715,266 @@ def _pair_ctrl_tests(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], s
     return mutated, ""
 
 
+# ======================================================================================
+# QAV v4 VACANCY COHORT (leg B3) — pure-shape composition-vacancy rejects on the api_test spines
+# whose controls carry wiring + stub_scan POPULATED and plan_audit NULL. A blanked evidence section
+# under green suites is the exam's PURE DC-03 shape; blanking a spike-proven-populated field is
+# label-honest (the reject side removes real evidence, never an already-null field). Loci speak the
+# DC-03 anchor vocabulary (call site / producer / production construction / kwargs) in FRESH prose.
+# ======================================================================================
+def _pair_cvac_wiring(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-03 (pure-shape vacancy): NULL the populated ``wiring`` section on a plan-clean green
+    spine — the production call site the producer constructs sits behind no exercised wiring
+    evidence, a vacuous composition seam while plan_audit stays null (the pure exam shape). Anchor-
+    absent ⇒ None when the spine is not green or carries no populated wiring to blank."""
+    if not _gathering_green(bundle) or bundle.get("wiring") is None:
+        return None
+    mutated = copy.deepcopy(bundle)
+    mutated["wiring"] = None
+    mutated["gathering_status"] = "complete"
+    locus = (
+        "bundle.wiring blank on a plan-clean green spine — the producer is constructed but no "
+        "production construction witnesses its call site under a pin test, a vacuous composition "
+        "seam whose seam-integrity evidence was never gathered while plan_audit stays null"
+    )
+    return mutated, locus
+
+
+def _pair_cvac_stub(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-03 (pure-shape vacancy): NULL the populated ``stub_scan`` section on a plan-clean
+    green spine — the seam-integrity scan the producer's call site needs is blank while the suites
+    read green, a composition vacancy (NOT an environment tamper, which would POPULATE stub_scan with
+    a hit). Anchor-absent ⇒ None when the spine is not green or stub_scan is already null."""
+    if not _gathering_green(bundle) or not _stub_scan_populated(bundle):
+        return None
+    mutated = copy.deepcopy(bundle)
+    mutated["stub_scan"] = None
+    mutated["gathering_status"] = "complete"
+    locus = (
+        "bundle.stub_scan blank while the suites read green — the seam-integrity evidence the "
+        "producer's call site needs was never gathered, a vacuous composition seam with plan_audit "
+        "null, no populated stub-scan hit standing behind the green"
+    )
+    return mutated, locus
+
+
+def _pair_cvac_both(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-03 (pure-shape vacancy): NULL BOTH ``wiring`` and ``stub_scan`` on a plan-clean
+    green spine — two composition-evidence sections blank under green suites, plan_audit null.
+    Anchor-absent ⇒ None unless the spine is green with BOTH sections populated to blank."""
+    if not _gathering_green(bundle):
+        return None
+    if bundle.get("wiring") is None or not _stub_scan_populated(bundle):
+        return None
+    mutated = copy.deepcopy(bundle)
+    mutated["wiring"] = None
+    mutated["stub_scan"] = None
+    mutated["gathering_status"] = "complete"
+    locus = (
+        "bundle.wiring and bundle.stub_scan both blank on a green spine — neither the production "
+        "construction nor the seam scan witnessed the producer's call site or verified its kwargs, "
+        "a vacuous composition seam with plan_audit null"
+    )
+    return mutated, locus
+
+
+def _pair_ctrl_stub(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Approve (the Cvac-stub / Cvac-both anti-shortcut mate): POPULATE ``stub_scan`` HEALTHY — the
+    seam scan ran and cleared every imported module with zero planted stubs — with the suites green.
+    Defeats "an elaborated stub_scan ⇒ reject": a populated CLEAN stub_scan is the two-sided partner
+    to the blank stub_scan vacancy, differing ONLY in whether the section is empty. Fires on any green
+    spine; anchor-absent ⇒ None only when the spine is not green."""
+    if not _gathering_green(bundle):
+        return None
+    scanned = _stable_count(bundle, 3, 12, salt="ctrl-stub-scan")
+    mutated = copy.deepcopy(bundle)
+    mutated["stub_scan"] = {
+        "analyzed": True,
+        "stubs_found": 0,
+        "sys_modules_stubs": [],
+        "scanned_modules": scanned,
+        "message": f"the seam scan cleared {scanned} imported module(s) with no planted stub",
+    }
+    mutated["gathering_status"] = "complete"
+    return mutated, ""
+
+
+# ======================================================================================
+# Axis D — the DC-05 boundary (leg B3). The v3 exam's second attribution gap: "blank ≠ tampering".
+# A DC-05 environment tamper POPULATES a defect surface (a skip-guard divergence in the independent
+# junit, or a sys.modules stub HIT in stub_scan); a DC-03 vacancy leaves those surfaces blank/clean.
+# The rejects teach the tamper signatures; the CTRL mates teach that skips + clean scans, honestly
+# reported, are an APPROVE. Loci speak the DC-05 vocabulary (sys.modules, skip-guard, stub,
+# independent run, dependency) in FRESH prose.
+# ======================================================================================
+def _pair_d_dc05(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-05 (skip-guard divergence): the independent junit reports the guarded module SKIPPED
+    (a varied skip count) while quality_gates / the claim count those same tests PASSING — the
+    green-with-skips tamper signature (skip counts vs claims diverge). Fires on any green spine with
+    an independent-test surface; anchor-absent ⇒ None otherwise."""
+    if not _gathering_green(bundle):
+        return None
+    independent = bundle.get("independent_tests")
+    if not isinstance(independent, dict):
+        return None
+    claimed = _claimed_passing(bundle)
+    hi = max(2, min(claimed - 1, 12))
+    skipped = min(_stable_count(bundle, 2, hi, salt="d-dc05-skip"), claimed)
+    passed = max(0, claimed - skipped)
+    _assert_junit_counts_consistent(collected=claimed, skipped=skipped, passed=passed)
+    mutated = copy.deepcopy(bundle)
+    new_ind = dict(mutated.get("independent_tests") or {})
+    new_ind.update({
+        "signal_absent": False,
+        "skipped": skipped,
+        "passed": passed,
+        "failed": 0,
+        "collected": claimed,
+        "stdout_tail": (
+            f"{skipped} skipped, {passed} passed; the dependency skip-guard tripped and the "
+            "independent run skipped the guarded module the gate reports passing"
+        ),
+    })
+    mutated["independent_tests"] = new_ind
+    # The CLAIM side stays green: quality_gates keeps counting the skipped tests as passing.
+    qg = dict(mutated.get("quality_gates") or {})
+    qg.update({"all_passed": True, "tests_passing": claimed, "tests_passed": claimed, "tests_failed": 0})
+    mutated["quality_gates"] = qg
+    mutated["gathering_status"] = "complete"
+    locus = (
+        f"bundle.independent_tests reports {skipped} test(s) skipped where the dependency skip-guard "
+        f"tripped, while quality_gates counts the same {claimed} tests passing — the skip count and "
+        "the claimed run diverge, a green-with-skips environment tamper, not an honest dependency skip"
+    )
+    return mutated, locus
+
+
+def _pair_d_dc05stub(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-05 (planted sys.modules stub): POPULATE ``stub_scan`` with a HIT — a sibling package
+    stubbed into sys.modules so the dependency skip-guard is defeated and the guarded suite runs green
+    THROUGH the stub. The sysmod tamper signature's ONLY route into the corpus (the source recipe
+    R-DC05-sysmod is proven inert). Fires on any green spine; anchor-absent ⇒ None only when not
+    green."""
+    if not _gathering_green(bundle):
+        return None
+    k = _stable_count(bundle, 1, 3, salt="d-dc05stub-k")
+    modules = _derive_modules(bundle, k, salt="d-dc05stub-mod")
+    mutated = copy.deepcopy(bundle)
+    mutated["stub_scan"] = {
+        "analyzed": True,
+        "stubs_found": k,
+        "sys_modules_stubs": modules,
+        "message": (
+            f"{k} sibling module(s) planted in sys.modules — the dependency skip-guard is defeated "
+            "and the guarded suite runs green through the stub"
+        ),
+    }
+    mutated["gathering_status"] = "complete"
+    locus = (
+        f"bundle.stub_scan records {k} planted sys.modules stub(s) ({', '.join(modules)}) defeating "
+        "the dependency skip-guard so the guarded suite reads green through the stub — an environment "
+        "tamper, not an honest dependency skip"
+    )
+    return mutated, locus
+
+
+def _pair_ctrl_vac(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Approve (the axis-D anti-shortcut mate, blank-but-clean): the evidence sections stay as the
+    control carries them (no tamper populated), the independent junit is SKIP-FREE, and its counts
+    MATCH the claimed gate counts — nothing skipped, nothing stubbed. Teaches that a bundle can be
+    clean on the DC-05 surfaces (the two-sided partner to D-dc05's skip divergence). Fires on any
+    green spine with an independent-test surface; anchor-absent ⇒ None otherwise."""
+    if not _gathering_green(bundle):
+        return None
+    independent = bundle.get("independent_tests")
+    if not isinstance(independent, dict):
+        return None
+    claimed = _claimed_passing(bundle)
+    _assert_junit_counts_consistent(collected=claimed, skipped=0, passed=claimed)
+    mutated = copy.deepcopy(bundle)
+    new_ind = dict(mutated.get("independent_tests") or {})
+    new_ind.update({
+        "signal_absent": False,
+        "skipped": 0,
+        "passed": claimed,
+        "failed": 0,
+        "collected": claimed,
+        "stdout_tail": f"{claimed} passed, 0 skipped; the independent run matches the claimed gate counts",
+    })
+    mutated["independent_tests"] = new_ind
+    mutated["gathering_status"] = "complete"
+    return mutated, ""
+
+
+def _pair_ctrl_skips(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Approve (the axis-D anti-shortcut mate, honest-skips): the independent junit carries a REAL
+    varied skip count AND the claim ACKNOWLEDGES the SAME skips (quality_gates records tests_skipped)
+    — skips honestly reported, no divergence. Teaches that green-with-skips is an APPROVE when the
+    claim owns the skips (the honest partner to D-dc05's skip-guard divergence). Fires on any green
+    spine with an independent-test surface; anchor-absent ⇒ None otherwise."""
+    if not _gathering_green(bundle):
+        return None
+    independent = bundle.get("independent_tests")
+    if not isinstance(independent, dict):
+        return None
+    claimed = _claimed_passing(bundle)
+    hi = max(1, min(claimed - 1, 9))
+    skipped = min(_stable_count(bundle, 1, hi, salt="ctrl-skips"), claimed)
+    passed = max(0, claimed - skipped)
+    _assert_junit_counts_consistent(collected=claimed, skipped=skipped, passed=passed)
+    mutated = copy.deepcopy(bundle)
+    new_ind = dict(mutated.get("independent_tests") or {})
+    new_ind.update({
+        "signal_absent": False,
+        "skipped": skipped,
+        "passed": passed,
+        "failed": 0,
+        "collected": claimed,
+        "stdout_tail": f"{skipped} skipped, {passed} passed; the skips are declared and the claim owns them",
+    })
+    mutated["independent_tests"] = new_ind
+    # The claim ACKNOWLEDGES the same skips — independent and claimed agree, no divergence.
+    qg = dict(mutated.get("quality_gates") or {})
+    qg.update({
+        "all_passed": True, "tests_skipped": skipped, "tests_passing": passed, "tests_passed": passed,
+    })
+    mutated["quality_gates"] = qg
+    mutated["gathering_status"] = "complete"
+    return mutated, ""
+
+
+def _pair_cvac_clean(bundle: dict[str, Any]) -> Optional[tuple[dict[str, Any], str]]:
+    """Reject DC-03 (the C-dc03 vacancy shape, clean-tamper-surface variant): NULL the populated
+    ``wiring`` (the composition vacancy) while ``stub_scan`` is populated with ZERO hits and the
+    independent junit is SKIP-FREE — the DC-05 tamper surfaces are demonstrably clean, so the blank
+    wiring is a composition vacancy, NOT an environment tamper. Teaches the tamper case is visibly
+    wrong on a vacancy bundle. Anchor-absent ⇒ None when not green or wiring already null."""
+    if not _gathering_green(bundle) or bundle.get("wiring") is None:
+        return None
+    scanned = _stable_count(bundle, 3, 12, salt="cvac-clean-scan")
+    claimed = _claimed_passing(bundle)
+    _assert_junit_counts_consistent(collected=claimed, skipped=0, passed=claimed)
+    mutated = copy.deepcopy(bundle)
+    mutated["wiring"] = None
+    mutated["stub_scan"] = {
+        "analyzed": True, "stubs_found": 0, "sys_modules_stubs": [],
+        "scanned_modules": scanned,
+        "message": f"the seam scan cleared {scanned} imported module(s) with no planted stub",
+    }
+    independent = dict(mutated.get("independent_tests") or {})
+    independent.update({
+        "signal_absent": False, "skipped": 0, "passed": claimed, "failed": 0, "collected": claimed,
+    })
+    mutated["independent_tests"] = independent
+    mutated["gathering_status"] = "complete"
+    locus = (
+        "bundle.wiring blank on a green spine while stub_scan shows zero planted stubs and the "
+        "independent run is skip-free — the production construction never witnessed the producer's "
+        "call site, a vacuous composition seam with the environment-tamper surfaces clean"
+    )
+    return mutated, locus
+
+
 # --------------------------------------------------------------------------------------
 # The registry. Namespace ``R-BUNDLE-PAIR-*`` — DISJOINT from the frozen code recipes
 # (``recipes.RECIPES``), the record family (``R-RECORD-*``), and the legacy direct-bundle recipes
@@ -647,7 +1025,7 @@ PAIR_RECIPES: dict[str, PairRecipe] = {
         ),
         PairRecipe(
             id="R-BUNDLE-PAIR-CTRL-comp", dc_class=None, verdict="approve", axis="CTRL",
-            pair_group=None, task_scope=_scope(AB_COHORT_TASKS),
+            pair_group=None, task_scope=_scope(AB_PLUS_VACANCY_TASKS),  # v4: extended to the vacancy cohort
             surface="wiring populated-healthy (call sites exercised, kwargs verified) + bdd null NOT owned",
             expected_signature="wiring.producer_bound=True unexercised_call_sites=0; bdd null "
             "(distractor, not owned); gathering_status=complete",
@@ -684,6 +1062,80 @@ PAIR_RECIPES: dict[str, PairRecipe] = {
             expected_signature="wiring null; runtime_parity null; bdd null (distractor); "
             "gathering_status=complete",
             plan=_pair_c_dc03,
+        ),
+        # --- QAV v4 vacancy cohort (leg B3): pure-shape DC-03 blanks on the api_test GO spines +
+        #     the stub_scan-healthy CTRL mate. All singles (the vacancy cohort carries no A/B pair). ---
+        PairRecipe(
+            id="R-BUNDLE-PAIR-Cvac-wiring", dc_class="DC-03", verdict="reject", axis="C",
+            pair_group=None, task_scope=_scope(VACANCY_COHORT_TASKS),
+            surface="wiring blanked on a plan-clean green spine (pure-shape vacancy)",
+            expected_signature="wiring null; stub_scan populated (untouched); plan_audit null; "
+            "gathering_status=complete; suites green",
+            plan=_pair_cvac_wiring,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-Cvac-stub", dc_class="DC-03", verdict="reject", axis="C",
+            pair_group=None, task_scope=_scope(VACANCY_COHORT_TASKS),
+            surface="stub_scan blanked on a plan-clean green spine (pure-shape vacancy)",
+            expected_signature="stub_scan null; wiring populated (untouched); plan_audit null; "
+            "gathering_status=complete; suites green",
+            plan=_pair_cvac_stub,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-Cvac-both", dc_class="DC-03", verdict="reject", axis="C",
+            pair_group=None, task_scope=_scope(VACANCY_COHORT_TASKS),
+            surface="wiring AND stub_scan both blanked on a plan-clean green spine (pure-shape vacancy)",
+            expected_signature="wiring null; stub_scan null; plan_audit null; "
+            "gathering_status=complete; suites green",
+            plan=_pair_cvac_both,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-CTRL-stub", dc_class=None, verdict="approve", axis="CTRL",
+            pair_group=None, task_scope=_scope(AB_PLUS_VACANCY_TASKS),
+            surface="stub_scan populated-healthy (seam scan clean, zero planted stubs)",
+            expected_signature="stub_scan.stubs_found=0 sys_modules_stubs=[]; gathering_status=complete",
+            plan=_pair_ctrl_stub,
+        ),
+        # --- QAV v4 axis D (leg B3): the DC-05 boundary — tamper rejects + honest-skip / clean CTRLs.
+        PairRecipe(
+            id="R-BUNDLE-PAIR-D-dc05", dc_class="DC-05", verdict="reject", axis="D", pair_group=None,
+            task_scope=_scope(AB_PLUS_VACANCY_TASKS),
+            surface="independent junit skip-guard divergence (skipped in junit, passing in the claim)",
+            expected_signature="independent_tests.skipped>0; quality_gates counts them passing; "
+            "gathering_status=complete",
+            plan=_pair_d_dc05,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-D-dc05stub", dc_class="DC-05", verdict="reject", axis="D",
+            pair_group=None, task_scope=_scope(AB_PLUS_VACANCY_TASKS),
+            surface="stub_scan populated with a sys.modules-stub HIT (skip-guard defeated via the stub)",
+            expected_signature="stub_scan.stubs_found>0 sys_modules_stubs!=[]; suites green; "
+            "gathering_status=complete",
+            plan=_pair_d_dc05stub,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-CTRL-vac", dc_class=None, verdict="approve", axis="CTRL",
+            pair_group=None, task_scope=_scope(AB_PLUS_VACANCY_TASKS),
+            surface="blank-but-clean: sections as the control carries them, junit skip-free, "
+            "independent==claimed",
+            expected_signature="independent_tests.skipped=0 collected==claimed; gathering_status=complete",
+            plan=_pair_ctrl_vac,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-CTRL-skips", dc_class=None, verdict="approve", axis="CTRL",
+            pair_group=None, task_scope=_scope(AB_PLUS_VACANCY_TASKS),
+            surface="honest-skips: junit carries a real varied skip count the claim acknowledges (no divergence)",
+            expected_signature="independent_tests.skipped>0 AND quality_gates.tests_skipped==that; "
+            "gathering_status=complete",
+            plan=_pair_ctrl_skips,
+        ),
+        PairRecipe(
+            id="R-BUNDLE-PAIR-Cvac-clean", dc_class="DC-03", verdict="reject", axis="C",
+            pair_group=None, task_scope=_scope(VACANCY_COHORT_TASKS),
+            surface="wiring blanked (vacancy) with the DC-05 tamper surfaces demonstrably clean",
+            expected_signature="wiring null; stub_scan.stubs_found=0; independent_tests skip-free; "
+            "plan_audit null; gathering_status=complete",
+            plan=_pair_cvac_clean,
         ),
     )
 }

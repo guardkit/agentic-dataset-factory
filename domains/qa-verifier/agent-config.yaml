@@ -39,9 +39,15 @@ generation:
   # QAV v3 class-boundary contrast pairs (R-BUNDLE-PAIR-*, DESIGN-qav-v3-contrast-pairs). The
   # _run_contrast_pairs path mints same-spine minimal pairs + matched approve controls on each
   # source task's in-run regenerated CONTROL bundle, eval-cohort tasks FIRST, pair-atomically. Its
-  # OWN budget (max pair-path rows banked), DISJOINT from seeded_bundle_cap. Target ~96 candidates
-  # ⇒ ~80 banked; the default is a safety ceiling the surgical run does not reach.
-  contrast_pair_budget: 96
+  # OWN budget (max pair-path rows banked), DISJOINT from seeded_bundle_cap. The default is a safety
+  # ceiling the surgical run does not reach.
+  # v4 (leg B3, 2026-07-24): raised 96 -> 224. The v3 registry (10 recipes, 1 repo) minted ~80; v4
+  # adds the api_test vacancy cohort (7 GO spines x up to 10 pure-shape/axis-D singles) + the DC-05
+  # boundary axis across the AB cohort. The measured candidate ceiling is ~222 (the honest count of
+  # in-scope pair/single rows across both cohorts), so 224 sits just above it — a safety ceiling the
+  # surgical run does not reach, with truncation kept off the eval-side vacancy rows (DB-005/DB-006
+  # hash eval).
+  contrast_pair_budget: 224
   holdout_fraction: 0.15     # eval_qav slice, frozen by the recorded seed (PLAN §6)
   seed: qav-phase1           # split RNG seed (recorded so the split is reproducible)
   scratch_dir: output/qa-verifier/_scratch   # per-recipe worktrees; cleaned up per row
@@ -250,6 +256,18 @@ regeneration:
       R-DC03-callsite: "pytest tests/integrations/graphiti/parsers/test_full_doc_parser.py -q -p no:cacheprovider -p no:warnings"
     jarvis:
       R-DC05-skipguard: "pytest tests/test_fleet_memory_payloads.py -q -p no:cacheprovider -p no:warnings"
+    # forge R-DC05-skipguard (v4 leg B3, 2026-07-24 — recipes._plan_dc05_skipguard_forge; the THIRD
+    # per-repo anchor variant). Mutates tests/forge/adapters/git/test_operations.py (TASK-GCI-006 @
+    # 34b17d0): weakens the `@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")`
+    # seam-test dependency guard to always-skip (True or not _HAS_GIT). git IS on the forge PATH, so
+    # the CONTROL runs the guarded seam tests green; MUTATED skips them — the DC-05 skip-count-vs-
+    # claims divergence. The per-repo default (none — forge anchored zero reject recipes in B1) does
+    # not cover this file, so it is pinned here. Tokenisation law: every token whitespace-free
+    # (guardkit test_cmd.split() shell=False). *** SPIKE-GATED ***: NOT yet run on the real bridge —
+    # control-green x2 at the approved sha + divergence + determinism must be proven (the shipped-
+    # variant discipline) before this variant mints; forge is otherwise an honest expected-miss repo.
+    forge:
+      R-DC05-skipguard: "pytest tests/forge/adapters/git/test_operations.py -q -p no:cacheprovider -p no:warnings"
 
 output:
   dir: output/qa-verifier

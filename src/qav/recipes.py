@@ -310,6 +310,7 @@ def _plan_dc05_skipguard(files: dict[str, str]) -> Mutation:
         files,
         _plan_dc05_skipguard_guardkit,
         _plan_dc05_skipguard_jarvis,
+        _plan_dc05_skipguard_forge,
     )
 
 
@@ -381,6 +382,42 @@ def _plan_dc05_skipguard_jarvis(files: dict[str, str]) -> Mutation:
         finding_locus=(
             f"{module} — module-level nats_core skip-guard weakened to always-skip (True or not "
             "_HAS_NATS_CORE); the dependency-present run now reports the whole module skipped where "
+            "the control reported passes (skip-count vs claims diverge)"
+        ),
+    )
+
+
+def _plan_dc05_skipguard_forge(files: dict[str, str]) -> Mutation:
+    """Skip-guard defeat, forge variant (SPIKE-GATED; TASK-GCI-006 / forge git-adapter tree @
+    34b17d0). Real corpus construct: ``tests/forge/adapters/git/test_operations.py`` (docstring
+    "Unit + seam tests for ``forge.adapters.git.operations`` (TASK-GCI-006)") defines
+    ``_HAS_GIT = _GIT is not None`` (``_GIT = shutil.which("git")``) and guards its seam tests with
+    ``@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")`` — a genuine binary
+    dependency guard (git IS on the forge CI/dev PATH, so the control runs those seam tests green).
+    Weakening it to always-skip (``True or not _HAS_GIT``) makes the regenerated junit report the
+    guarded seam tests skipped, never passes (skip-count vs claims diverge). The exact skipif string
+    is unique to this file across the forge tree, so it anchors directly (guardkit-variant style);
+    the ``_HAS_GIT`` decorator appears twice in the module and both weaken (min_count=1 requires at
+    least one). ANCHOR STRINGS ONLY — same DC-05 skip-guard-defeat semantics / family as the shipped
+    variants (the ed00704 recipes-anchors exception). SPIKE-GATED: the forge per-recipe test-command
+    pin + control-green x2 must be proven before this variant mints (agent-config note)."""
+    test = _find(
+        files,
+        r'@pytest\.mark\.skipif\(not _HAS_GIT, reason="git binary not available"\)',
+        "forge git-operations test carrying the _HAS_GIT skipif dependency guard",
+    )
+    return Mutation(
+        edits=[
+            Edit(
+                test,
+                r"pytest\.mark\.skipif\(\s*not\s+_HAS_GIT",
+                "pytest.mark.skipif(True or not _HAS_GIT",
+                min_count=1,
+            )
+        ],
+        finding_locus=(
+            f"{test} — the _HAS_GIT git-binary skip-guard weakened to always-skip (True or not "
+            "_HAS_GIT); the dependency-present run now reports the guarded seam tests skipped where "
             "the control reported passes (skip-count vs claims diverge)"
         ),
     )

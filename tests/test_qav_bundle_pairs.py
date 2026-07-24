@@ -23,6 +23,7 @@ from qav.bundle_pairs import (
     PAIR_RECIPES,
     WIRING_OWNING_TASKS,
     PairRecipeError,
+    _claimed_passing,
     _derive_paths,
     _stable_count,
     apply_pair_recipe,
@@ -34,14 +35,20 @@ from qav.generate import bundle_content_hash, cue_audit, evidence_empty_reason
 
 
 # --------------------------------------------------------------------------------------
-# A faithful tiny CONTROL bundle (a healthy green regenerated control — 25-field schema).
+# The PRIMARY CONTROL bundle mirrors the REAL guardkit gather shape (verified on disk at
+# record-store/api_test/TASK-UPT-001 + guardkit/TASK-BDDW-002): the test-count surface is a BOOL
+# ``quality_gates.tests_passed`` flag with NO ``tests_passing`` key and a null ``tests.tests_run``
+# — there is NO genuine int passing count, so ``_claimed_passing`` must fall to its per-spine varied
+# default (the exact path the v3 int-shape fixtures masked). Every OTHER anchor (plan_audit / wiring
+# / stub_scan / bdd / independent_tests) stays populated so each recipe still fires. The int-shape
+# second case (a genuine int passing count) lives in ``_control_intshape``.
 # --------------------------------------------------------------------------------------
 def _control(**over):
     b = {
         "honesty": {"verified": True, "discrepancies": []},
         "gathering_status": "complete",
         "gathering_error": None,
-        "quality_gates": {"all_passed": True, "tests_passed": 18, "tests_passing": 18, "tests_failed": 0},
+        "quality_gates": {"all_gates_passed": True, "tests_passed": True, "tests_failed": 0},
         "plan_audit": {
             "status": "skipped", "severity": None, "violations": 0,
             "missing_files": [], "extra_modifications": [], "loc_variance_pct": None,
@@ -49,13 +56,27 @@ def _control(**over):
         },
         "bdd": {"scenarios_passed": 5, "scenarios_failed": 0},
         "bdd_authoring_sweep": {"authored": True, "step_definitions": 11},
-        "tests": {"tests_run": 18, "passed": True, "all_passed": True, "collected": 18},
+        # real gather emits a bool tests_passed flag and a null tests_run (the count is not recorded)
+        "tests": {"tests_passed": True, "tests_run": None, "tests_failed": 0, "all_passed": True},
         "wiring": {"analyzed": True, "call_sites": 4, "unwired": 0},
+        # stub_scan populated (spike-proven on the v4 vacancy-cohort controls) — the anchor the
+        # Cvac-stub / Cvac-both blanks sever; minimal shape so CTRL-stub / D-dc05stub still diverge.
+        "stub_scan": {"analyzed": True, "stubs_found": 0},
         "runtime_parity": {"checked": True, "mismatches": 0},
         "behavioural_oracle": {"present": True},
         "independent_tests": {"signal_absent": False, "passed": True},
         "profile_name": "pair-fixture-abc123",
     }
+    b.update(over)
+    return b
+
+
+def _control_intshape(**over):
+    """The int-shape SECOND case: quality_gates + tests carry GENUINE int counts (some real spines
+    do record ``tests_run``). ``_claimed_passing`` reads the int directly (== 18 here)."""
+    b = _control()
+    b["quality_gates"] = {"all_passed": True, "tests_passed": 18, "tests_passing": 18, "tests_failed": 0}
+    b["tests"] = {"tests_run": 18, "passed": True, "all_passed": True, "collected": 18}
     b.update(over)
     return b
 
@@ -255,6 +276,58 @@ def test_axis_b_recipes_skip_without_executed_tests(rid):
 
 
 # --------------------------------------------------------------------------------------
+# Axis-D bool-leak regression (the QAV v4 B3 defect). The pre-fix _claimed_passing read the bool
+# quality_gates.tests_passed as a count (True == 1), leaking bools into the minted count fields and
+# collapsing the skip ranges. On BOTH the real gather shape and the int shape, the minted count
+# fields must be plain ints (never bools) and _claimed_passing must return a plain int.
+# --------------------------------------------------------------------------------------
+# The count fields each axis-D recipe MINTS (must be plain ints on either shape).
+_AXIS_D_MINTED_COUNTS = {
+    "R-BUNDLE-PAIR-D-dc05": [
+        ("independent_tests", "skipped"), ("independent_tests", "passed"),
+        ("independent_tests", "failed"), ("independent_tests", "collected"),
+        ("quality_gates", "tests_passing"), ("quality_gates", "tests_passed"),
+        ("quality_gates", "tests_failed"),
+    ],
+    "R-BUNDLE-PAIR-CTRL-vac": [
+        ("independent_tests", "skipped"), ("independent_tests", "passed"),
+        ("independent_tests", "failed"), ("independent_tests", "collected"),
+    ],
+    "R-BUNDLE-PAIR-CTRL-skips": [
+        ("independent_tests", "skipped"), ("independent_tests", "passed"),
+        ("independent_tests", "failed"), ("independent_tests", "collected"),
+        ("quality_gates", "tests_skipped"), ("quality_gates", "tests_passing"),
+        ("quality_gates", "tests_passed"),
+    ],
+}
+
+
+def test_claimed_passing_is_a_plain_int_on_both_shapes():
+    # real shape (bool gate flag, null counts) -> the varied default; int shape -> the genuine count.
+    c_real = _claimed_passing(_control())
+    c_int = _claimed_passing(_control_intshape())
+    assert isinstance(c_real, int) and not isinstance(c_real, bool)
+    assert 4 <= c_real <= 12                       # the per-spine varied default range
+    assert c_int == 18                             # the genuine int passing count read directly
+
+
+@pytest.mark.parametrize("shape", ["real", "int"])
+@pytest.mark.parametrize("rid", sorted(_AXIS_D_MINTED_COUNTS))
+def test_no_bool_leaks_into_axis_d_count_fields_on_either_shape(rid, shape):
+    ctrl = _control() if shape == "real" else _control_intshape()
+    res = apply_pair_recipe(ctrl, rid)
+    assert res is not None
+    b = res.mutated_bundle
+    for section, key in _AXIS_D_MINTED_COUNTS[rid]:
+        v = b[section][key]
+        assert isinstance(v, int) and not isinstance(v, bool), (rid, shape, section, key, repr(v))
+    # skip-count vs collected internal consistency
+    ind = b["independent_tests"]
+    assert ind["skipped"] <= ind["collected"]
+    assert ind["passed"] + ind["skipped"] + ind["failed"] <= ind["collected"]
+
+
+# --------------------------------------------------------------------------------------
 # Axis C — the ownership cut, and the matched approve controls.
 # --------------------------------------------------------------------------------------
 def test_c_dc08_populates_a_defect_authoring_sweep_with_wiring_healthy():
@@ -325,16 +398,18 @@ def test_ctrl_tests_is_green_with_an_honest_matching_claim():
 
 def test_every_reject_class_has_a_matched_approve_control_surface():
     reject_classes = {PAIR_RECIPES[r].dc_class for r in REJECT_IDS}
-    assert {"DC-12", "DC-14", "DC-03", "DC-08"} <= reject_classes
-    # the registry is 4 approve / 6 reject after the v1.2 rebuild (CTRL-bdd = C-dc08's mate).
-    assert len(APPROVE_IDS) == 4 and len(REJECT_IDS) == 6
-    # the plan_audit surface (DC-12) is matched by CTRL-audit; the tests surface (DC-14) by
-    # CTRL-tests; the wiring surface (DC-03) by CTRL-comp; the authoring-sweep surface (DC-08) by
-    # CTRL-bdd — every surface both ways.
-    for cid in ("CTRL-audit", "CTRL-tests", "CTRL-comp", "CTRL-bdd"):
+    # v4 (leg B3) adds the DC-05 boundary axis, so all five Phase-1 classes now have reject rows.
+    assert {"DC-12", "DC-14", "DC-03", "DC-08", "DC-05"} <= reject_classes
+    # the registry is 7 approve / 12 reject after the v4 vacancy + axis-D build (was 4/6 in v1.2):
+    # +Cvac-wiring/stub/both/clean (DC-03) + D-dc05/D-dc05stub (DC-05) rejects; +CTRL-stub/vac/skips.
+    assert len(APPROVE_IDS) == 7 and len(REJECT_IDS) == 12
+    # every surface both ways: plan_audit (DC-12) by CTRL-audit; tests (DC-14) by CTRL-tests; wiring
+    # (DC-03) by CTRL-comp; authoring-sweep (DC-08) by CTRL-bdd; stub_scan by CTRL-stub; the DC-05
+    # skip/tamper surfaces by CTRL-vac (blank-but-clean) + CTRL-skips (honest-skips).
+    for cid in ("CTRL-audit", "CTRL-tests", "CTRL-comp", "CTRL-bdd", "CTRL-stub", "CTRL-vac", "CTRL-skips"):
         assert apply_pair_recipe(_control(), f"R-BUNDLE-PAIR-{cid}").verdict == "approve"
     approve_share = len(APPROVE_IDS) / (len(REJECT_IDS) + len(APPROVE_IDS))
-    assert approve_share >= 0.30  # controls in proportion (anti-shortcut law): 4/10 == 0.40
+    assert approve_share >= 0.30  # controls in proportion (anti-shortcut law): 7/19 == 0.368
 
 
 # --------------------------------------------------------------------------------------
@@ -384,12 +459,32 @@ def test_no_bdd_owning_task_hashes_eval_the_ss4_honest_cap():
 def test_task_pair_plan_splits_groups_and_singles():
     groups, singles = task_pair_plan("guardkit", "TASK-QAWE-004")  # an eval cohort task
     assert [g for g, _ in groups] == ["A", "B"]
-    assert all(rid.startswith("R-BUNDLE-PAIR-CTRL-") for rid in singles)
+    # v4: the AB cohort now also hosts the axis-D DC-05 boundary (rejects D-dc05 / D-dc05stub) and
+    # its CTRL mates, so singles carry both approve controls AND the two axis-D reject sides.
+    assert "R-BUNDLE-PAIR-D-dc05" in singles and "R-BUNDLE-PAIR-D-dc05stub" in singles
+    for cid in ("CTRL-audit", "CTRL-comp", "CTRL-tests", "CTRL-stub", "CTRL-vac", "CTRL-skips"):
+        assert f"R-BUNDLE-PAIR-{cid}" in singles
     # a pure BDD-owning task (not in AB cohort) yields no pairs; the axis-C DC-08 side + its
-    # healthy-sweep CTRL-bdd mate (registry order: the reject then its approve mate).
+    # healthy-sweep CTRL-bdd mate (registry order: the reject then its approve mate). Untouched by v4.
     groups2, singles2 = task_pair_plan("guardkit", "TASK-BDDW-001")
     assert groups2 == []
     assert singles2 == ["R-BUNDLE-PAIR-C-dc08", "R-BUNDLE-PAIR-CTRL-bdd"]
+
+
+def test_vacancy_cohort_task_plan_is_pure_shape_singles():
+    # A v4 vacancy GO spine (api_test) carries NO atomic pair (A/B not in scope) — only the
+    # pure-shape DC-03 blanks, the DC-05 axis, and the approve controls, all banked as singles.
+    groups, singles = task_pair_plan("api_test", "TASK-DB-005")
+    assert groups == []
+    for rid in ("R-BUNDLE-PAIR-Cvac-wiring", "R-BUNDLE-PAIR-Cvac-stub", "R-BUNDLE-PAIR-Cvac-both",
+                "R-BUNDLE-PAIR-Cvac-clean", "R-BUNDLE-PAIR-D-dc05", "R-BUNDLE-PAIR-D-dc05stub",
+                "R-BUNDLE-PAIR-CTRL-comp", "R-BUNDLE-PAIR-CTRL-stub", "R-BUNDLE-PAIR-CTRL-vac",
+                "R-BUNDLE-PAIR-CTRL-skips"):
+        assert rid in singles
+    # the AB-only recipes (axis A/B rejects + the DC-12/DC-14 CTRLs) never ride a vacancy spine.
+    for rid in ("R-BUNDLE-PAIR-A-dc12", "R-BUNDLE-PAIR-B-dc14", "R-BUNDLE-PAIR-CTRL-audit",
+                "R-BUNDLE-PAIR-CTRL-tests", "R-BUNDLE-PAIR-C-dc08"):
+        assert rid not in singles
 
 
 # --------------------------------------------------------------------------------------

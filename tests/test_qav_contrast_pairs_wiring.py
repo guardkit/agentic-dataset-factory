@@ -164,11 +164,13 @@ def test_pair_rows_bank_as_seeded_bundle_with_pair_recipe(tmp_path):
             assert label["ground_truth_source"] == "seeded"
         else:
             assert r["metadata"]["dc_class"] is None
-    # a non-owning AB task mints A pair + B pair + 3 controls = 7 pair rows
-    assert len(pair) == 7
+    # v4 (leg B3): a non-owning AB task mints A pair + B pair (4 reject sides) + 8 singles — the 3
+    # DC-12/DC-14 controls, the new CTRL-stub, the two axis-D DC-05 rejects (D-dc05 / D-dc05stub),
+    # and the two axis-D approve mates (CTRL-vac / CTRL-skips) = 12 pair rows.
+    assert len(pair) == 12
     assert summary.pairs_banked == 2  # axis A + axis B
-    assert summary.contrast_pair_reject_written == 4
-    assert summary.contrast_pair_control_written == 3
+    assert summary.contrast_pair_reject_written == 6  # 4 A/B sides + D-dc05 + D-dc05stub
+    assert summary.contrast_pair_control_written == 6  # CTRL-audit/comp/tests/stub/vac/skips
     # the post-run sibling-parity census (DESIGN §3 law 6): 4 A/B sides banked, zero orphans.
     assert summary.pair_census_sides_banked == 4
     assert summary.pair_census_orphans == 0
@@ -178,7 +180,8 @@ def test_approve_controls_bank_with_approve_labels(tmp_path):
     _run(_cfg(tmp_path), [_src("study_tutor", "TASK-PRV-006")])
     ctrls = [r for r in _all_rows(tmp_path)
              if str(r["metadata"]["injection_recipe"]).startswith("R-BUNDLE-PAIR-CTRL-")]
-    assert len(ctrls) == 3
+    # v4: CTRL-audit/comp/tests (v3) + CTRL-stub/vac/skips (v4) = 6 approve controls on an AB task.
+    assert len(ctrls) == 6
     for r in ctrls:
         assert extract_label(r)["verdict"] == "approve"
         assert r["metadata"]["dc_class"] is None
@@ -256,10 +259,14 @@ def test_anchor_absent_drops_pairs_and_singles_loudly(tmp_path):
     assert summary.pairs_banked == 0
     assert summary.pair_sibling_dropped >= 4  # A pair (2) + B pair (2) at least
     assert any(x.get("reason") == "pair_anchor_absent" for x in _rejected(tmp_path))
-    # v1.2 populate-with-defect: CTRL-comp FIRES EVERYWHERE (populates wiring healthy) — it banks
-    # even on a minimal control, the only pair row that survives here.
-    assert banked == {"R-BUNDLE-PAIR-CTRL-comp"}
-    assert summary.contrast_pair_control_written == 1
+    # populate-with-defect / populate-healthy recipes FIRE EVERYWHERE even on a minimal control:
+    # CTRL-comp (wiring healthy) + CTRL-stub (clean stub_scan) approve, and D-dc05stub (planted
+    # sys.modules stub) rejects — the only three that survive an anchor-bare control. The skip-
+    # divergence recipes (D-dc05 / CTRL-vac / CTRL-skips) correctly anchor-skip: no independent
+    # surface to perturb.
+    assert banked == {"R-BUNDLE-PAIR-CTRL-comp", "R-BUNDLE-PAIR-CTRL-stub", "R-BUNDLE-PAIR-D-dc05stub"}
+    assert summary.contrast_pair_control_written == 2   # CTRL-comp + CTRL-stub
+    assert summary.contrast_pair_reject_written == 1    # D-dc05stub
     assert summary.pair_census_orphans == 0  # no A/B side banked ⇒ no orphan
 
 
@@ -298,17 +305,18 @@ def test_pair_hash_collision_refuses_the_pair(tmp_path, monkeypatch):
 # Budget + eval-first ordering — a tight budget banks eval's rows, caps the train task.
 # --------------------------------------------------------------------------------------
 def test_budget_caps_train_after_eval_is_processed_first(tmp_path):
-    # budget = 7 fits exactly ONE non-owning AB task (A2 + B2 + 3 controls). The eval-cohort task
-    # is listed SECOND but must be processed FIRST, so it banks and the train task is fully capped.
-    cfg = _cfg(tmp_path, contrast_pair_budget=7)
+    # v4: a non-owning AB task now mints 12 pair rows (A2 + B2 + 8 singles). budget = 12 fits exactly
+    # ONE such task. The eval-cohort task is listed SECOND but processed FIRST, so it banks all 12 and
+    # the train task is fully capped — proving budget truncation lands on train, never on eval.
+    cfg = _cfg(tmp_path, contrast_pair_budget=12)
     train = _src("study_tutor", "TASK-PRV-006")   # hashes train
     ev = _src("study_tutor", "TASK-PRV-004")       # eval-cohort (hashes eval)
     summary = _run(cfg, [train, ev])  # train listed first
     eval_pair = _pair_rows(_rows(tmp_path, "eval_qav"))
     train_pair = _pair_rows(_rows(tmp_path, "train"))
-    assert len(eval_pair) == 7           # the eval task fully banked its pair rows
+    assert len(eval_pair) == 12          # the eval task fully banked its pair rows
     assert train_pair == []              # budget exhausted -> the train task's rows all capped
-    assert summary.contrast_pair_capped == 7
+    assert summary.contrast_pair_capped == 12
     assert summary.pairs_banked == 2     # eval axis A + axis B
     # every banked eval pair row is genuinely on the eval split
     assert all(r["metadata"]["split"] == "eval_qav" for r in eval_pair)
