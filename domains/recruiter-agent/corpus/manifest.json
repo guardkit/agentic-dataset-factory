@@ -1,20 +1,21 @@
 {
   "domain": "recruiter-agent",
   "visibility": "private (DF-008)",
-  "frozen_at": "2026-07-24T18:03:41+00:00",
+  "frozen_at": "2026-07-24T20:32:48+00:00",
   "source_run_dirs": [
     "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-full",
     "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/pilot-cycle2",
     "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-cycle2",
-    "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-cycle3"
+    "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-cycle3",
+    "/home/richardwoollcott/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/pilot-runs/run-cycle4"
   ],
   "player_models": [
     "workhorse"
   ],
   "counts": {
-    "rows": 1086,
-    "train": 978,
-    "val": 108,
+    "rows": 1140,
+    "train": 1027,
+    "val": 113,
     "dedup_across_runs": 0
   },
   "holdout_fraction": 0.1,
@@ -24,6 +25,16 @@
       "total": 191,
       "train": 172,
       "val": 19
+    },
+    "email-delivery-pairs-c4": {
+      "total": 25,
+      "train": 23,
+      "val": 2
+    },
+    "gateway-delivery-pairs-c4": {
+      "total": 29,
+      "train": 26,
+      "val": 3
     },
     "honest-wall-not-faked": {
       "total": 93,
