@@ -1,0 +1,52 @@
+# briefs-cycle4.yaml — CYCLE-4 SURGICAL SUPPLEMENT: the destination boundary.
+#
+# Cycle 3 killed the integration-fabrication class (the exam's leads-chase now reads `tray` in
+# 3/3 temp-0 reps) and cured the meeting-notes clerk pack (3/3). The one remaining failure is
+# NEW and consistent: the model mixes the two lawful destination patterns — it drafted
+# `deliver: gateway` + `send_as: one-bundle` + `to: {role: operator}` for an email-me ask
+# (gateway pairs with each-record and a NAMED pinned destination; an email-me ask wants
+# email + one-bundle + the operator role). Cycle 2's first gateway exemplars taught the shape;
+# nothing taught the CHOICE. These are minimal pairs on exactly that choice.
+#
+# The two lawful destination shapes (runner-executable combos, schema.py):
+#   deliver: email    + send_as: one-bundle   + to: {role: operator}
+#   deliver: gateway  + send_as: each-record  + to: {destination: <pinned name>}
+# The pair signal is the ask's delivery clause: "email me one bundle/single email" vs
+# "push each one into our <name> destination / one entry at a time". Nothing else differs.
+
+classes:
+  # -------------------------------------------------------------------------------------------
+  # BLOCK A — email-side: chase/follow-up/review asks that say EMAIL ME, several deliberately
+  # close to the exam's chase shape. Correct destination = email + one-bundle + role: operator.
+  # -------------------------------------------------------------------------------------------
+  - id: email-delivery-pairs-c4
+    expected_class: pipeline
+    target_rows: 35
+    briefs:
+      - "Every Monday at 09:00, email me one bundle of the leads in the sales-clerk's tray from the past week that are still waiting on an answer from us."
+      - "Each weekday at 08:00, send me a single email gathering yesterday's unanswered prospect notes from the leads-clerk's tray."
+      - "Weekly on Monday at 08:30, email me as one pack the follow-ups I still owe from the sales-clerk's pending queue."
+      - "Every weekday at 09:15, email me one combined message of the enquiries left waiting in the new-business tray from yesterday."
+      - "Weekly on Thursday at 17:00, email me a single bundle of this week's outstanding replies from the research-clerk's tray."
+      - "Each Monday at 09:45, send one email pulling together the last seven days of waiting follow-ups from the office ledger."
+      - "Every weekday at 07:30, email me yesterday's items from the drop folder as one message."
+      - "Weekly on Friday at 15:30, email me one wrap-up bundle of the week's unactioned notes from the records-clerk's pending queue."
+      - "Each weekday at 08:45, send a single email of the overnight arrivals in the mail tray that nobody has picked up."
+      - "Weekly on Tuesday at 09:00, email me one bundle of the prospects in the sales-clerk's tray from the last seven days awaiting our reply."
+
+  # -------------------------------------------------------------------------------------------
+  # BLOCK B — gateway-side siblings: the SAME ask cores re-phrased for per-record delivery into
+  # a NAMED pinned destination. Correct = gateway + each-record + to: {destination: <name>}.
+  # -------------------------------------------------------------------------------------------
+  - id: gateway-delivery-pairs-c4
+    expected_class: pipeline
+    target_rows: 25
+    briefs:
+      - "Every Monday at 09:00, take the leads in the sales-clerk's tray from the past week still waiting on an answer and push each one separately into our follow-up-board destination."
+      - "Each weekday at 08:00, send yesterday's unanswered prospect notes from the leads-clerk's tray one at a time into the prospect-log destination."
+      - "Weekly on Monday at 08:30, file the follow-ups I still owe from the sales-clerk's pending queue into our chase-board destination, one entry per item."
+      - "Every weekday at 09:15, push each of yesterday's waiting enquiries from the new-business tray individually into the enquiry-desk destination."
+      - "Weekly on Thursday at 17:00, deliver this week's outstanding replies from the research-clerk's tray one record at a time to the research-log destination."
+      - "Each Monday at 09:45, send the last seven days of waiting follow-ups from the office ledger into our task-wall destination, one at a time."
+      - "Every weekday at 07:30, push each of yesterday's drop-folder items separately into the intake-shelf destination."
+      - "Weekly on Friday at 15:30, deliver the week's unactioned notes from the records-clerk's pending queue one by one into the weekly-wall destination."
