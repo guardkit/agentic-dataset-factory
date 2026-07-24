@@ -26,7 +26,7 @@ set -eu
 
 DEST="/models/recruiter-qwen3-4b-Q4_K_M.gguf"
 # The one load-bearing constant — the GGUF's sha256 (packaging/gguf-manifest.json). Byte-for-byte.
-SHA256="63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650"
+SHA256="d2c0e5c378653cd5b8d324847ff7678bfa2b6ba2c057bbc504b626c980762c7e"
 URL="${MODEL_URL:?set MODEL_URL to the GGUF download URL}"
 
 verify() { echo "${SHA256}  ${DEST}" | sha256sum -c - >/dev/null 2>&1; }

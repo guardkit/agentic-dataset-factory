@@ -24,7 +24,7 @@ so it needs **no `matrix.set` membership** and never evicts a fleet member.
    cp ~/fine-tuning/recruiter-tune/output/recruiter-qwen3-4b/gguf_gguf/qwen3-4b-instruct-2507.Q4_K_M.gguf \
       /opt/llama-swap/models/recruiter-4b-tuned/recruiter-qwen3-4b-Q4_K_M.gguf
    # integrity check — must print OK:
-   echo "63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650  /opt/llama-swap/models/recruiter-4b-tuned/recruiter-qwen3-4b-Q4_K_M.gguf" | sha256sum -c -
+   echo "d2c0e5c378653cd5b8d324847ff7678bfa2b6ba2c057bbc504b626c980762c7e  /opt/llama-swap/models/recruiter-4b-tuned/recruiter-qwen3-4b-Q4_K_M.gguf" | sha256sum -c -
    ```
 2. **Back up the config first** (the house discipline — dated `.bak`):
    ```bash

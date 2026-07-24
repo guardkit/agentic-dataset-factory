@@ -19,7 +19,7 @@
     "lora_r": 16,
     "lora_alpha": 32,
     "lora_dropout": 0.0,
-    "learning_rate": 2e-4,
+    "learning_rate": 0.0002,
     "lr_scheduler": "cosine",
     "warmup_ratio": 0.03,
     "effective_batch": 4,
@@ -36,7 +36,7 @@
     "eval_loss_epoch2": 0.4716,
     "peak_gpu_memory_gb": 5.2,
     "guards": {
-      "G1_trainable_pct": 1.30,
+      "G1_trainable_pct": 1.3,
       "G2_qwen_markers_no_gemma_leak": true,
       "G3_attn_impl": "flash_attention_2",
       "G4_masked_pct": 28.2,
@@ -44,7 +44,12 @@
       "G6_byte_match_mismatches": 0,
       "G6_file_block_targets": "481/696"
     },
-    "seq_audit": {"p95": 1208, "p99": 1299, "max": 1416, "exceed_4096": 0}
+    "seq_audit": {
+      "p95": 1208,
+      "p99": 1299,
+      "max": 1416,
+      "exceed_4096": 0
+    }
   },
   "spark_paths": {
     "root": "~/fine-tuning/recruiter-tune/output/recruiter-qwen3-4b/",
@@ -67,5 +72,15 @@
     "delta_pts": 67.5,
     "bar": "tuned >= 60% AND delta >= 25 pts",
     "verdict": "PASS (materially above stock)"
+  },
+  "cycle_2": {
+    "date": "2026-07-24",
+    "corpus": "897 rows (807 train / 90 val), frozen 2026-07-24T00:09:12Z — rescreened cycle-1 (772; poison row rec-aec4014c84260b46 quarantined) + 125 targeted cure-class rows",
+    "train": "404 steps / 2 epochs, loss 0.4287, eval_loss 0.4441; G1-G6 all held (think 0/807, byte-match 0/807, peak 5.2 GB); seq audit p99 1293",
+    "merged_gen_gate": "PASS tuned 90.0% (81/90) vs stock 30.0% (27/90), +60.0 pts; cure classes 12/13; injection-probe regression 3/4→1/4 named honestly (write_scope 'notes' drift, all egress-safe)",
+    "gguf_sha256": "d2c0e5c378653cd5b8d324847ff7678bfa2b6ba2c057bbc504b626c980762c7e",
+    "seat": "replaced in place at /opt/llama-swap/models/recruiter-4b-tuned/ 2026-07-24, sha-verified, serve-replay clean",
+    "cycle_1_archive": "output/recruiter-qwen3-4b-c1-20260723-235345 (on-box) + NAS-verified via backup-to-nas.sh",
+    "results": "training/RESULTS-recruiter-qwen3-4b-c2-2026-07-24.md"
   }
 }

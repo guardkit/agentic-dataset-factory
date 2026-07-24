@@ -1,28 +1,28 @@
 {
   "artifact": "recruiter-qwen3-4b — Q4_K_M GGUF (the bundled-seat brain)",
-  "produced_by": "recruiter-tune lane, S4-package (2026-07-22)",
+  "produced_by": "recruiter-tune lane, cycle-2 retrain (2026-07-24; cycle-1 S4-package 2026-07-22)",
   "visibility": "private (DF-008) — the binary stays on the Spark; nothing here is committed except this manifest",
   "file": {
     "spark_path": "~/fine-tuning/recruiter-tune/output/recruiter-qwen3-4b/gguf_gguf/qwen3-4b-instruct-2507.Q4_K_M.gguf",
     "bundle_name": "recruiter-qwen3-4b-Q4_K_M.gguf",
     "bytes": 2497278880,
     "size_h": "2.4 GiB",
-    "sha256": "63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650",
-    "sha256_verified_on_spark": "2026-07-22 (matches training/artifacts-manifest.json)",
+    "sha256": "d2c0e5c378653cd5b8d324847ff7678bfa2b6ba2c057bbc504b626c980762c7e",
+    "sha256_verified_on_spark": "2026-07-24 (verified at the seat after the cycle-2 replace; byte count unchanged from cycle 1)",
     "quant": "Q4_K_M"
   },
   "provenance": {
     "base_model": "Qwen/Qwen3-4B-Instruct-2507 (Apache-2.0, dense, non-thinking instruct)",
     "adapter": "dense QLoRA r=16 alpha=32, merged to 16bit then quantized to Q4_K_M",
-    "corpus": "recruiter-agent synthetic authoring conversations, 773 rows (696 train / 77 val), teacher=workhorse, frozen 2026-07-22T19:00:57+00:00",
-    "merged_generation_gate": "PASS — tuned 98.7% (76/77) vs stock 31.2% (24/77), +67.5 pts, on the office's own checkers (mandatory pre-GGUF gate, RUNBOOK-dcl-fine-tune v1.2)",
+    "corpus": "recruiter-agent synthetic authoring conversations, 897 rows (807 train / 90 val), teacher=workhorse, frozen 2026-07-24T00:09:12+00:00 — cycle-1's 772 rescreened rows (1 poison row quarantined) + 125 targeted cycle-2 rows curing the two trust-page-caught classes (webhook-source invention; invented send_as), incl. the corpus's first each-record exemplars on the executable gateway combo",
+    "merged_generation_gate": "PASS — tuned 90.0% (81/90) vs stock 30.0% (27/90), +60.0 pts, on the office's own checkers (mandatory pre-GGUF gate, RUNBOOK-dcl-fine-tune v1.2); cure-class val rows 12/13; zero webhook and zero invented send_as across all 90 tuned generations; honest note: injection-probe val slipped 3/4→1/4 on a write_scope 'notes' vocabulary drift (all refusals stayed egress-safe)",
     "chat_template": "stock Qwen3-2507 non-thinking, forced by file at train time (qwen3-2507-stock.jinja, sha256 64f85b19...); the SAME 2630-char template is embedded in this GGUF — verified via llama-server /props: no <think>, no reasoning_content, no messages[::-1] (the DCL thinking-template catch is avoided at serve)"
   },
   "serve_verification": {
     "engine": "llama.cpp llama-server (aarch64 CUDA build, version 1 / 13f2b28) on the Spark",
-    "result": "clean on all 7 val drafting classes — file: blocks emitted where expected, zero <tool_call> leak, zero <|im_start|> leak; the served GGUF byte-faithfully reproduces the merged-gen gate behaviour",
-    "evidence": "packaging/latency-gpu.json, packaging/latency-cpu.json (raw per-prompt outputs + timings)"
+    "result": "cycle-2 seat replay: leads-chase-valid-source → file-fenced pipeline w/ send_as: one-bundle; send-as-each-record → deliver: gateway + send_as: each-record; injection-probe → full 4-file clerk pack, egress refused; zero <tool_call>/<|im_start|> leak (2026-07-24, via the live llama-swap seat)",
+    "evidence": "training/gate-c2/tuned-outputs.jsonl + gate-c2/gate-results.json"
   },
-  "backup_gap": "NO off-box backup of this GGUF exists yet. The binary lives ONLY on spark-fcf6 (~/fine-tuning/recruiter-tune/output/...). The estate's known GGUF-backup gap applies to this artifact: a Spark disk loss loses it, and it would have to be re-quantized from merged-16bit (also Spark-only) or re-trained. Closing this gap (a release asset / NAS sink) is a prerequisite before the sha256-pinned first-start fetch pattern in docker-compose.yml can point at a real URL.",
+  "backup_gap": "CLOSED 2026-07-24: backup-to-nas.sh rsyncs the tune tree + the served seat copy to whitestocks:~/factory-corpora/2026-07-23-recruiter-tune and remote-verifies the pinned sha (cycle-1 verified 07-23 ~23:00Z; cycle-2 re-run after the seat replace). The cycle-1 GGUF survives on the NAS under the archived output dir (recruiter-qwen3-4b-c1-20260723-235345).",
   "notes": "The sha256 above is the single load-bearing integrity check across the whole bundle (compose fetch-verify, README placement step, and any future release asset). It is name-independent — renaming the file to recruiter-qwen3-4b-Q4_K_M.gguf for the bundle does not change it."
 }

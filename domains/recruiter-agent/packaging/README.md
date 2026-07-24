@@ -60,7 +60,7 @@ docker run --rm -v recruiter-model:/models -v "$PWD":/src alpine \
 
 # 2. verify the fingerprint — MUST print: ...  OK
 docker run --rm -v recruiter-model:/models alpine \
-  sh -c 'echo "63c6d1ef0bdb5c9e65af9b556658232ca8575f7ed211add2f20d26505751c650  /models/recruiter-qwen3-4b-Q4_K_M.gguf" | sha256sum -c -'
+  sh -c 'echo "d2c0e5c378653cd5b8d324847ff7678bfa2b6ba2c057bbc504b626c980762c7e  /models/recruiter-qwen3-4b-Q4_K_M.gguf" | sha256sum -c -'
 ```
 
 **Option B — download on first start (needs a URL).** When the GGUF is published somewhere the
