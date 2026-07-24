@@ -1,0 +1,44 @@
+# recruiter-agent generation config (2026-07-22). Attended run on a box that can reach the Spark's
+# llama-swap AND import the office checkers (office-manager's own venv). The deterministic truth
+# source is the office's OWN validators (deckhand config-check + office pipeline validate), never a
+# model. Datasets are PRIVATE (DF-008); the four eval-held sessions are NEVER training data.
+
+domain: recruiter-agent
+
+player:                       # the teacher: authors the candidate drafting turn (checker is the boss)
+  provider: local
+  # THE TEACHER = workhorse (Qwen3.6-35B-A3B) — the SAME model family the DCL corpus used as its
+  # proven teacher, and the model the 2026-07-21 gate exam already ran (the stock candidate). gpt-oss-120b
+  # CANNOT be used: the llama-swap residents (coach 26B + workhorse 35B + embed, ttl:0 --no-mmap, ~90Gi
+  # of 121Gi) leave no room, so its server OOMs on start ("exited prematurely") — verified on the Spark
+  # 2026-07-22 (do not re-litigate; do not touch llama-swap). workhorse is a THINKING model: its
+  # reasoning lands in a separate `reasoning_content` field, so the training target (the `content`
+  # field the client reads) is clean — no <think> leak.
+  model: workhorse            # a resident served seat on the Spark's llama-swap
+  endpoint: http://spark-fcf6:9000/v1
+  enable_thinking: false      # disable Qwen3 thinking (chat_template_kwargs) — ~5x faster per call
+                              # (71s -> 15s measured) and serve-faithful: the tuned recruiter is a
+                              # non-thinking 4B, so a non-thinking target matches its serve contract.
+
+corpus:
+  # the recruiter seed's system_prompt is the row's system message (serve-faithful, vocab-in-prompt).
+  recruiter_seed_config: ~/Projects/appmilla_github/office-manager/seed/agents/recruiter/config.yaml
+  vocab_reference: ~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/recruiter-vocab-reference.md
+  briefs: ~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/briefs-cycle3.yaml
+  # the eval-held exam — read ONLY to compute the contamination denylist (never trained on).
+  held_corpus_root: ~/office-authoring
+
+generation:
+  temperature: 0.6
+  max_tokens: 6000            # workhorse thinks (reasoning_content) then drafts up to 4 files — headroom
+  author_reps: 1              # author each brief K× (fresh calls); distinct valid turns dedupe by row_id
+  repair_rounds: 1            # bounded checker-feedback repair (the pack's draft->validate->redraft)
+  holdout_fraction: 0.10      # REAL ~10% held-out val split (per-class, deterministic by row_id, disjoint)
+  seed: recruiter-phase1
+
+output:
+  # committed under the domain (train/val + per-row provenance manifest) — the repo is private and
+  # this corpus is NEVER pushed (DF-008); the top-level output/ tree is gitignored, so the
+  # deliverable corpus lives here, inside domains/recruiter-agent/**.
+  dir: ~/Projects/appmilla_github/agentic-dataset-factory/domains/recruiter-agent/corpus
+  visibility: private         # DF-008
