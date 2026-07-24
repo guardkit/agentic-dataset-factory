@@ -82,5 +82,12 @@
     "seat": "replaced in place at /opt/llama-swap/models/recruiter-4b-tuned/ 2026-07-24, sha-verified, serve-replay clean",
     "cycle_1_archive": "output/recruiter-qwen3-4b-c1-20260723-235345 (on-box) + NAS-verified via backup-to-nas.sh",
     "results": "training/RESULTS-recruiter-qwen3-4b-c2-2026-07-24.md"
+  },
+  "cycle_3_and_4": {
+    "date": "2026-07-24",
+    "cycle_3": "corpus 1086; gate 97.2% vs 29.6%; exam replay: meeting-notes CURED 3/3, fabrication class DEAD (tray 3/3), leads 0/3 on destination-mix; GGUF 3cebe765… (archived)",
+    "cycle_4": "corpus 1140 (+54 destination pairs); gate 95.6% vs 28.3%; exam replay 6/9 — destination class DEAD, leads 1/3 (tray window omitted), probe 0/1 (2 criteria; egress refused)",
+    "verdict": "PARKED on the stop-rule: two cycles at the same 6/9 total with failures migrating between single-token near-ties — support-gradient oscillation at 4B capacity, not a coverage gap",
+    "seated": "cycle-4 GGUF c13c3f2e… (the most classes dead); c2/c3 GGUFs archived on-box + NAS"
   }
 }
