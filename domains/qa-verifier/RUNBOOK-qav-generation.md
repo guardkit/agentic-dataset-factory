@@ -138,7 +138,13 @@ source .venv/bin/activate
 export OPENAI_API_KEY=local
 PYTHONPATH=src python domains/qa-verifier/run_qav_generation.py \
     --config domains/qa-verifier/agent-config.yaml \
+    --mode both \
     2>&1 | tee run_logs/qav_gen_$(date +%Y%m%d-%H%M%S).log
+# --mode both is LOAD-BEARING, not optional: the shipped config defaults `mode: seeded_defect`,
+# and this generator is fresh-start (backs up + regenerates from scratch) — a config-default
+# launch silently DROPS every harvest row from the corpus. This happened on the 2026-07-24 v3
+# cycle (30 rows lost, recovered byte-preserved from the .bak set + engine-rebuilt manifest —
+# receipts/contrast-pair-corpus-2026-07-24.md). Pass the mode explicitly, every launch.
 # detach from tmux: Ctrl-b then d      reattach later: tmux attach -t qav-gen
 ```
 
