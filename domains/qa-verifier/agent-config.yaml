@@ -153,19 +153,17 @@ regeneration:
     # = interpreters.api_test [py3.12.3/pytest 8.4.2]. -p no:warnings kills the unknown-mark
     # summary whose ordering jitter would land in independent_tests.raw_output — the jarvis
     # byte-determinism lesson.
-    # SPIKE RESULT + RULING (2026-07-24 B2, wf_c1fc38c1): control-green ×2 CLEAN at 562daf8
-    # (12 passed) + 98b5930 (30 passed). At 94249c5/e5ff1c8 the suite carries 9 DETERMINISTIC
-    # pre-existing reds (middleware live-postgres + a scoped-checkout alembic artifact —
-    # byte-identical FAILED set across all runs; the same reds api_test merge 874c59c already
-    # documented). RULING: BANK AS-IS, whole-suite pin STANDS — guardkit itself classifies
-    # the failures failure_class=infrastructure confidence=high (the approvable-blemish class
-    # the QAV judgment criteria name); the affected controls are legitimate UGLY-GREEN
-    # approves (the ≥45% ugly-green law's own target class); determinism ×2 (the hazard the
-    # gate exists for) passed on every spine; and pair sides share their spine, so the reds
-    # ride both sides equally and can never masquerade as the pair's defect signal.
-    # DB-001 stays DROPPED (scope_file_map/SCOPED_EXTS starves its honesty gate — structural,
-    # named in the B2 receipt; cure = a SCOPED_EXTS decision, deliberately not taken here).
-    api_test: "pytest tests/ -q -p no:cacheprovider -p no:warnings"
+    # RULING v2 (2026-07-24, the v4 first-launch catch): the B2 "bank as-is" ugly-green ruling
+    # was honest in PRINCIPLE (infra-classified reds = approvable blemish) but fails on
+    # ARITHMETIC — the 9 reds' full tracebacks ride independent_tests.raw_output and blow the
+    # 94249c5/e5ff1c8 spines' bundles to ~143k tokens (the v4 run's first teacher call 400'd:
+    # exceed_context_size 143578 > 98304; the row would also have died at the 20480 seq gate).
+    # So the pin NARROWS to the spike-proven green scope (B2 job-1 verified ×2; minus
+    # tests/test_alembic.py whose .mako sits outside SCOPED_EXTS and reds only in SCOPED
+    # checkouts; re-verified clean at 94249c5: 122 passed, 0.33s). Consequence: api_test
+    # controls are clean-green, not ugly-green — the ugly-green share rides other repos.
+    # DB-001 stays DROPPED (SCOPED_EXTS starves its honesty gate — structural, B2 receipt).
+    api_test: "pytest tests/users/ tests/health/ tests/test_main.py tests/test_config.py tests/test_logging.py -q -p no:cacheprovider -p no:warnings"
     # jarvis (B1, 2026-07-22 SPIKE-validated — receipts/per-repo-test-command-pins). The ONLY
     # target-repo pin of the forge/jarvis/nats_core sweep: forge (5 tasks) + nats_core (1 task)
     # anchor ZERO reject recipes → honest expected-miss, NO pin (all 11 recipes ANCHOR_SKIP:
