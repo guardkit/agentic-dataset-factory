@@ -1,0 +1,9 @@
+{
+  "turn": 2,
+  "feedback_from_turn": 1,
+  "feedback_summary": "- Independent test verification failed:\n  Error detail:\n                                         ^^^^^^^\nE   NameError: name 'Mapping' is not defined\n______________ TestUserUpdate.test_user_update_json_schema_extra _______________\ntests/users/test_schemas.py:108: in test_user_update_json_schema_extra\n    assert isinstance(json_schema_extra, Mapping)\nResult:\nFAILED tests/users/test_schemas.py::TestUserCreate::test_user_create_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserUpdate::test_user_update_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserPublic::test_user_public_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserList::test_user_list_json_schema_extra\n========================= 4 failed, 33 passed in 0.11s =========================",
+  "must_fix": [],
+  "should_fix": [],
+  "validation_results": {},
+  "raw_feedback": "- Independent test verification failed:\n  Error detail:\n                                         ^^^^^^^\nE   NameError: name 'Mapping' is not defined\n______________ TestUserUpdate.test_user_update_json_schema_extra _______________\ntests/users/test_schemas.py:108: in test_user_update_json_schema_extra\n    assert isinstance(json_schema_extra, Mapping)\nResult:\nFAILED tests/users/test_schemas.py::TestUserCreate::test_user_create_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserUpdate::test_user_update_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserPublic::test_user_public_json_schema_extra\nFAILED tests/users/test_schemas.py::TestUserList::test_user_list_json_schema_extra\n========================= 4 failed, 33 passed in 0.11s ========================="
+}

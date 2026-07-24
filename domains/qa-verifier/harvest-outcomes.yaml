@@ -608,3 +608,125 @@ outcomes:
       sha: "b3960225"
       rule: RC-R
       note: "ADVERSARIAL FLAG: the fix message tags the seam '(coach critical)' and the bundle is 10/11 AC (one criterion unmet) — the coach may have PARTIALLY known this seam was weak rather than being fully blind. If Rich reads it as coach-aware-then-approved-anyway it is still a held-on-a-broken-seam escape; if coach-caught, strike this row. Weakest reject of the six."
+
+  # ===================================================================================
+  # Rule A1-T (Rich 2026-07-24 "approve batch A", curation/RATIFICATION-PACK-feat9e59-2026-07-24.md):
+  #   approve iff the committed feature-tracker YAML at main records
+  #   result.final_decision==approved AND a committed merge commit naming the feature
+  #   is an ancestor of main (provenance sha = that merge sha) AND the task's own
+  #   autobuild record (coach approve turn + task_work_results) is git-TRACKED at main
+  #   AND that record is green-non-empty (not _synthetic; zero failed) AND no
+  #   post-merge fix commit names the task.
+  # Rule Q-TRK (same pack): disposition queued (never labeled) for any task whose
+  #   committed tracker and record decisions disagree, whose feature landed with no
+  #   merge/decision commit, whose record carries a synthetic marker, or whose approve
+  #   never merged. Table-B caveat rows (ADOC-001, 70ED) were OFFERED and NOT TAKEN
+  #   this sitting — queued, available to a future explicit caveat acceptance.
+  #   Records stranded in the FEAT-9E59 worktree (origin features FEAT-947C/B2D7/EC3C/
+  #   3CC2 per the worktree-mismatch caveat); durability copies in record-store/api_test/.
+  # ===================================================================================
+
+  # --- Rule A1-T: the 9 batch-A approves ---
+  - repo: api_test
+    feature: FEAT-947C
+    task: TASK-DB-001
+    run: "autobuild/FEAT-9E59"
+    sha: "94249c5"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-DB-001/coach_turn_2.json
+    provenance: {sha: "94249c5", rule: A1-T, note: "merge 94249c5 ancestor of main; 83/0 tests cov 85; caveat named in pack: coach independent run skipped"}
+  - repo: api_test
+    feature: FEAT-947C
+    task: TASK-DB-005
+    run: "autobuild/FEAT-9E59"
+    sha: "94249c5"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-DB-005/coach_turn_1.json
+    provenance: {sha: "94249c5", rule: A1-T, note: "direct-mode 6/6 ACs, 1/0 tests, gates green; cleanest record in batch"}
+  - repo: api_test
+    feature: FEAT-947C
+    task: TASK-DB-006
+    run: "autobuild/FEAT-9E59"
+    sha: "94249c5"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-DB-006/coach_turn_1.json
+    provenance: {sha: "94249c5", rule: A1-T, note: "17/0 tests cov 93, 6/6 ACs"}
+  - repo: api_test
+    feature: FEAT-947C
+    task: TASK-DB-007
+    run: "autobuild/FEAT-9E59"
+    sha: "94249c5"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-DB-007/coach_turn_2.json
+    provenance: {sha: "94249c5", rule: A1-T, note: "13/0 tests green; composite verdict null (named in pack)"}
+  - repo: api_test
+    feature: FEAT-947C
+    task: TASK-DB-008
+    run: "autobuild/FEAT-9E59"
+    sha: "94249c5"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-DB-008/coach_turn_2.json
+    provenance: {sha: "94249c5", rule: A1-T, note: "13/0 tests green; composite verdict null (named in pack)"}
+  - repo: api_test
+    feature: FEAT-B2D7
+    task: TASK-ADOC-002
+    run: "autobuild/FEAT-9E59"
+    sha: "98b5930"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-ADOC-002/coach_turn_1.json
+    provenance: {sha: "98b5930", rule: A1-T, note: "25/0 tests cov 98"}
+  - repo: api_test
+    feature: FEAT-B2D7
+    task: TASK-ADOC-003
+    run: "autobuild/FEAT-9E59"
+    sha: "98b5930"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-ADOC-003/coach_turn_2.json
+    provenance: {sha: "98b5930", rule: A1-T, note: "30/0 tests cov 98; vacancy-dead (no source files in lists) — harvest/record value only"}
+  - repo: api_test
+    feature: FEAT-EC3C
+    task: TASK-C086
+    run: "autobuild/FEAT-9E59"
+    sha: "562daf8"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-C086/coach_turn_2.json
+    provenance: {sha: "562daf8", rule: A1-T, note: "9/0 tests cov 94; vacancy-dead — harvest/record value only"}
+  - repo: api_test
+    feature: FEAT-EC3C
+    task: TASK-ED5F
+    run: "autobuild/FEAT-9E59"
+    sha: "562daf8"
+    ground_truth_source: coach_correct
+    disposition: consumable
+    ratified: "Rich 2026-07-24 'approve batch A' (RATIFICATION-PACK-feat9e59-2026-07-24.md)"
+    bundle_path: api_test/.guardkit/worktrees/FEAT-9E59/.guardkit/autobuild/TASK-ED5F/coach_turn_1.json
+    provenance: {sha: "562daf8", rule: A1-T, note: "12/0 tests cov 97"}
+
+  # --- Rule Q-TRK: queued, never labeled (9) + Table-B offered-not-taken (2) ---
+  - {repo: api_test, feature: FEAT-947C, task: TASK-DB-002, run: "autobuild/FEAT-9E59", sha: "94249c5", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approved with completed=false, 0/0 tests, null gates, review phase incomplete"}
+  - {repo: api_test, feature: FEAT-947C, task: TASK-DB-003, run: "autobuild/FEAT-9E59", sha: "94249c5", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approved with completed=false, 0/0 tests, null gates"}
+  - {repo: api_test, feature: FEAT-947C, task: TASK-DB-004, run: "autobuild/FEAT-9E59", sha: "94249c5", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — STRONGEST false-green: approved over recorded 0/1 FAILED, completed=false, skipped independent run logged as passing; reject-side only if a committed post-hoc review ever documents the escape"}
+  - {repo: api_test, feature: FEAT-3CC2, task: TASK-LOG-001, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — committed tracker says FAILED (timeout) while record dir says approved next day; never reconciled; no defensible sha (FEAT-3CC2 never landed via merge/decision commit)"}
+  - {repo: api_test, feature: FEAT-3CC2, task: TASK-LOG-002, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approve exists only in record; tracker pending; FMDR manual-salvage shape; no defensible sha"}
+  - {repo: api_test, feature: FEAT-3CC2, task: TASK-LOG-003, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approve only in record; tracker pending; no defensible sha"}
+  - {repo: api_test, feature: FEAT-3CC2, task: TASK-LOG-004, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — record carries _synthetic=true: HARD EXCLUDE from either split forever (poison either way)"}
+  - {repo: api_test, feature: FEAT-3CC2, task: TASK-LOG-005, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approve only in record; checkpoint/turn mismatch; composite null; no defensible sha"}
+  - {repo: api_test, feature: FEAT-9E59, task: TASK-VER-001, run: "autobuild/FEAT-9E59", sha: "", ground_truth_source: coach_correct, disposition: queued, note: "Q-TRK — approved-but-UNMERGED (own tracker commit says so); code at HEAD is a different feature's implementation; task id collides with a later machine-planned task"}
+  - {repo: api_test, feature: FEAT-B2D7, task: TASK-ADOC-001, run: "autobuild/FEAT-9E59", sha: "98b5930", ground_truth_source: coach_correct, disposition: queued, note: "Table-B offered-not-taken 2026-07-24 — zero-counted-test green under approve; available to a future explicit caveat acceptance"}
+  - {repo: api_test, feature: FEAT-EC3C, task: TASK-70ED, run: "autobuild/FEAT-9E59", sha: "562daf8", ground_truth_source: coach_correct, disposition: queued, note: "Table-B offered-not-taken 2026-07-24 — zero-count green + scaffold-only sources; available to a future explicit caveat acceptance"}

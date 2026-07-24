@@ -142,6 +142,15 @@ regeneration:
   # honest expected-misses (guardkit-shaped or out-of-scope) — see receipts/study-tutor-reject-anchors.
   test_commands:
     guardkit: "pytest tests/orchestrator/test_wiring_seam_real_factory.py -q -p no:cacheprovider"
+    # api_test (v4 Option B, 2026-07-24 — RATIFICATION-PACK-feat9e59 batch A; pin per the
+    # feasibility census: collect-only clean at HEAD [238 tests] AND the batch tip [158], venv
+    # = interpreters.api_test [py3.12.3/pytest 8.4.2]. -p no:warnings kills the unknown-mark
+    # summary whose ordering jitter would land in independent_tests.raw_output — the jarvis
+    # byte-determinism lesson. SPIKE-GATED: control-green ×2 at the three ratified merge shas
+    # (562daf8/98b5930/94249c5) must pass BEFORE any minting; the 874c59c receipt warns of 8
+    # pre-existing reds on a LATER base — if whole-suite green fails at the ratified shas,
+    # narrow via test_commands_per_recipe, the guardkit pattern.)
+    api_test: "pytest tests/ -q -p no:cacheprovider -p no:warnings"
     # jarvis (B1, 2026-07-22 SPIKE-validated — receipts/per-repo-test-command-pins). The ONLY
     # target-repo pin of the forge/jarvis/nats_core sweep: forge (5 tasks) + nats_core (1 task)
     # anchor ZERO reject recipes → honest expected-miss, NO pin (all 11 recipes ANCHOR_SKIP:

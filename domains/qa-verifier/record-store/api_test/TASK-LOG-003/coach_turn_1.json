@@ -1,0 +1,207 @@
+{
+  "task_id": "TASK-LOG-003",
+  "turn": 1,
+  "decision": "feedback",
+  "validation_results": {
+    "quality_gates": {
+      "tests_passed": true,
+      "coverage_met": true,
+      "arch_review_passed": true,
+      "plan_audit_passed": true,
+      "all_gates_passed": true
+    },
+    "independent_tests": {
+      "tests_passed": true,
+      "test_command": "pytest tests/test_middleware.py -v --tb=short",
+      "test_output_summary": "Result:\ntests/test_middleware.py:208\n/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-3CC2/tests/test_middleware.py:208: PytestUnknownMarkWarning: Unknown pytest.mark.seam - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\ntests/test_middleware.py:209\n/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-3CC2/tests/test_middleware.py:209: PytestUnknownMarkWarning: Unknown pytest.mark.integration_contract - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html\n======================== 16 passed, 2 warnings in 0.02s ========================",
+      "duration_seconds": 0.44185328483581543
+    },
+    "requirements": {
+      "criteria_total": 9,
+      "criteria_met": 0,
+      "all_criteria_met": false,
+      "missing": [
+        "`CorrelationIDMiddleware` generates UUID4 for each request",
+        "Incoming `X-Correlation-ID` header is respected if present",
+        "Correlation ID stored in `ContextVar` and accessible throughout request lifecycle",
+        "Correlation ID bound to structlog context (appears in all log entries for that request)",
+        "`X-Correlation-ID` header added to all responses",
+        "`RequestLoggingMiddleware` logs request start and completion",
+        "Request duration measured in milliseconds",
+        "Both middleware registered in correct order in `main.py`",
+        "Health endpoint (`/health`) logging is skippable"
+      ]
+    }
+  },
+  "criteria_verification": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`CorrelationIDMiddleware` generates UUID4 for each request",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Incoming `X-Correlation-ID` header is respected if present",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Correlation ID stored in `ContextVar` and accessible throughout request lifecycle",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Correlation ID bound to structlog context (appears in all log entries for that request)",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "`X-Correlation-ID` header added to all responses",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "`RequestLoggingMiddleware` logs request start and completion",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "Request duration measured in milliseconds",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "Both middleware registered in correct order in `main.py`",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "Health endpoint (`/health`) logging is skippable",
+      "result": "rejected",
+      "status": "rejected",
+      "evidence": "Not found in Player requirements_met",
+      "notes": "Not found in Player requirements_met"
+    }
+  ],
+  "acceptance_criteria_verification": {
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`CorrelationIDMiddleware` generates UUID4 for each request",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "Incoming `X-Correlation-ID` header is respected if present",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "Correlation ID stored in `ContextVar` and accessible throughout request lifecycle",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Correlation ID bound to structlog context (appears in all log entries for that request)",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`X-Correlation-ID` header added to all responses",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`RequestLoggingMiddleware` logs request start and completion",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Request duration measured in milliseconds",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "Both middleware registered in correct order in `main.py`",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      },
+      {
+        "criterion_id": "AC-009",
+        "criterion_text": "Health endpoint (`/health`) logging is skippable",
+        "result": "rejected",
+        "status": "rejected",
+        "evidence": "Not found in Player requirements_met",
+        "notes": "Not found in Player requirements_met"
+      }
+    ]
+  },
+  "issues": [
+    {
+      "severity": "must_fix",
+      "category": "missing_requirement",
+      "description": "Not all acceptance criteria met",
+      "missing_criteria": [
+        "`CorrelationIDMiddleware` generates UUID4 for each request",
+        "Incoming `X-Correlation-ID` header is respected if present",
+        "Correlation ID stored in `ContextVar` and accessible throughout request lifecycle",
+        "Correlation ID bound to structlog context (appears in all log entries for that request)",
+        "`X-Correlation-ID` header added to all responses",
+        "`RequestLoggingMiddleware` logs request start and completion",
+        "Request duration measured in milliseconds",
+        "Both middleware registered in correct order in `main.py`",
+        "Health endpoint (`/health`) logging is skippable"
+      ]
+    }
+  ],
+  "rationale": "Missing 9 acceptance criteria: `CorrelationIDMiddleware` generates UUID4 for each request, Incoming `X-Correlation-ID` header is respected if present, Correlation ID stored in `ContextVar` and accessible throughout request lifecycle, Correlation ID bound to structlog context (appears in all log entries for that request), `X-Correlation-ID` header added to all responses, `RequestLoggingMiddleware` logs request start and completion, Request duration measured in milliseconds, Both middleware registered in correct order in `main.py`, Health endpoint (`/health`) logging is skippable",
+  "context_used": null,
+  "approved_without_independent_tests": false
+}

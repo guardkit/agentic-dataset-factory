@@ -1,0 +1,118 @@
+{
+  "task_id": "TASK-DB-008",
+  "turn": 1,
+  "files_modified": [
+    ".claude/task-plans/TASK-DB-006-implementation-plan.md",
+    ".claude/task-plans/TASK-DB-008-implementation-plan.md",
+    ".guardkit/autobuild/TASK-DB-003/checkpoints.json",
+    ".guardkit/autobuild/TASK-DB-005/coach_turn_1.json",
+    ".guardkit/autobuild/TASK-DB-005/player_turn_1.json",
+    ".guardkit/autobuild/TASK-DB-005/task_work_results.json",
+    ".guardkit/autobuild/TASK-DB-005/turn_context.json",
+    ".guardkit/autobuild/TASK-DB-006/turn_context.json",
+    ".guardkit/autobuild/TASK-DB-008/turn_context.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/src/health/router.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/src/health/schemas.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/tests/health/test_router.py",
+    "alembic/env.py",
+    "alembic/versions/a143501c5e1f_create_users_table.py",
+    "src/health/router.py",
+    "src/health/schemas.py",
+    "src/users/crud.py",
+    "tasks/design_approved/TASK-DB-006-implement-crud-operations.md",
+    "tasks/design_approved/TASK-DB-008-integrate-database-health-check.md",
+    "test.db",
+    "tests/health/test_router.py",
+    "tests/test_alembic.py"
+  ],
+  "files_created": [
+    ".guardkit/autobuild/TASK-DB-005/checkpoints.json",
+    ".guardkit/autobuild/TASK-DB-008/task_work_results.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/tests/health/test_router.py",
+    "tests/users/test_crud.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/tests/health/test_router.py"
+  ],
+  "tests_run": false,
+  "tests_passed": false,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [],
+  "requirements_remaining": [],
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "`src/health/schemas.py` updated: `HealthResponse` includes `database: str` field (values: `\"connected\"` or `\"unavailable\"`)",
+      "status": "complete",
+      "evidence": "File-existence verified: /home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/src/health/schemas.py (modified), src/health/schemas.py (modified)",
+      "evidence_type": "file_existence",
+      "confidence": 1.0
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "`src/health/router.py` updated: health endpoint accepts `get_db` dependency, executes `SELECT 1` probe",
+      "status": "complete",
+      "evidence": "File-existence verified: /home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-947C/src/health/router.py (modified), src/health/router.py (modified)",
+      "evidence_type": "file_existence",
+      "confidence": 1.0
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "When database is reachable: returns `status: \"ok\"`, `database: \"connected\"`",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "When database is unreachable: returns `status: \"degraded\"`, `database: \"unavailable\"` (still HTTP 200)",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "Exception handling: database probe failure is caught gracefully, does not crash endpoint",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Existing health check tests updated for new response structure",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "New tests added:",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All tests pass (including existing health tests)",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "mypy strict mode passes",
+      "status": "incomplete",
+      "evidence": "No file-existence evidence for this criterion",
+      "evidence_type": "file_existence",
+      "confidence": 0.0
+    }
+  ]
+}

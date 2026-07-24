@@ -1,0 +1,139 @@
+{
+  "task_id": "TASK-ADOC-002",
+  "turn": 1,
+  "files_modified": [
+    ".coverage",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/src/health/router.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/src/health/schemas.py",
+    "coverage.json",
+    "src/health/__pycache__/router.cpython-312.pyc",
+    "src/health/__pycache__/schemas.cpython-312.pyc",
+    "src/health/router.py",
+    "src/health/schemas.py",
+    "tasks/backlog/TASK-ADOC-002-add-response-examples-to-schemas.md"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-ADOC-002-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ADOC-001/checkpoints.json",
+    ".guardkit/autobuild/TASK-ADOC-002/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ADOC-002/task_work_results.json",
+    ".guardkit/autobuild/TASK-ADOC-002/turn_context.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/.guardkit/autobuild/TASK-ADOC-002/player_turn_1.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/src/schemas.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/tests/health/test_schemas.py",
+    "src/__pycache__/schemas.cpython-312.pyc",
+    "src/schemas.py",
+    "tasks/design_approved/TASK-ADOC-002-add-response-examples-to-schemas.md",
+    "tests/health/__pycache__/test_schemas.cpython-312-pytest-9.0.2.pyc",
+    "tests/health/__pycache__/test_schemas.cpython-312.pyc",
+    "tests/health/test_schemas.py"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/tests/health/test_schemas.py"
+  ],
+  "tests_run": true,
+  "tests_passed": true,
+  "test_output_summary": "",
+  "implementation_notes": "Implementation via task-work delegation",
+  "concerns": [],
+  "requirements_addressed": [
+    "HealthResponse includes json_schema_extra with examples",
+    "HealthResponse fields have descriptions via Field()",
+    "Health endpoint has summary and description",
+    "Health endpoint has responses dict with status code descriptions",
+    "OpenAPI schema shows examples in HealthResponse component",
+    "Swagger UI and ReDoc show example responses",
+    "Existing tests continue to pass",
+    "New tests verify schema examples in OpenAPI output"
+  ],
+  "requirements_remaining": [],
+  "tests_passed_count": 25,
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "HealthResponse includes json_schema_extra with at least one example",
+      "status": "complete",
+      "evidence": "Updated src/health/schemas.py to add ConfigDict with json_schema_extra containing example {\"status\": \"ok\", \"version\": \"0.1.0\"}",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/schemas.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Each field in HealthResponse has a description via Field()",
+      "status": "complete",
+      "evidence": "Added Field(description=...) to status and version fields in HealthResponse with descriptions \"Service health status\" and \"API version string\"",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/schemas.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "Health endpoint has summary and description in decorator",
+      "status": "complete",
+      "evidence": "Added summary=\"Check service health\" and description=\"Returns the current health status and version of the API service.\" to @router.get decorator",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/router.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "Health endpoint has responses dict with status code descriptions",
+      "status": "complete",
+      "evidence": "Added responses={200: {\"description\": \"Service is healthy\"}} to @router.get decorator",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/router.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "GET /openapi.json schema shows examples in the HealthResponse component",
+      "status": "complete",
+      "evidence": "Test test_openapi_schema_contains_examples verifies HealthResponse in OpenAPI schema contains examples array",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/schemas.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "Swagger UI Try it out shows example response",
+      "status": "complete",
+      "evidence": "json_schema_extra examples are used by FastAPI for Swagger UI \"Try it out\" functionality",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/schemas.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "ReDoc shows example response in documentation",
+      "status": "complete",
+      "evidence": "json_schema_extra examples are used by FastAPI for ReDoc documentation",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": [
+        "src/health/schemas.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All existing tests continue to pass",
+      "status": "complete",
+      "evidence": "All 25 tests pass including existing health router tests",
+      "test_file": "tests/health/test_router.py",
+      "implementation_files": []
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "New tests verify schema examples are present in OpenAPI output",
+      "status": "complete",
+      "evidence": "Created tests/health/test_schemas.py with tests for json_schema_extra, field descriptions, OpenAPI schema examples, and path response descriptions",
+      "test_file": "tests/health/test_schemas.py",
+      "implementation_files": []
+    }
+  ]
+}

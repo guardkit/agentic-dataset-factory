@@ -1,0 +1,149 @@
+{
+  "task_id": "TASK-ADOC-001",
+  "timestamp": "2026-02-24T14:22:23.901608",
+  "completed": true,
+  "phases": {
+    "phase_3": {
+      "detected": true,
+      "text": "Implementation",
+      "completed": false
+    }
+  },
+  "quality_gates": {
+    "tests_passing": true,
+    "tests_passed": 0,
+    "tests_failed": 0,
+    "coverage": 98.0,
+    "coverage_met": true,
+    "all_passed": true
+  },
+  "files_modified": [
+    ".coverage",
+    ".guardkit/bootstrap_state.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/src/core/config.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/src/main.py",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/tests/test_main.py",
+    "coverage.json",
+    "src/__pycache__/__init__.cpython-312.pyc",
+    "src/__pycache__/main.cpython-312.pyc",
+    "src/core/__pycache__/__init__.cpython-312.pyc",
+    "src/core/__pycache__/config.cpython-312.pyc",
+    "src/core/config.py",
+    "src/health/__pycache__/__init__.cpython-312.pyc",
+    "src/health/__pycache__/router.cpython-312.pyc",
+    "src/health/__pycache__/schemas.cpython-312.pyc",
+    "src/main.py",
+    "tests/__pycache__/__init__.cpython-312.pyc",
+    "tests/__pycache__/conftest.cpython-312-pytest-9.0.2.pyc",
+    "tests/__pycache__/test_main.cpython-312-pytest-9.0.2.pyc",
+    "tests/health/__pycache__/__init__.cpython-312.pyc",
+    "tests/health/__pycache__/test_router.cpython-312-pytest-9.0.2.pyc",
+    "tests/test_main.py"
+  ],
+  "files_created": [
+    ".claude/task-plans/TASK-ADOC-001-implementation-plan.md",
+    ".guardkit/autobuild/TASK-ADOC-001/player_turn_1.json",
+    ".guardkit/autobuild/TASK-ADOC-001/task_work_results.json",
+    ".guardkit/autobuild/TASK-ADOC-001/turn_context.json",
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/.guardkit/autobuild/TASK-ADOC-001/player_turn_1.json",
+    "tasks/backlog/TASK-ADOC-002-add-response-examples-to-schemas.md",
+    "tasks/backlog/TASK-ADOC-003-add-api-versioning-middleware.md",
+    "tasks/design_approved/TASK-ADOC-001-customize-openapi-metadata-and-docs-config.md"
+  ],
+  "tests_written": [
+    "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-B2D7/tests/test_main.py"
+  ],
+  "summary": "98.0% coverage, all quality gates passed",
+  "completion_promises": [
+    {
+      "criterion_id": "AC-001",
+      "criterion_text": "FastAPI() constructor includes `description`, `summary`, `contact`, `license_info`, and `openapi_tags` parameters",
+      "status": "complete",
+      "evidence": "Updated FastAPI constructor in src/main.py with all required metadata parameters: description, summary, contact (dict with name/url/email), license_info (dict with name/url), and openapi_tags (list with health tag)",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-002",
+      "criterion_text": "Settings class includes new documentation-related fields with sensible defaults",
+      "status": "complete",
+      "evidence": "Added 8 new documentation settings to Settings class in src/core/config.py: app_description, app_summary, app_contact_name, app_contact_email, app_contact_url, app_license_name, app_license_url, app_terms_of_service",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/core/config.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-003",
+      "criterion_text": "GET /docs renders Swagger UI with full metadata visible",
+      "status": "complete",
+      "evidence": "Swagger UI endpoint tested and verified returning 200 status with full metadata visible",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-004",
+      "criterion_text": "GET /redoc renders ReDoc with full metadata visible",
+      "status": "complete",
+      "evidence": "ReDoc endpoint tested and verified returning 200 status with full metadata visible",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-005",
+      "criterion_text": "GET /openapi.json returns schema with all metadata fields populated",
+      "status": "complete",
+      "evidence": "OpenAPI JSON endpoint tested, verified to return schema with info.description, info.contact, info.license, tags, and termsOfService populated",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-006",
+      "criterion_text": "OpenAPI tags include at least 'health' with a description",
+      "status": "complete",
+      "evidence": "Added openapi_tags list with health tag containing name and description in FastAPI constructor",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-007",
+      "criterion_text": "swagger_ui_parameters configures enhanced defaults",
+      "status": "complete",
+      "evidence": "Added swagger_ui_parameters with defaultModelsExpandDepth=-1 and tryItOutEnabled=True to FastAPI constructor",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-008",
+      "criterion_text": "All existing tests continue to pass",
+      "status": "complete",
+      "evidence": "All 10 existing tests in test_main.py pass; all 3 health tests pass; total 20 tests passing",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    },
+    {
+      "criterion_id": "AC-009",
+      "criterion_text": "New tests verify OpenAPI schema contains expected metadata fields",
+      "status": "complete",
+      "evidence": "Added 7 new tests in TestOpenAPIMetadata class: test_app_description, test_app_summary, test_app_contact, test_app_license, test_openapi_tags, test_swagger_ui_parameters, test_terms_of_service",
+      "test_file": "tests/test_main.py",
+      "implementation_files": [
+        "src/main.py"
+      ]
+    }
+  ]
+}

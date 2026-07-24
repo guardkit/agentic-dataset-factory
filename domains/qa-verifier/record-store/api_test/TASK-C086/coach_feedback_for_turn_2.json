@@ -1,0 +1,9 @@
+{
+  "turn": 2,
+  "feedback_from_turn": 1,
+  "feedback_summary": "- Not all acceptance criteria met:\n  \u2022 `src/core/config.py` defines a `Settings` class using `pydantic-settings` (`BaseSettings`) with at m\n  \u2022 Settings reads from environment / `.env` file via `model_config = SettingsConfigDict(env_file=\".env\"\n  \u2022 A module-level `settings = Settings()` singleton is exported\n  \u2022 `src/main.py` creates the `FastAPI` app instance using `settings.app_name`\n  \u2022 App includes standard metadata: `title`, `version=\"0.1.0\"`, `debug=settings.debug`\n  (3 more)",
+  "must_fix": [],
+  "should_fix": [],
+  "validation_results": {},
+  "raw_feedback": "- Not all acceptance criteria met:\n  \u2022 `src/core/config.py` defines a `Settings` class using `pydantic-settings` (`BaseSettings`) with at m\n  \u2022 Settings reads from environment / `.env` file via `model_config = SettingsConfigDict(env_file=\".env\"\n  \u2022 A module-level `settings = Settings()` singleton is exported\n  \u2022 `src/main.py` creates the `FastAPI` app instance using `settings.app_name`\n  \u2022 App includes standard metadata: `title`, `version=\"0.1.0\"`, `debug=settings.debug`\n  (3 more)"
+}

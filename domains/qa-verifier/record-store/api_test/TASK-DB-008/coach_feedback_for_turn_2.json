@@ -1,0 +1,9 @@
+{
+  "turn": 2,
+  "feedback_from_turn": 1,
+  "feedback_summary": "- Not all acceptance criteria met:\n  \u2022 When database is reachable: returns `status: \"ok\"`, `database: \"connected\"`\n  \u2022 When database is unreachable: returns `status: \"degraded\"`, `database: \"unavailable\"` (still HTTP 20\n  \u2022 Exception handling: database probe failure is caught gracefully, does not crash endpoint\n  \u2022 Existing health check tests updated for new response structure\n  \u2022 New tests added:\n  (2 more)",
+  "must_fix": [],
+  "should_fix": [],
+  "validation_results": {},
+  "raw_feedback": "- Not all acceptance criteria met:\n  \u2022 When database is reachable: returns `status: \"ok\"`, `database: \"connected\"`\n  \u2022 When database is unreachable: returns `status: \"degraded\"`, `database: \"unavailable\"` (still HTTP 20\n  \u2022 Exception handling: database probe failure is caught gracefully, does not crash endpoint\n  \u2022 Existing health check tests updated for new response structure\n  \u2022 New tests added:\n  (2 more)"
+}

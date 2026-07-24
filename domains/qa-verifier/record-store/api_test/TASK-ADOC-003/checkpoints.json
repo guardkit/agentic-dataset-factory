@@ -1,0 +1,22 @@
+{
+  "task_id": "TASK-ADOC-003",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "73beee43d7d9ec24c25b669062ad73ce82ef4900",
+      "timestamp": "2026-02-24T14:35:52.184822",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: pass)"
+    },
+    {
+      "turn": 2,
+      "commit_hash": "f999d0097a5b3686e1351be7faf345f60a01222a",
+      "timestamp": "2026-02-24T14:40:21.466784",
+      "tests_passed": true,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 2 complete (tests: pass)"
+    }
+  ],
+  "last_updated": "2026-02-24T14:40:21.466850"
+}
