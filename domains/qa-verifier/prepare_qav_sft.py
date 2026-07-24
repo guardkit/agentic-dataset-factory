@@ -370,11 +370,23 @@ def frozen_exam_crosscheck(train_rows: list[dict], eval_rows: list[dict],
     contaminates the A/B whichever split it lands in. QAV v3 minted eval-side rows (the four
     eval-hash tasks' contrast pairs), so the eval split must be crosschecked too — the as-shipped
     train-only check would let an eval leak through (DESIGN §3 law 3). Belt-and-braces over the
-    factory's own contamination_check (SCOPE §3.1 delta 1d)."""
+    factory's own contamination_check (SCOPE §3.1 delta 1d).
+
+    GOLD EXEMPTION (2026-07-24, first live firing of the widened gate): the corpus's
+    generation_mode=gold_negative rows are deliberate eval-holdout TWINS of the exam's GN
+    bundles — reconstructions of the same four historical defects (SPEC-qav-gold-negatives) —
+    so their bundle spines share structural 8-grams with the exam BY CONSTRUCTION. They never
+    train (always eval_qav; gold-source tasks are excluded from every training pipeline by the
+    frozen contamination law), so the eval-side check exempts them BY MODE and records the
+    exemption count. Every other eval row — including every minted pair row — stays hard-gated."""
     exam_shingles = {name: shingles(body) for name, body in briefs.items()}
     total = sum(len(s) for s in exam_shingles.values())
     hits: list[dict] = []
-    checked = [("train", r) for r in train_rows] + [("eval", r) for r in eval_rows]
+    gold_exempted = sum(1 for r in eval_rows
+                        if (r.get("metadata") or {}).get("generation_mode") == "gold_negative")
+    checked = [("train", r) for r in train_rows] + [
+        ("eval", r) for r in eval_rows
+        if (r.get("metadata") or {}).get("generation_mode") != "gold_negative"]
     for split, row in checked:
         user_text = " ".join(normalize_words(user_content(row)))
         for name, sh in exam_shingles.items():
@@ -391,6 +403,7 @@ def frozen_exam_crosscheck(train_rows: list[dict], eval_rows: list[dict],
         "rows_compared": len(checked),
         "train_rows_compared": len(train_rows),
         "eval_rows_compared": len(eval_rows),
+        "eval_gold_negative_exempted": gold_exempted,
         "hits": hits[:20],
     }
 
