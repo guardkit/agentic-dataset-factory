@@ -1,0 +1,205 @@
+{
+  "honesty": {
+    "verified": true,
+    "discrepancies": [],
+    "honesty_score": 1.0,
+    "resolved_paths": [],
+    "should_fix_count": 0
+  },
+  "gathering_status": "complete",
+  "gathering_error": null,
+  "quality_gates": {
+    "tests_passed": true,
+    "coverage_met": true,
+    "arch_review_passed": true,
+    "plan_audit_passed": true,
+    "tests_required": true,
+    "coverage_required": true,
+    "arch_review_required": false,
+    "plan_audit_required": true,
+    "all_gates_passed": true
+  },
+  "coverage_details": {
+    "coverage_met": true,
+    "line_coverage": null,
+    "branch_coverage": null,
+    "line_threshold": null,
+    "branch_threshold": null,
+    "coverage_required": true
+  },
+  "plan_audit": null,
+  "bdd": null,
+  "bdd_authoring_sweep": null,
+  "arch_review": null,
+  "tests": {
+    "tests_passed": true,
+    "tests_required": true,
+    "tests_run": null,
+    "tests_failed": 0,
+    "all_passed": true,
+    "requires_infrastructure": []
+  },
+  "wiring": {
+    "status": "complete",
+    "dialect": "python",
+    "language": "python",
+    "dialects": [
+      "python"
+    ],
+    "languages": [
+      "python"
+    ],
+    "targets_scanned": 4,
+    "symbols_examined": 3,
+    "findings": [],
+    "degraded_files": [],
+    "ctor_arity": {
+      "status": "skipped_no_composition_root",
+      "ran": false,
+      "skip_reason": "no composition root found",
+      "dialect": "python",
+      "language": "python",
+      "composition_roots_scanned": 0,
+      "findings": []
+    },
+    "callsite_drift": {
+      "status": "ran",
+      "ran": true,
+      "skip_reason": null,
+      "dialect": "python",
+      "language": "python",
+      "apertures_run": [
+        "B"
+      ],
+      "findings": []
+    },
+    "env_tamper": {
+      "status": "ran",
+      "ran": true,
+      "skip_reason": null,
+      "dialect": "python",
+      "language": "python",
+      "findings": []
+    },
+    "permissive_double": {
+      "status": "ran",
+      "ran": true,
+      "skip_reason": null,
+      "dialect": "python",
+      "language": "python",
+      "findings": []
+    }
+  },
+  "mocked_seam": {
+    "status": "ran",
+    "ran": true,
+    "skip_reason": null,
+    "dialect": "python",
+    "language": "python",
+    "findings": [],
+    "external_mocks_ignored": []
+  },
+  "spec_gap": {
+    "status": "unsupported_stack",
+    "ground_truth_count": 0,
+    "executed_count": 0,
+    "pending_count": 0,
+    "findings": [],
+    "whole_file_deselection": false,
+    "bdd_plugin_name": null,
+    "executed_evidence": "counts_only"
+  },
+  "stub_scan": {
+    "status": "complete",
+    "ran": true,
+    "skip_reason": null,
+    "dialect": "python",
+    "language": "python",
+    "symbols_examined": 4,
+    "findings": [],
+    "degraded_files": []
+  },
+  "coverage": null,
+  "behavioural_oracle": null,
+  "independent_tests": {
+    "tests_passed": false,
+    "test_command": "pytest tests/test_uptime.py -v --tb=short",
+    "test_output_summary": "Error detail:\nImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\n    from fastapi import FastAPI\nE   ModuleNotFoundError: No module named 'fastapi'\nResult:\nImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\nE   ModuleNotFoundError: No module named 'fastapi'",
+    "duration_seconds": 0.14084291458129883,
+    "raw_output": "ImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\n    from fastapi import FastAPI\nE   ModuleNotFoundError: No module named 'fastapi'\n",
+    "signal_absent": true,
+    "tests_skipped": null,
+    "resolved_interpreter": "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/.venv/bin/python"
+  },
+  "independent_test_classification": null,
+  "requirements": {
+    "criteria_total": 8,
+    "criteria_met": 8,
+    "all_criteria_met": true,
+    "missing": [],
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`src/uptime/__init__.py`, `src/uptime/router.py`, `src/uptime/schemas.py` exist; router registered in `src/main.py` with tag `uptime`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Created src/uptime/__init__.py, src/uptime/router.py, src/uptime/schemas.py. Registered router in src/main.py via import and app.include_router(uptime_router, tags=[\"uptime\"]). Added uptime tag to openapi_tags list."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`GET /uptime` returns 200 with exactly the three fields `service`, `started_at`, `uptime_seconds`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "GET /uptime endpoint returns 200 with exactly three fields. Tested via test_uptime_returns_200 and test_uptime_response_has_exactly_three_fields."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`service` equals `settings.app_name`; `started_at` parses as ISO-8601 with UTC offset; `uptime_seconds` is a float >= 0",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "service matches settings.app_name (test_uptime_service_matches_app_name), started_at parses as ISO-8601 with UTC offset (test_uptime_started_at_is_iso8601_with_utc_offset), uptime_seconds is float >= 0 (test_uptime_uptime_seconds_is_float_and_non_negative)."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Two sequential requests: second `uptime_seconds` > first; `started_at` identical in both",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Sequential request tests: test_uptime_sequential_requests_increasing_uptime verifies uptime_seconds increases, test_uptime_started_at_identical_across_requests verifies started_at is constant."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`POST /uptime` returns 405 (method not allowed)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "test_uptime_post_returns_405 verifies POST /uptime returns HTTP 405 Method Not Allowed."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`src/uptime/` contains no import of `src.db` (no database coupling) \u2014 asserted by a test",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "test_uptime_no_db_import scans all .py files in src/uptime/ for 'src.db' references. test_uptime_router_no_db_dependency checks router.py source directly. Both pass."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Tests live in `tests/test_uptime.py` following the existing test conventions; full suite has zero net-new failures",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Tests in tests/test_uptime.py follow existing conventions (class-based test groups, pytest.mark.asyncio, TestClient for isolated router tests). 15 new tests all pass. Full suite: 9 pre-existing failures unchanged (alembic/middleware DB issues)."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "ruff check passes on src/uptime/, tests/test_uptime.py with zero errors. ruff format check passes. Pre-existing E501 errors in src/main.py are unchanged."
+      }
+    ]
+  },
+  "runtime_parity": null,
+  "evidence_repo_tests": [],
+  "severity_recommendations": [],
+  "advisory_issues": [],
+  "task_type": "feature",
+  "profile_name": "feature"
+}

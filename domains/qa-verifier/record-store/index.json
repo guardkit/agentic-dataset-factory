@@ -1351,6 +1351,99 @@
      "bytes": 858
     }
    ]
+  },
+  "api_test/TASK-UPT-001": {
+   "source_kind": "stranded_worktree_file",
+   "source_repo": "/home/richardwoollcott/Projects/appmilla_github/api_test",
+   "source_path": "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-AE43/.guardkit/autobuild/TASK-UPT-001",
+   "note": "A1-LIVE ratified consumable (07-21) whose record sat outside every discovery glob (worktrees/FEAT-AE43 \u2014 the census rglob footgun); copied 2026-07-24 per plateau-card-3 option-A pre-gate folded into the v4 lane",
+   "files": [
+    {
+     "name": "checkpoints.json",
+     "sha256": "61b0ae83cc2a3b0ce9eb203324a416eb8b91543d6e070ef20c66c8750862aade",
+     "bytes": 762
+    },
+    {
+     "name": "coach_evidence_turn_1.json",
+     "sha256": "667aba5e87ed426a09fe5ae41b070dc3fab5f89df4de0c216c3be3d1b2b3584b",
+     "bytes": 7882
+    },
+    {
+     "name": "coach_evidence_turn_2.json",
+     "sha256": "69f01a3c5bc342a3b709f5b28dbc7ed9b949e1047c7dbe6cd54f815d8c155c9a",
+     "bytes": 20446
+    },
+    {
+     "name": "coach_evidence_turn_3.json",
+     "sha256": "3efa50dadcb6df8b9eb41887624fc862396a617f182899de0ed5ae3b17b06fb9",
+     "bytes": 20343
+    },
+    {
+     "name": "coach_feedback_for_turn_2.json",
+     "sha256": "49dbbf9860cca9c7ab6ff5a098f5aca7b0dff8a1bf743ee2b4fb1f056edbd475",
+     "bytes": 3448
+    },
+    {
+     "name": "coach_turn_1.json",
+     "sha256": "de25e74cd4a12c945d41dcf4532f3d92dc247d9ce607ddcd9d5861ef45f0aa4a",
+     "bytes": 4573
+    },
+    {
+     "name": "coach_turn_2.json",
+     "sha256": "4be91c21c0d9d3115946ab0b1191253ac249376cfa47d8693e313c20f07af279",
+     "bytes": 12706
+    },
+    {
+     "name": "coach_turn_3.json",
+     "sha256": "95b45db9139cf111a8245e9379a63b57aea81881365543ec6f8bd1fbd42b779f",
+     "bytes": 2493
+    },
+    {
+     "name": "player_turn_1.json",
+     "sha256": "7c40ad3976b086921d59fa264d21606b49428f535d31f1d80acbc78925a428d9",
+     "bytes": 6193
+    },
+    {
+     "name": "player_turn_2.json",
+     "sha256": "a2b5e83f3d0531ab224cc42509b42c226ad7f4d78c5fa29736b4de3794860f65",
+     "bytes": 8370
+    },
+    {
+     "name": "player_turn_3.json",
+     "sha256": "59e50077eec4eaca02e524c92e03aef01ee0f32ac046c104af82b449cbfe22e7",
+     "bytes": 6591
+    },
+    {
+     "name": "progress.log",
+     "sha256": "fa1119818dab61c9b0d44aca6cd67fefb1d4e453f7f572faa9ac12bcab99020f",
+     "bytes": 2821
+    },
+    {
+     "name": "task_work_results.json",
+     "sha256": "bbf8c442d86aaabb15d0cf40da727bb2134f791bdc3cd199e0032d29f3eeb545",
+     "bytes": 5838
+    },
+    {
+     "name": "turn_context.json",
+     "sha256": "bb36766fef531c2d27f122d8af3df5a68ef3f7ca1c371c2f6b9043ea1c6d2b33",
+     "bytes": 762
+    },
+    {
+     "name": "turn_state_turn_1.json",
+     "sha256": "d332fc0cdf67a085f1562ae8a3c98cf507fbdb49765d1cceed9b791c412aed8c",
+     "bytes": 2443
+    },
+    {
+     "name": "turn_state_turn_2.json",
+     "sha256": "7429d326bdf0f261e82f743ae1830a351ce63d0fd160b3259ddb109124bd6f84",
+     "bytes": 2450
+    },
+    {
+     "name": "turn_state_turn_3.json",
+     "sha256": "3382c98b9ceb2937d3a28762bf5682f809063740703a7dff6da8c1dbfcfeeeb2",
+     "bytes": 767
+    }
+   ]
   }
  }
 }

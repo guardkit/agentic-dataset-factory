@@ -1,0 +1,309 @@
+{
+  "honesty": {
+    "verified": false,
+    "discrepancies": [
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/core/config.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      },
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/main.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      },
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/__init__.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      },
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/router.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      },
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/schemas.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      },
+      {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file tests/test_uptime.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+        "severity": "should_fix",
+        "ignore_rule": null
+      }
+    ],
+    "honesty_score": 1.0,
+    "resolved_paths": [],
+    "should_fix_count": 6
+  },
+  "gathering_status": "complete",
+  "gathering_error": null,
+  "quality_gates": {
+    "tests_passed": true,
+    "coverage_met": true,
+    "arch_review_passed": true,
+    "plan_audit_passed": true,
+    "tests_required": true,
+    "coverage_required": true,
+    "arch_review_required": false,
+    "plan_audit_required": true,
+    "all_gates_passed": true
+  },
+  "coverage_details": {
+    "coverage_met": true,
+    "line_coverage": null,
+    "branch_coverage": null,
+    "line_threshold": null,
+    "branch_threshold": null,
+    "coverage_required": true
+  },
+  "plan_audit": null,
+  "bdd": null,
+  "bdd_authoring_sweep": null,
+  "arch_review": null,
+  "tests": {
+    "tests_passed": true,
+    "tests_required": true,
+    "tests_run": null,
+    "tests_failed": 0,
+    "all_passed": true,
+    "requires_infrastructure": []
+  },
+  "wiring": {
+    "status": "complete",
+    "dialect": "python",
+    "language": "python",
+    "dialects": [
+      "python"
+    ],
+    "languages": [
+      "python"
+    ],
+    "targets_scanned": 4,
+    "symbols_examined": 3,
+    "findings": [],
+    "degraded_files": [],
+    "ctor_arity": {
+      "status": "skipped_no_composition_root",
+      "ran": false,
+      "skip_reason": "no composition root found",
+      "dialect": "python",
+      "language": "python",
+      "composition_roots_scanned": 0,
+      "findings": []
+    },
+    "callsite_drift": {
+      "status": "ran",
+      "ran": true,
+      "skip_reason": null,
+      "dialect": "python",
+      "language": "python",
+      "apertures_run": [
+        "B"
+      ],
+      "findings": []
+    },
+    "env_tamper": {
+      "status": "ran",
+      "ran": true,
+      "skip_reason": null,
+      "dialect": "python",
+      "language": "python",
+      "findings": []
+    },
+    "permissive_double": {
+      "status": "skipped_no_targets",
+      "ran": false,
+      "skip_reason": "no authored test targets",
+      "dialect": null,
+      "language": "",
+      "findings": []
+    }
+  },
+  "mocked_seam": {
+    "status": "ran",
+    "ran": true,
+    "skip_reason": null,
+    "dialect": "python",
+    "language": "python",
+    "findings": [],
+    "external_mocks_ignored": []
+  },
+  "spec_gap": {
+    "status": "unsupported_stack",
+    "ground_truth_count": 0,
+    "executed_count": 0,
+    "pending_count": 0,
+    "findings": [],
+    "whole_file_deselection": false,
+    "bdd_plugin_name": null,
+    "executed_evidence": "counts_only"
+  },
+  "stub_scan": {
+    "status": "complete",
+    "ran": true,
+    "skip_reason": null,
+    "dialect": "python",
+    "language": "python",
+    "symbols_examined": 4,
+    "findings": [],
+    "degraded_files": []
+  },
+  "coverage": null,
+  "behavioural_oracle": null,
+  "independent_tests": {
+    "tests_passed": false,
+    "test_command": "pytest tests/test_uptime.py -v --tb=short",
+    "test_output_summary": "Error detail:\nImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\n    from fastapi import FastAPI\nE   ModuleNotFoundError: No module named 'fastapi'\nResult:\nImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\nE   ModuleNotFoundError: No module named 'fastapi'",
+    "duration_seconds": 0.12555408477783203,
+    "raw_output": "ImportError while loading conftest '/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/tests/conftest.py'.\ntests/conftest.py:9: in <module>\n    from fastapi import FastAPI\nE   ModuleNotFoundError: No module named 'fastapi'\n",
+    "signal_absent": true,
+    "tests_skipped": null,
+    "resolved_interpreter": "/home/richardwoollcott/Projects/appmilla_github/api_test/.guardkit/worktrees/FEAT-FD8D/.venv/bin/python"
+  },
+  "independent_test_classification": null,
+  "requirements": {
+    "criteria_total": 8,
+    "criteria_met": 8,
+    "all_criteria_met": true,
+    "missing": [],
+    "criteria_results": [
+      {
+        "criterion_id": "AC-001",
+        "criterion_text": "`src/uptime/__init__.py`, `src/uptime/router.py`, `src/uptime/schemas.py` exist; router registered in `src/main.py` with tag `uptime`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "All three files exist in src/uptime/. The router is imported in src/main.py (line 19: `from src.uptime.router import router as uptime_router`) and registered at line 98 (`app.include_router(uptime_router, tags=[\"uptime\"])`). The openapi_tags list includes the uptime tag (lines 74-77). Verified by TestUptimeRouterRegistration tests."
+      },
+      {
+        "criterion_id": "AC-002",
+        "criterion_text": "`GET /uptime` returns 200 with exactly the three fields `service`, `started_at`, `uptime_seconds`",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Test test_uptime_returns_200 verifies HTTP 200 status. Test test_uptime_response_has_exactly_three_fields asserts that response.json() keys equal {'service', 'started_at', 'uptime_seconds'} with no extra or missing fields."
+      },
+      {
+        "criterion_id": "AC-003",
+        "criterion_text": "`service` equals `settings.app_name`; `started_at` parses as ISO-8601 with UTC offset; `uptime_seconds` is a float >= 0",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Test test_uptime_service_matches_app_name asserts data['service'] == settings.app_name. Test test_uptime_started_at_is_iso8601_with_utc_offset parses the value via datetime.fromisoformat() and asserts tzinfo and utcoffset are not None. Test test_uptime_uptime_seconds_is_float_and_non_negative asserts isinstance(data['uptime_seconds'], float) and data['uptime_seconds'] >= 0."
+      },
+      {
+        "criterion_id": "AC-004",
+        "criterion_text": "Two sequential requests: second `uptime_seconds` > first; `started_at` identical in both",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Test test_uptime_sequential_requests_increasing_uptime makes two GET requests with a 50ms sleep, asserts data2['uptime_seconds'] > data1['uptime_seconds']. Test test_uptime_started_at_identical_across_requests makes two requests with a 50ms sleep, asserts data1['started_at'] == data2['started_at']. The _startup_time module-level variable ensures started_at is fixed at import time."
+      },
+      {
+        "criterion_id": "AC-005",
+        "criterion_text": "`POST /uptime` returns 405 (method not allowed)",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Test test_uptime_post_returns_405 sends a POST request to /uptime and asserts response.status_code == HTTPStatus.METHOD_NOT_ALLOWED (405). FastAPI automatically returns 405 for methods not defined on an endpoint."
+      },
+      {
+        "criterion_id": "AC-006",
+        "criterion_text": "`src/uptime/` contains no import of `src.db` (no database coupling) \u2014 asserted by a test",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Test test_uptime_no_db_import reads all .py files in src/uptime/ and asserts 'src.db' is not in any file content. Test test_uptime_router_no_db_dependency reads router.py source and asserts neither 'from src.db' nor 'import src.db' appears. The router.py only imports from src.core.config and src.uptime.schemas."
+      },
+      {
+        "criterion_id": "AC-007",
+        "criterion_text": "Tests live in `tests/test_uptime.py` following the existing test conventions; full suite has zero net-new failures",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "Tests are in tests/test_uptime.py using class-based naming (TestUptimeEndpoint, TestUptimeSchema, TestUptimeNoDatabaseCoupling, TestUptimeRouterRegistration) consistent with existing patterns. All 15 uptime tests pass. The 9 pre-existing failures in test_middleware.py and test_alembic.py are due to PostgreSQL connectivity issues and are not net-new from this feature."
+      },
+      {
+        "criterion_id": "AC-008",
+        "criterion_text": "All modified files pass project-configured lint/format checks with zero errors",
+        "result": "verified",
+        "status": "verified",
+        "evidence": "ruff check on src/uptime/ and tests/test_uptime.py returned 'All checks passed!'. ruff format --check confirmed all 4 files already formatted. Zero lint or format errors."
+      }
+    ]
+  },
+  "runtime_parity": null,
+  "evidence_repo_tests": [],
+  "severity_recommendations": [],
+  "advisory_issues": [
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file src/core/config.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/core/config.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file src/main.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/main.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file src/uptime/__init__.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/__init__.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file src/uptime/router.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/router.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file src/uptime/schemas.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file src/uptime/schemas.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    },
+    {
+      "severity": "should_fix",
+      "category": "claim_audit",
+      "description": "Player-claimed file is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player likely swept an orchestrator-managed path into files_modified. Player claimed file tests/test_uptime.py. Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication.",
+      "details": {
+        "claim_type": "claim_audit_unmodified",
+        "player_claim": "Player claimed file tests/test_uptime.py",
+        "actual_value": "Path is tracked in git but 'git status --porcelain' shows no change for it \u2014 the Player claimed work on a file it did not actually modify this turn. Most likely cause: the report writer swept an orchestrator-managed path (e.g. a file under .guardkit/autobuild/ or tasks/<state>/) into files_modified. Defence-in-depth for the agent_invoker-side filter; this is a warning, not a turn-rejecting fabrication."
+      }
+    }
+  ],
+  "task_type": "feature",
+  "profile_name": "feature"
+}

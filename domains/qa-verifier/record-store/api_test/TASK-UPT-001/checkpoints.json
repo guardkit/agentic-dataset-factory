@@ -1,0 +1,26 @@
+{
+  "task_id": "TASK-UPT-001",
+  "checkpoints": [
+    {
+      "turn": 1,
+      "commit_hash": "534c4e5c170ea81d15e816820586a0c5a05448e0",
+      "timestamp": "2026-07-12T08:15:38.544677",
+      "tests_passed": null,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 1 complete (tests: unknown)",
+      "from_prior_run": false,
+      "evidence_commits": {}
+    },
+    {
+      "turn": 2,
+      "commit_hash": "383e7553407cf5b40cb21755e1e8dab8794ad02b",
+      "timestamp": "2026-07-12T08:24:09.929971",
+      "tests_passed": null,
+      "test_count": 0,
+      "message": "[guardkit-checkpoint] Turn 2 complete (tests: unknown)",
+      "from_prior_run": false,
+      "evidence_commits": {}
+    }
+  ],
+  "last_updated": "2026-07-12T08:24:09.930024"
+}

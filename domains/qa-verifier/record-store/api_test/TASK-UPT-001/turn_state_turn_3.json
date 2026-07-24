@@ -1,0 +1,29 @@
+{
+  "id": "TURN-FEAT-FD8D-3",
+  "feature_id": "FEAT-FD8D",
+  "task_id": "TASK-UPT-001",
+  "turn_number": 3,
+  "player_summary": "Implementation attempt",
+  "player_decision": "approve",
+  "coach_decision": "approve",
+  "coach_feedback": null,
+  "mode": "continuing_work",
+  "blockers_found": [],
+  "progress_summary": "Turn 3: approve",
+  "acceptance_criteria_status": {},
+  "files_modified": [
+    "src/main.py",
+    "src/uptime/__init__.py",
+    "src/uptime/router.py",
+    "src/uptime/schemas.py"
+  ],
+  "tests_passed": 15,
+  "tests_failed": 0,
+  "coverage": null,
+  "arch_score": null,
+  "started_at": "2026-07-12T08:30:26.286794",
+  "completed_at": "2026-07-12T08:30:26.286794",
+  "duration_seconds": null,
+  "lessons_from_turn": [],
+  "what_to_try_next": null
+}
