@@ -1,0 +1,54 @@
+# briefs-8bc2.yaml — 8B CYCLE-2 SUPPLEMENT: the clerk ↔ missing-capability boundary.
+#
+# The owner's first 8B sitting (2026-07-25) caught two FALSE WALLS: the candidate answered
+# "this is a missing capability" to the mailroom-routing and meeting-notes asks and drafted
+# nothing — capabilities the office demonstrably has. The wall families in the corpus
+# (voicemail transcription, posting/routing to EXTERNAL systems) bleed onto INTERNAL document
+# work, and these asks sit on the boundary: different serving draws land on different sides.
+#
+# The cure is the arc's proven one — minimal pairs across the confused boundary:
+#   internal-work-clerk-8bc2 ..... clerk asks deliberately phrased NEAR the wall shapes but
+#                                  fully internal and servable: sorting arriving post to
+#                                  members, reading notes/transcripts ALREADY IN the workspace,
+#                                  triaging and labelling documents. The correct answer DRAFTS
+#                                  THE CLERK.
+#   true-wall-siblings-8bc2 ...... the same ask cores where ONE element is genuinely
+#                                  unservable (transcribe audio, fetch from an external
+#                                  workspace, route to an outside organisation's system, scan
+#                                  paper). The correct answer names the wall.
+# The one differing element flips the class; nothing else does.
+
+classes:
+  # -------------------------------------------------------------------------------------------
+  # BLOCK A — fully-servable internal work, phrased near the walls. Correct = draft the clerk.
+  # -------------------------------------------------------------------------------------------
+  - id: internal-work-clerk-8bc2
+    expected_class: clerk
+    target_rows: 35
+    briefs:
+      - "Draft me a clerk that sorts each arriving letter in the post tray to the right member of the office."
+      - "I want a clerk that reads a meeting write-up already in the tray and pulls out the actions and who owns them."
+      - "Draft a clerk that routes incoming supplier documents to the finance tray or the records tray, whichever fits."
+      - "Make me a clerk that reads a voicemail transcript file from the inbox and lists who called and what they need."
+      - "I need a clerk that labels each arriving document by type so the right member picks it up."
+      - "Draft me a clerk that reads the notes dropped into the shared folder and summarises the decisions in each."
+      - "I want a clerk that triages the morning post into urgent and routine before the office opens."
+      - "Draft a clerk that reads a phone-message note in the tray and extracts the callback details."
+      - "Make me a clerk that files meeting summaries from the drafts folder against the project each belongs to."
+      - "I need a clerk that reads incoming enquiry letters and tags which service each one is asking about."
+
+  # -------------------------------------------------------------------------------------------
+  # BLOCK B — the same cores with ONE genuinely-unservable element. Correct = name the wall.
+  # -------------------------------------------------------------------------------------------
+  - id: true-wall-siblings-8bc2
+    expected_class: missing-capability
+    target_rows: 25
+    briefs:
+      - "Draft me a clerk that collects the post from our street mailbox and sorts it to the right member of the office."
+      - "I want a clerk that joins the weekly call, listens in, and pulls out the actions and who owns them."
+      - "Draft a clerk that routes incoming supplier documents into our accountant's own filing system at their firm."
+      - "Make me a clerk that listens to the voicemail audio and lists who called and what they need."
+      - "I need a clerk that scans the paper letters on my desk and labels each document by type."
+      - "Draft me a clerk that pulls the notes out of our Notion workspace and summarises the decisions in each."
+      - "I want a clerk that texts me whenever the morning post contains something urgent."
+      - "Draft a clerk that rings the caller back to confirm the details in a phone-message note."
