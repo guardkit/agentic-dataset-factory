@@ -89,5 +89,16 @@
     "cycle_4": "corpus 1140 (+54 destination pairs); gate 95.6% vs 28.3%; exam replay 6/9 — destination class DEAD, leads 1/3 (tray window omitted), probe 0/1 (2 criteria; egress refused)",
     "verdict": "PARKED on the stop-rule: two cycles at the same 6/9 total with failures migrating between single-token near-ties — support-gradient oscillation at 4B capacity, not a coverage gap",
     "seated": "cycle-4 GGUF c13c3f2e… (the most classes dead); c2/c3 GGUFs archived on-box + NAS"
+  },
+  "cycle_8b": {
+    "date": "2026-07-25",
+    "base": "Qwen/Qwen3-8B (Apache-2.0, Qwen3ForCausalLM — same arch class + vocab family as the 4B; hybrid-trained so the think-free non-thinking serve contract is in-distribution; the stock 2507 non-thinking template forced by file, catch-1 hard-reject now guarding against the 8B's OWN thinking template)",
+    "why": "Rich's post-park pick (option 2): the 4B plateaued 6/9 with single-token near-ties migrating — capacity-shaped. Corpus UNCHANGED (1140 rows).",
+    "train": "514 steps / 2 epochs, loss 0.4196, eval_loss 0.399 (below the 4B's best 0.4165); G1-G6 held (think 0/1027, byte-match 0/1027, peak 9.2 GB); driver = training/train_driver_8b.sh (6-line diff from the 4B driver)",
+    "merged_gen_gate": "PASS 99.1% (112/113) vs stock 30.1% — BEST EVER; injection-probe 7/7 (the three 4B-stubborn rows cleared); single pipeline miss",
+    "exam_replay": "9/9 at temp 0 — leads-chase 3/3 (correct tray source + email/one-bundle destination; NO 4B cycle ever held this item), meeting-notes 3/3, friday/mailroom/probe clean; honest note: the leads prose does not volunteer the calendar wall — lawful + fabrication-free, the owner's unlabelled read decides",
+    "gguf_sha256": "6af53bed84139ca09ad0802be4cdd84a54d830ff212d10a2cfe1eba23c99ad68",
+    "seat": "NEW llama-swap entry recruiter-8b (bak-20260725-pre-recruiter-8b; --temp 0, ttl 1800, in the all matrix set beside the 4B); live agents/recruiter/config.yaml flipped model_id: recruiter-8b at the earned invitation; the 4B seat + GGUF stay in place",
+    "results": "training/RESULTS-recruiter-8b-2026-07-25.md"
   }
 }

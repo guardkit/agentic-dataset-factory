@@ -1,9 +1,15 @@
 # The fresh sit + the G1 walk — Rich's card (2026-07-24)
 
 Two sittings, both browser-only, both yours alone. Nothing here needs a terminal and nothing
-freezes without your click. This card assumes the cycle-2 model is on the Spark seat (the
-coordinator confirms that before handing you this card; if the merged-gen gate had failed, you
-would be reading a failure receipt instead).
+freezes without your click.
+
+**UPDATED 2026-07-25 — the candidate is now the 8B** (your option-2 pick). The 4B arc parked at
+6/9 on the exam replay; the 8B cleared **9/9 at temperature 0** — including leads-chase 3/3,
+which no 4B cycle ever held — with the best gate ever (99.1%, probes 7/7). The live config
+already points at it; the sitting below is unchanged. One honest note to carry into the read:
+the leads-chase draft is lawful and fabrication-free, but its message does not volunteer the
+missing Google-Calendar capability as a wall — whether that meets your signed standard is
+exactly your unlabelled call on that item.
 
 ## Sitting 1 — the fresh live sit (minutes)
 
