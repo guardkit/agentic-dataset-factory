@@ -69,11 +69,11 @@ def main():
     results, n_ok = [], 0
     for r in sample:
         msgs = [m for m in r["messages"] if m["role"] == "user"]
-        ids = tok.apply_chat_template(msgs, tokenize=True, add_generation_prompt=True,
-                                      return_tensors="pt").to(model.device)
-        out = model.generate(ids, max_new_tokens=MAX_NEW, do_sample=False,
+        enc = tok.apply_chat_template(msgs, tokenize=True, add_generation_prompt=True,
+                                      return_dict=True, return_tensors="pt").to(model.device)
+        out = model.generate(**enc, max_new_tokens=MAX_NEW, do_sample=False,
                              pad_token_id=tok.eos_token_id)
-        text = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
+        text = tok.decode(out[0][enc["input_ids"].shape[1]:], skip_special_tokens=True)
         ok, mode, detail = contract_check(text)
         gold = r["metadata"]["decision"]
         agree = ok and isinstance(detail, dict) and detail.get("verdict") == gold

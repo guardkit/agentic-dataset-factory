@@ -102,8 +102,19 @@ before ship.
   Fixes" release, lastModified 2026-07-17). Pinned llama.cpp built clean at `720d7fa4`
   (2026-07-25 master, all July Gemma-4 fixes) in `~/llama.cpp-gemma4-jul25` — the live
   `llama.cpp-new` (2026-05-30) predates the fixes and stays untouched for serving.
-- NEXT (GPU): smoke (60 steps, [G2] framing = THE CATCH check) → full train → merged-gen gate →
-  GGUF q8_0 via the pinned build → **serve gate (unfenced parse)** → grade vs the v2 bar →
-  reseat on a clear pass. The train confirms against the GPU protocol (fleet-idle-first, flock
-  keepalive at `/var/lock/llama-swap-keepalive.lock`, `/unload`, headroom, mem watchdog,
-  release by exact fd-holder PID) before firing.
+- **DONE 2026-07-25 night — THE FULL CHAIN RAN AND PASSED.** Smoke all-green ([G2] pure-JSON
+  response span = THE CATCH resolved train-side; [G4] 99.6% masked is CORRECT for 14-token v4
+  targets — stale v3-era heuristic text, do not stop on it; [G5] 61.2 GB) → full train (132
+  steps / 3 epochs, loss 0.042, 44 min) → **merged-gen gate PASS 12/12 raw** → Q8_0 GGUF
+  (sha `4fcbba95…`) → **SERVE GATE PASS 8/8 raw over the wire on the pinned llama.cpp
+  `720d7fa`** (no think-strip rule needed — production parser gets pure JSON) → **the FROZEN
+  v2 bar: CLEAR PASS 6/6 reps** (escape-kin all caught with anchor-matched locus — the axis
+  coach-ft-v3 failed; honest greens approved; v1's only fail = the de-scoped class axis).
+  Results: fleet-evals `runs/coach-heldout/coach-ft-v4-2026-07-25/RESULTS-coach-heldout-v2bar-2026-07-25.md`.
+- **Seat STAGED:** `coach-ft-v4` live on llama-swap :9000 beside the untouched `gemma4-coach`
+  (pinned binary, ctx 98304, temp 0; staged-seat smoke = strict raw parse clean). **The live
+  coach-model flip is NOT done and is gated on the guardkit contract-mirror build** (coach
+  prompt assembly + parser → the v4 raw contract, incl. this file's vocabulary-rewrite mirror
+  list) — guardkit venue, one-build-at-a-time. GPU claim RELEASED (keepalive re-warming).
+- Residues owed: GGUF off-box/NAS backup (the standing GGUF-backup gap now covers 4 models);
+  the bundle-generator fix list above (feeds the next corpus iteration, not this tune).
