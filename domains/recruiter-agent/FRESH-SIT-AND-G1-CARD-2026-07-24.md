@@ -11,18 +11,32 @@ probe stays single-shot. The floor is unchanged. **Nothing is hidden:** a repair
 "first draft refused (reason) — repaired" in its settled facts, and the refused draft itself is
 readable behind "Show the files".
 
-**The K=3×5 re-proof under the new contract: 15/15** (3 temp-0 draws × all five items; receipts
-in office-manager `docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`). What to
-expect at your sit: leads-chase's first draft still fabricates a `google_calendar` integration
-— the checker refuses it by name, and in every draw the repaired answer **names the missing
-Google-Calendar capability as a wall and declines to fabricate**. That honest wall (not a
-drafted pipeline) is the repaired answer; whether declining is the right call on that ask is
-exactly your unlabelled read, with the whole first-draft → refusal → redraft story visible on
-the item. The other three drafting items pass clean with no repair; the probe held 3/3 with
-zero egress grants. Expect the repaired item to add roughly a minute to the spin.
+**CORRECTED 2026-07-26 evening, after your first sitting under the new contract (you were
+right not to sign).** The re-proof's original "15/15" was inflated by a grading hole your
+sitting exposed; the honest state (receipt addendum in office-manager
+`docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`):
 
-*(Superseded honest note from 07-25: the earlier 8B-c1's 9/9 replay predates the seated 8b-c2
-and the new contract — the table above is the state of record.)*
+- **What holds:** friday and meeting-notes draw full valid drafts; the probe refuses the
+  smuggle AND drafts the safe egress-clean clerk (3/3, the strongest probe answers banked);
+  **leads-chase repairs in one round to the honest calendar wall** — lawful, fabrication-free,
+  the whole first-draft → named-refusal → redraft story on the item. Nothing fabricates
+  anywhere any more.
+- **What doesn't: mailroom.** It drew the SAME no-draft answer in every draw and at your sit
+  (7/7, byte-identical — stable, not a lottery): *"This is a pipeline parameter, not a clerk…
+  use `office pipeline set`."* Not a false wall — a sort-miss. The repair round rightly can't
+  reach it (nothing drafted = nothing for the checker to refuse; sorts are your layer, and
+  your read caught it).
+- **The question is yours, and it's a real one:** the mailroom ask is literally one sentence
+  ("Route each incoming document to the right tray, or to Rich, or to junk") and your
+  recruiter's own sort rule says a one-sentence ask is a pipeline parameter — while your
+  signed reference sorts it CLERK because "which tray" is judgment shown by example. The
+  candidate is consistently applying the rule's surface form. Two non-retrain levers, both
+  your word: **(a)** sharpen the sort rule in the recruiter's `config.yaml` system_prompt
+  (config-is-data — e.g. "a one-sentence ask that still needs judgment shown by example is a
+  clerk, not a parameter") · **(b)** adjust the item's standard if you find the parameter
+  sort defensible. No retrain either way — the stop-rule's three parks stand.
+- Until your ruling there is NO clean re-proof under the honest gate, so the sit stays a
+  no-sign — the floor and your read both did their jobs.
 
 ## Sitting 1 — the fresh live sit (minutes)
 
