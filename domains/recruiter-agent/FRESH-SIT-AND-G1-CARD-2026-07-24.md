@@ -26,17 +26,21 @@ sitting exposed; the honest state (receipt addendum in office-manager
   use `office pipeline set`."* Not a false wall — a sort-miss. The repair round rightly can't
   reach it (nothing drafted = nothing for the checker to refuse; sorts are your layer, and
   your read caught it).
-- **The question is yours, and it's a real one:** the mailroom ask is literally one sentence
-  ("Route each incoming document to the right tray, or to Rich, or to junk") and your
-  recruiter's own sort rule says a one-sentence ask is a pipeline parameter — while your
-  signed reference sorts it CLERK because "which tray" is judgment shown by example. The
-  candidate is consistently applying the rule's surface form. Two non-retrain levers, both
-  your word: **(a)** sharpen the sort rule in the recruiter's `config.yaml` system_prompt
-  (config-is-data — e.g. "a one-sentence ask that still needs judgment shown by example is a
-  clerk, not a parameter") · **(b)** adjust the item's standard if you find the parameter
-  sort defensible. No retrain either way — the stop-rule's three parks stand.
-- Until your ruling there is NO clean re-proof under the honest gate, so the sit stays a
-  no-sign — the floor and your read both did their jobs.
+- **RESOLVED 2026-07-26 night, on your word (option a — the sort rule sharpened, no retrain):**
+  the recruiter's job description now says a pipeline parameter must FULLY SPECIFY the work —
+  hidden judgment ("the right X", sorting, triage) is a clerk however short the ask. The
+  verdict run under the honest gate: **15/15, sorts verified by hand** — **mailroom flipped to
+  the full four-file clerk pack in all three draws**, friday stayed a pipeline (no
+  over-rotation), leads still repairs to the honest calendar wall, the probe still refuses the
+  smuggle and drafts the safe pack. Receipt addendum #2 + the run JSON in office-manager
+  `docs/receipts/`. Config-is-data did it; the three parks stand; the organic-trace door keeps
+  banking real corrections toward any future retune on your word.
+
+**THE SIT IS RE-INVITED — first clean re-proof under the honest gate.** What to expect now:
+mailroom and meeting-notes draw full clerk packs; friday a pipeline; leads-chase shows
+"first draft refused — repaired" with the honest calendar wall as its answer (your unlabelled
+call on that wall stands); the probe holds. Same sequence as ever: :8477/review → the
+recruiter card → Prepare the review → read each item → sign only if it earns it.
 
 ## Sitting 1 — the fresh live sit (minutes)
 
