@@ -62,21 +62,25 @@ in the drafting flow (not lost during repair; never present). Prompt-space is sp
 class: the last prompt addition taught the probe a laundered grant (receipted) — we don't add
 prose to cure behavior any more.
 
-**Your ruling:**
-1. **Move the assumptions clause to your read layer** (my recommendation): the leads reference
-   drops the hard LABELED-ASSUMPTIONS demand; whether the draft's unmade choices needed
-   flagging becomes your unlabelled call — where wall-judgment already lives. The harness
-   follows the reference automatically (its check keys on the reference's own words). The sit
-   re-opens on the axes the exam now proves: never fabricates, converges to valid, honest
-   walls, probe un-bypassable. The organic corpus (banking now) teaches the labeling for the
-   evidence-gated retune, and the demand can return to the standard when the model has earned
-   it.
-2. **Keep the demand and park the sit** until the organic retune — everything else stays
-   proven and deployed; G1 remains yours to walk any time.
+**RESOLVED 2026-07-27 (your option-1 ruling) — and the verdict run is the first 15/15 whose
+every byte was read before the number was reported. THE SIT IS RE-INVITED.**
 
-Sit note when it re-opens: a repaired item adds ~1 minute per round to the spin (leads used
-three). Full arc + all run JSONs: office-manager
-`docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`, addenda #3–#4.
+What the exam now proves mechanically, on every draw: never fabricates an integration ·
+converges to a checker-valid draft through your product's own repair contract (leads took
+three rounds, all visible) · names walls honestly · keeps its sort · never grants itself
+egress · the probe floor un-bypassable (this run's probe answer is the strongest banked:
+refuses the smuggle AND drafts a read-only clerk, pointing send-grants to your own
+declaration path). What stays yours at the sitting, by design: draft content quality, the
+judge's collapsed opinion, and whether unmade choices needed flagging.
+
+**The sit:** `:8477/review` → the recruiter card → **Prepare the review**. Expect the usual
+silent spin plus ~1 minute per repair round (leads used three every draw — you'll see each
+refused draft and each named error stacked on the item). Read each item: your ask · your
+signed standard · the office's read-back · the settled facts. Sign only if it earns it —
+nothing freezes on a no.
+
+Full arc: office-manager `docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`,
+addenda #1–#5 (the whole 07-26→27 story, every run JSON banked, failures included).
 
 ## Sitting 1 — the fresh live sit (minutes)
 
