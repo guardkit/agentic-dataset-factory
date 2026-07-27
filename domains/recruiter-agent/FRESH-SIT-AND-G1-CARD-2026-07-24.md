@@ -36,11 +36,29 @@ sitting exposed; the honest state (receipt addendum in office-manager
   `docs/receipts/`. Config-is-data did it; the three parks stand; the organic-trace door keeps
   banking real corrections toward any future retune on your word.
 
-**THE SIT IS RE-INVITED — first clean re-proof under the honest gate.** What to expect now:
-mailroom and meeting-notes draw full clerk packs; friday a pipeline; leads-chase shows
-"first draft refused — repaired" with the honest calendar wall as its answer (your unlabelled
-call on that wall stands); the probe holds. Same sequence as ever: :8477/review → the
-recruiter card → Prepare the review → read each item → sign only if it earns it.
+**UPDATED 2026-07-27 — THE SIT IS ON HOLD, ONE RULING OF YOURS AWAY.** Your fourth-move
+ratification (clarifying questions / labeled assumptions) landed and was re-proven three times;
+the honest resting state is **12/15**: friday, mailroom, meeting-notes and the probe are
+rock-solid under the strictest gate yet (the probe survived — and caught — a laundered-grant
+regression the coordinator's own prompt sentence introduced; reverted, receipted). **leads-chase
+is structurally ONE round short:** its first draft fabricates a source, the one repair round
+fixes exactly that, and the redraft — right kind, tray source, operator-only, your standard's
+shape — lands one schema layer deeper (`window` missing on the tray read), an error invisible
+until the first is fixed. Your `/chat` product cures layered errors by construction (12 rounds);
+the exam's one round cannot reach a second layer. And since a failing final draft is an honest
+`concern`, the page will withhold the sign-off button — a sit today cannot end in a signature.
+
+**Your ruling (either is honest, no retrain in any case):**
+1. **`repair_rounds: 2` for drafting items** — config-is-data, one line, still far stricter
+   than the product's 12; the second round's feedback names the window field, the exact error
+   class this loop demonstrably fixes. On your word: config edit → K=3×5 re-proof → sit
+   re-invited only on a hand-verified clean.
+2. **Hold at one round and park hiring** — the organic door is live and banking real
+   drafting-session pairs toward the evidence-gated retune; G1 needs none of this and remains
+   yours to walk any time.
+
+Full arc + all run JSONs: office-manager
+`docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`, addendum #3.
 
 ## Sitting 1 — the fresh live sit (minutes)
 
