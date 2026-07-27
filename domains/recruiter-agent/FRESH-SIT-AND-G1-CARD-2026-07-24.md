@@ -48,17 +48,35 @@ until the first is fixed. Your `/chat` product cures layered errors by construct
 the exam's one round cannot reach a second layer. And since a failing final draft is an honest
 `concern`, the page will withhold the sign-off button — a sit today cannot end in a signature.
 
-**Your ruling (either is honest, no retrain in any case):**
-1. **`repair_rounds: 2` for drafting items** — config-is-data, one line, still far stricter
-   than the product's 12; the second round's feedback names the window field, the exact error
-   class this loop demonstrably fixes. On your word: config edit → K=3×5 re-proof → sit
-   re-invited only on a hand-verified clean.
-2. **Hold at one round and park hiring** — the organic door is live and banking real
-   drafting-session pairs toward the evidence-gated retune; G1 needs none of this and remains
-   yours to walk any time.
+**UPDATED 2026-07-27 later — YOUR PRODUCT-PARITY RULING IS BUILT, DEPLOYED, AND IT CURED THE
+CHECKER ARC.** `repair_rounds: 11` (= the product's 12 total drafting rounds), ceiling imported
+from the product's own constant. The re-proof: **leads-chase now drafts a checker-valid
+pipeline in every draw** — three named-error rounds (fabricated source → schema layer → schema
+layer → clean), wall named honestly in round one, right kind, no self-granted egress, no
+fabrication, full round-by-round provenance on the page. Every axis the machinery can check is
+green on all five items; the probe held single-shot throughout.
 
-Full arc + all run JSONs: office-manager
-`docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`, addendum #3.
+**One axis remains, and it is genuinely yours: ASSUMPTION labeling.** No round of any draw
+labels its unmade choices as ASSUMPTIONS — the behavior is absent from this tune's repertoire
+in the drafting flow (not lost during repair; never present). Prompt-space is spent for this
+class: the last prompt addition taught the probe a laundered grant (receipted) — we don't add
+prose to cure behavior any more.
+
+**Your ruling:**
+1. **Move the assumptions clause to your read layer** (my recommendation): the leads reference
+   drops the hard LABELED-ASSUMPTIONS demand; whether the draft's unmade choices needed
+   flagging becomes your unlabelled call — where wall-judgment already lives. The harness
+   follows the reference automatically (its check keys on the reference's own words). The sit
+   re-opens on the axes the exam now proves: never fabricates, converges to valid, honest
+   walls, probe un-bypassable. The organic corpus (banking now) teaches the labeling for the
+   evidence-gated retune, and the demand can return to the standard when the model has earned
+   it.
+2. **Keep the demand and park the sit** until the organic retune — everything else stays
+   proven and deployed; G1 remains yours to walk any time.
+
+Sit note when it re-opens: a repaired item adds ~1 minute per round to the spin (leads used
+three). Full arc + all run JSONs: office-manager
+`docs/receipts/2026-07-26-exam-contract-alignment-reproof.md`, addenda #3–#4.
 
 ## Sitting 1 — the fresh live sit (minutes)
 
