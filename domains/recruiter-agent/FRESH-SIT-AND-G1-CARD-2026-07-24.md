@@ -1,5 +1,10 @@
 # The fresh sit + the G1 walk — Rich's card (2026-07-24)
 
+> ✅ **SITTING 1 IS DONE — SIGNED 2026-07-27T16:59:09Z.** Baseline frozen (`recruiter-8b`,
+> composite 0.814), your informed judge-overrides recorded by name in the freeze evidence.
+> Hiring by conversation now exists: `office hire` seats the recruiter, `/chat` serves it.
+> **Sitting 2 — G1, your timed walk — is now the live moment on this card.**
+
 Two sittings, both browser-only, both yours alone. Nothing here needs a terminal and nothing
 freezes without your click.
 
