@@ -21,6 +21,11 @@ export const meta = {
 // gold + flaw placement are DETERMINISTIC; the LLM writes only the wrapper.
 // ---------------------------------------------------------------------------
 
+// ---- BEGIN DETERMINISTIC CORE (no LLM, no runner globals) -----------------
+// Everything between the BEGIN/END markers is pure + side-effect free so it can
+// be exercised standalone: `node domains/coach-agent/harness_bundle_spec.mjs`
+// extracts this region and drives makeBundleSpec() without any agent calls.
+// Keep the markers intact and keep this region free of `export`/`await`.
 const DOMAINS = [
   'a token-bucket rate limiter', 'JWT auth middleware', 'a CSV bulk importer',
   'a websocket fan-out broker', 'an exponential-backoff retry wrapper',
@@ -76,25 +81,67 @@ const RULE_FOR = {
   mocked_seam: 'absence-of-failure-is-not-success', trap_g4_path: 'path-string-mismatch-is-not-dishonesty',
 }
 
+// ---- deterministic SEEDED jitter -------------------------------------------
+// Ported from build_v4_sft.py's vary() (zlib.crc32(sid) % len(options)), which
+// rotates per-row PROSE. Same idea applied to NUMBERS: the v3 corpus shipped
+// coverage=88 / tests_run=24 / bdd 3-3-0 in EVERY bundle, so the numerals are a
+// constant background the FT can memorise instead of read (a numeric analogue
+// of the v1/v2 cue lesson). Seeding off the scenario id keeps regen
+// byte-reproducible, and seeding off the BASE id (never the -fb/-ap suffix)
+// preserves the matched-pair invariant: the only difference inside a pair is
+// still the guard-affected evidence, never the background numbers.
+const CRC32_TABLE = (() => {
+  const t = new Int32Array(256)
+  for (let i = 0; i < 256; i++) {
+    let c = i
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)
+    t[i] = c
+  }
+  return t
+})()
+function crc32(str) {
+  let c = -1
+  for (let i = 0; i < str.length; i++) c = (c >>> 8) ^ CRC32_TABLE[(c ^ str.charCodeAt(i)) & 0xFF]
+  return (c ^ -1) >>> 0
+}
+// pick one of `options` for this seed (the JS twin of build_v4_sft.vary)
+function vary(seed, options) { return options[crc32(seed) % options.length] }
+// integer in [lo, hi] for this seed
+function varyInt(seed, lo, hi) { return lo + (crc32(seed) % (hi - lo + 1)) }
+
+// Absent-signal modes for g6: each pairs a summary that states NO VERDICT was
+// produced with a duration that matches the stated reason (a killed 120s run
+// cannot also report "in 0.68s"; a missing runner cannot burn 120s).
+const ABSENT_SIGNAL_MODES = [
+  { command: 'pytest -q --timeout=120', duration: 120.0, summary: 'independent run hit the 120s budget and was killed before pytest emitted any summary line — no pass/fail verdict was produced' },
+  { command: 'pytest -q', duration: 1.7, summary: 'collection aborted: ImportError while collecting the test package — 0 tests ran, so the independent run produced no verdict' },
+  { command: 'pytest -q', duration: 0.3, summary: 'runner unavailable in the verification environment (exit 127, command not found) — no test session started, so there is no pass/fail signal' },
+  { command: 'pytest -q', duration: 48.2, summary: 'INTERNALERROR: worker process died mid-session (killed, exit -9) — the run terminated without writing a summary line, so no verdict exists' },
+  { command: 'pytest -q', duration: 0.4, summary: '0 tests collected — the independent runner matched no test targets under the configured rootdir, so it returned no verdict either way' },
+]
+
 // ---- deterministic bundle construction (identical semantics to Step 0) ----
-function clean(kind, fd) {
-  const nt = fd.tests_run || 24
-  const nb = fd.bdd_attempted || 3
+function clean(kind, fd, sid) {
+  const seed = sid || 'TRN-000'
+  const nt = fd.tests_run || varyInt(seed + '|tests_run', 14, 38)
+  const nb = fd.bdd_attempted || varyInt(seed + '|bdd_attempted', 2, 7)
+  const cov = fd.coverage_ok_pct || varyInt(seed + '|coverage_ok', 85, 97)
+  const dur = vary(seed + '|indep_duration', [2.4, 3.1, 4.0, 5.0, 6.3, 7.8, 9.2, 11.5])
   return {
     honesty: { verified: true, discrepancies: [], honesty_score: 1.0, resolved_paths: [], should_fix_count: 0 },
     gathering_status: 'complete',
     tests: { tests_passed: true, tests_run: nt, tests_passed_count: nt, tests_failed_count: 0, line_coverage_met: true },
     bdd: { scenarios_attempted: nb, scenarios_passed: nb, scenarios_failed: 0, scenarios_pending: 0, failures: [], feature_files: [fd.feature_file || 'features/feature.feature'] },
-    coverage_details: { coverage: fd.coverage_ok_pct || 88, coverage_met: true },
+    coverage_details: { coverage: cov, coverage_met: true },
     plan_audit: { status: 'pass', violations: 0, missing_files: [] },
-    independent_tests: { tests_passed: true, signal_absent: false, test_command: 'pytest -q', test_output_summary: 'independent verification run: all tests pass', duration_seconds: 5.0 },
+    independent_tests: { tests_passed: true, signal_absent: false, test_command: 'pytest -q', test_output_summary: 'independent verification run: all tests pass', duration_seconds: dur },
     wiring: { status: 'complete', dialect: 'python', findings: [] },
     task_type: kind === 'bugfix' ? 'feature' : kind,
   }
 }
 
 function makeBundleSpec(guard, kind, fd, taskId) {
-  const b = clean(kind, fd)
+  const b = clean(kind, fd, taskId)
   switch (guard) {
     case 'clean': return b
     case 'g1_zero_bdd':
@@ -114,15 +161,37 @@ function makeBundleSpec(guard, kind, fd, taskId) {
         tests: null, bdd: null, coverage_details: null, plan_audit: null, independent_tests: null, quality_gates: null, wiring: null,
         task_type: kind === 'bugfix' ? 'feature' : kind,
       }
-    case 'g6_independent_absent':
-      b.independent_tests = { tests_passed: false, signal_absent: true, test_command: 'pytest -q', test_output_summary: fd.test_output_summary || 'independent run timed out after 120s before producing a verdict', duration_seconds: 120.0 }
+    case 'g6_independent_absent': {
+      // ABSENT-BY-CONSTRUCTION: do NOT reuse fd.test_output_summary (the agent
+      // fills that with a FAILURE VERDICT line — "1 failed, 13 passed in 0.68s"
+      // — which is itself a signal, so it contradicts signal_absent=true AND
+      // contradicts the 120s timeout duration). Same precedent as
+      // trap_scary_stderr below: this case gets its own coherent summary, with
+      // duration_seconds aligned to the stated reason the signal is missing.
+      const m = vary(taskId + '|absent_signal', ABSENT_SIGNAL_MODES)
+      b.independent_tests = { tests_passed: false, signal_absent: true, test_command: m.command, test_output_summary: m.summary, duration_seconds: m.duration }
       return b
+    }
     case 'independent_failed':
       b.independent_tests = { tests_passed: false, signal_absent: false, test_command: 'pytest -q', test_output_summary: fd.test_output_summary || '3 failed, 27 passed (AssertionError in core path)', duration_seconds: 8.0 }
       return b
-    case 'bdd_failed':
-      b.bdd = { scenarios_attempted: fd.bdd_attempted || 3, scenarios_passed: 1, scenarios_failed: 2, scenarios_pending: 0, failures: [{ scenario: fd.bdd_scenario_desc || 'happy path', message: fd.bdd_failure_msg || 'expected 200 got 500' }], feature_files: [fd.feature_file || 'features/feature.feature'] }
+    case 'bdd_failed': {
+      // The ITEMIZED LIST is the source of truth for the triple. v3 shipped
+      // scenarios_failed=2 beside ONE itemized failure and scenarios_passed=1
+      // regardless of scenarios_attempted, so the numerals argued with the
+      // evidence directly beneath them. Derive instead: failed = failures.length,
+      // passed = attempted - failed. attempted keeps its source (the agent's
+      // fd.bdd_attempted, else the same seeded default clean() uses) but is
+      // widened if the list ever outgrows it, so the triple is always coherent.
+      // Diversity here rides on attempted/passed: we do NOT synthesise extra
+      // failure entries, because unattested failures would be worse data than a
+      // constant failed-count.
+      const failures = [{ scenario: fd.bdd_scenario_desc || 'happy path', message: fd.bdd_failure_msg || 'expected 200 got 500' }]
+      const failed = failures.length
+      const attempted = Math.max(fd.bdd_attempted || varyInt(taskId + '|bdd_attempted', 2, 7), failed + 1)
+      b.bdd = { scenarios_attempted: attempted, scenarios_passed: attempted - failed, scenarios_failed: failed, scenarios_pending: 0, failures, feature_files: [fd.feature_file || 'features/feature.feature'] }
       return b
+    }
     case 'coverage_unmet':
       b.coverage_details = { coverage: fd.coverage_pct || 52, coverage_met: false }
       b.tests = { tests_passed: true, tests_run: fd.tests_run || 12, tests_passed_count: fd.tests_run || 12, tests_failed_count: 0, line_coverage_met: false }
@@ -157,6 +226,19 @@ function makeBundleSpec(guard, kind, fd, taskId) {
     default: return b
   }
 }
+
+// ---- END DETERMINISTIC CORE ------------------------------------------------
+//
+// REGEN-TIME GATES (run both after any regen, before the corpus is banked):
+//   node domains/coach-agent/harness_bundle_spec.mjs
+//       drives the deterministic core above with stubbed wrappers — no LLM
+//       calls — and proves the g6/bdd triples are coherent and that the seeded
+//       jitter is stable across runs.
+//   node domains/coach-agent/check_spec_numeric_diversity.js <specs.jsonl>
+//       scans the regenerated SPEC_JSONL lines and FAILS if any single
+//       coverage/tests_run/scenarios_attempted value covers >40% of bundles
+//       (the v3 numeric monoculture: 88 / 24 / 3 at 100%), or if any bdd triple
+//       or absent-signal summary is incoherent. Exit 0 = safe to bank.
 
 const WRAPPER_SCHEMA = {
   type: 'object',
