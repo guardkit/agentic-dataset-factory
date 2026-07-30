@@ -7,7 +7,9 @@
 // evaluates it in a bare vm context: no LLM calls, no runner globals, nothing
 // written outside --emit. It proves three things after any generator edit:
 //   1. g6_independent_absent bundles read as ABSENT (no verdict) with a
-//      duration that matches the stated reason.
+//      duration that matches the stated reason, and every g6 summary is
+//      UNIQUE per bundle (build_v4_sft.py quotes it verbatim in the locus;
+//      duplicate summaries become duplicate loci = a hard build abort).
 //   2. bdd triples are arithmetically coherent AND agree with the itemized
 //      failure list (failed === failures.length, attempted === passed+failed+pending).
 //   3. the seeded jitter is stable — two runs produce byte-identical bundles —
@@ -133,6 +135,17 @@ for (const s of g6) {
 }
 const g6modes = new Set(g6.map((s) => s.bundle_spec.independent_tests.duration_seconds))
 console.log(`  -> ${g6.length} bundles across ${g6modes.size} absent-signal modes: ${[...g6modes].join(', ')}s`)
+// mode collisions are expected (5 ids over 5 crc buckets); SUMMARY collisions
+// are not — build_v4_sft.py derives the g6 locus verbatim from the summary,
+// so a shared summary = duplicate loci = the build's SystemExit.
+const g6sums = new Map()
+for (const s of g6) {
+  const sm = s.bundle_spec.independent_tests.test_output_summary
+  g6sums.set(sm, (g6sums.get(sm) || []).concat(s.scenario_id))
+}
+const g6dupes = [...g6sums.entries()].filter(([, ids]) => ids.length > 1)
+if (g6dupes.length === 0) ok(`${g6.length} g6 bundles -> ${g6sums.size} UNIQUE summaries (each a distinct v4 locus source)`)
+else for (const [sm, ids] of g6dupes) fail(`summary shared across ${ids.join(', ')} (duplicate v4 loci): ${sm.slice(0, 70)}`)
 
 console.log('\n=== 4. bdd triples coherent with the itemized list ===')
 for (const s of run1) {

@@ -112,12 +112,19 @@ function varyInt(seed, lo, hi) { return lo + (crc32(seed) % (hi - lo + 1)) }
 // Absent-signal modes for g6: each pairs a summary that states NO VERDICT was
 // produced with a duration that matches the stated reason (a killed 120s run
 // cannot also report "in 0.68s"; a missing runner cannot burn 120s).
+// Summaries are TEMPLATES with a {rootdir} slot filled per task in the g6 case
+// below: build_v4_sft.py derives the g6 locus VERBATIM from
+// test_output_summary, and the 5 g6 task ids crc-land on only 3 of these 5
+// modes — mode prose alone would collide 5 rows into 3 identical loci and trip
+// the build's hard 'duplicate loci across rows' SystemExit. The slot makes
+// every summary unique per bundle without touching the mode's aligned
+// summary <-> duration <-> command triple.
 const ABSENT_SIGNAL_MODES = [
-  { command: 'pytest -q --timeout=120', duration: 120.0, summary: 'independent run hit the 120s budget and was killed before pytest emitted any summary line — no pass/fail verdict was produced' },
-  { command: 'pytest -q', duration: 1.7, summary: 'collection aborted: ImportError while collecting the test package — 0 tests ran, so the independent run produced no verdict' },
-  { command: 'pytest -q', duration: 0.3, summary: 'runner unavailable in the verification environment (exit 127, command not found) — no test session started, so there is no pass/fail signal' },
-  { command: 'pytest -q', duration: 48.2, summary: 'INTERNALERROR: worker process died mid-session (killed, exit -9) — the run terminated without writing a summary line, so no verdict exists' },
-  { command: 'pytest -q', duration: 0.4, summary: '0 tests collected — the independent runner matched no test targets under the configured rootdir, so it returned no verdict either way' },
+  { command: 'pytest -q --timeout=120', duration: 120.0, summary: 'independent run under rootdir {rootdir} hit the 120s budget and was killed before pytest emitted any summary line — no pass/fail verdict was produced' },
+  { command: 'pytest -q', duration: 1.7, summary: 'collection aborted under rootdir {rootdir}: ImportError while collecting the test package — 0 tests ran, so the independent run produced no verdict' },
+  { command: 'pytest -q', duration: 0.3, summary: 'runner unavailable in the verification environment for rootdir {rootdir} (exit 127, command not found) — no test session started, so there is no pass/fail signal' },
+  { command: 'pytest -q', duration: 48.2, summary: 'INTERNALERROR: worker process died mid-session (killed, exit -9) running rootdir {rootdir} — the run terminated without writing a summary line, so no verdict exists' },
+  { command: 'pytest -q', duration: 0.4, summary: '0 tests collected — the independent runner matched no test targets under rootdir {rootdir}, so it returned no verdict either way' },
 ]
 
 // ---- deterministic bundle construction (identical semantics to Step 0) ----
@@ -168,8 +175,13 @@ function makeBundleSpec(guard, kind, fd, taskId) {
       // contradicts the 120s timeout duration). Same precedent as
       // trap_scary_stderr below: this case gets its own coherent summary, with
       // duration_seconds aligned to the stated reason the signal is missing.
+      // UNIQUE-PER-BUNDLE: fill the mode's {rootdir} slot with the task's own
+      // worktree path (the trap_g4_path path shape) so no two g6 bundles share
+      // a summary even when they crc-land on the same mode — build_v4_sft.py
+      // quotes this summary verbatim in the locus, and duplicate summaries
+      // become duplicate loci (a hard build abort).
       const m = vary(taskId + '|absent_signal', ABSENT_SIGNAL_MODES)
-      b.independent_tests = { tests_passed: false, signal_absent: true, test_command: m.command, test_output_summary: m.summary, duration_seconds: m.duration }
+      b.independent_tests = { tests_passed: false, signal_absent: true, test_command: m.command, test_output_summary: m.summary.replace('{rootdir}', '.guardkit/worktrees/' + taskId), duration_seconds: m.duration }
       return b
     }
     case 'independent_failed':
@@ -237,8 +249,11 @@ function makeBundleSpec(guard, kind, fd, taskId) {
 //   node domains/coach-agent/check_spec_numeric_diversity.js <specs.jsonl>
 //       scans the regenerated SPEC_JSONL lines and FAILS if any single
 //       coverage/tests_run/scenarios_attempted value covers >40% of bundles
-//       (the v3 numeric monoculture: 88 / 24 / 3 at 100%), or if any bdd triple
-//       or absent-signal summary is incoherent. Exit 0 = safe to bank.
+//       (the v3 numeric monoculture: 88 / 24 / 3 at 100%), if any bdd triple
+//       or absent-signal summary is incoherent, or if any two signal_absent
+//       bundles share the same test_output_summary (build_v4_sft.py derives
+//       the g6 locus verbatim from it — duplicate summaries become duplicate
+//       loci and a hard build abort). Exit 0 = safe to bank.
 
 const WRAPPER_SCHEMA = {
   type: 'object',
