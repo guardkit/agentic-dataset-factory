@@ -1,6 +1,11 @@
 # The product-owner exam — the one-page freeze digest
 ## 2026-08-11 · for Rich's freeze word (job 3 of the dataset-generation lane)
 
+> **FROZEN — Rich's word, 2026-08-11 (same day, interactive).** The eight pass bars
+> below are now immutable and may only ever be raised — the coach-exam law. Every
+> future grading (the teacher bake-off, any tuned candidate) runs against exactly
+> this bar. No de-scoping was requested; the extraction tasks stand as written.
+
 ## The one-minute version
 
 fleet-evals has carried a complete product-owner exam since 3rd July — eight held-out
