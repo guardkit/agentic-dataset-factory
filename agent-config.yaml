@@ -19,7 +19,7 @@ domain: product-owner
 
 player:
   provider: local
-  model: gpt-oss-120b
+  model: product-owner-agent   # 2026-08-11: the bake-off winner (5/9 vs DeepSeek 3/9, pre-declared rule) — the production PO seat; self-distillation risk noted in PLAN §8, policed by the independent Coach gate + the frozen exam
   endpoint: http://localhost:9000/v1
   temperature: 0.5
 
@@ -33,7 +33,7 @@ coach:
 generation:
   grounded: false                  # PO Phase 1: no-book generative mode
   require_fenced_json: true        # gate: assistant ```json ProductRoadmap must strictly parse
-  limit: 12                        # SMALL re-verify of the fixes (was 60 pilot; remove for full run)
+  limit: 300                       # 2026-08-11 THIN-SHAPES SLICE (Rich's word): ~60/mode round-robin over the five no-corpus modes; sized by the measured coverage table (real rows: spec 39 / plan 34 / gf 11 / idea 4 / scope 2 / evolve 1 / extract 15-harvest)
   modes:                           # round-robined per target (no-corpus modes)
     - idea
     - greenfield
