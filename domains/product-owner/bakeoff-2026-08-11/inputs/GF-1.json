@@ -1,0 +1,14 @@
+{
+  "bakeoff_id": "GF-1",
+  "messages": [
+    {
+      "content": "## Mode\ngreenfield\n\n## Problem Statement\nPlease add a /version endpoint to the api_test service. It should return JSON with three fields: the application version string, the git commit the running build was made from, and the service name. Read-only, no auth, no database \u2014 the same shape as the existing /uptime and /stats endpoints. Success: GET /version returns 200 with all three fields populated, and any write method on /version (POST/PUT/PATCH/DELETE) returns 405.",
+      "role": "user"
+    }
+  ],
+  "source": {
+    "file": "-0bfd3eff.json",
+    "session_id": "0bfd3eff",
+    "type": "capture"
+  }
+}

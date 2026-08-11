@@ -1,0 +1,14 @@
+{
+  "bakeoff_id": "GF-2",
+  "messages": [
+    {
+      "content": "## Mode\ngreenfield\n\n## Problem Statement\nAdd a GET /time endpoint to the api_test service that returns the current server time as JSON with two fields: \"time\" (ISO-8601 UTC) and \"service\" (\"api_test\"). Read-only, no database.",
+      "role": "user"
+    }
+  ],
+  "source": {
+    "file": "-3cbc79db.json",
+    "session_id": "3cbc79db",
+    "type": "capture"
+  }
+}

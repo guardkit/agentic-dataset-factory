@@ -1,0 +1,14 @@
+{
+  "bakeoff_id": "GF-3",
+  "messages": [
+    {
+      "content": "## Mode\ngreenfield\n\n## Problem Statement\nShip a socket-liveness watchdog for the jarvis Slack door. The real Slack ingress on-box is the `jarvis serve-nats` systemd user unit, but that unit is not versioned in the repo \u2014 only the wrong `jarvis-frontdoor.service` (langgraph dev) is \u2014 and nothing notices if its NATS subscription goes stale, an absent-operator failure with no self-recovery. (1) Version the real `jarvis-serve-nats.service` into `ops/systemd/` with a coordinator install step, matching the existing `jarvis-frontdoor` README pattern. (2) Add a watchdog that reads `journalctl --user -u jarvis-serve-nats` for socket/subscription staleness and posts an alert to Slack when the door goes quiet. (3) Correct the O-30 register row to name serve-nats \u2014 not langgraph dev \u2014 as the Slack door. Ops files + a watchdog script only: no app source, no compose deploy. jarvis is not a DCL venue.",
+      "role": "user"
+    }
+  ],
+  "source": {
+    "file": "-478dc52c.json",
+    "session_id": "478dc52c",
+    "type": "capture"
+  }
+}
