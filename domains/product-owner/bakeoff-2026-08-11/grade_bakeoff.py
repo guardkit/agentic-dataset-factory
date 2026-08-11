@@ -39,7 +39,7 @@ def rewrap_reasoning(record):
         msg = resp["choices"][0]["message"]
     except (KeyError, IndexError, TypeError):
         return content
-    reasoning = msg.get("reasoning_content")
+    reasoning = msg.get("reasoning_content") or msg.get("reasoning")
     if reasoning and "<think>" not in content:
         return f"<think>{reasoning}</think>\n{content}"
     return content
@@ -76,72 +76,41 @@ def grade_roadmap(raw, mode_required, corpus_names):
 
 
 def grade_spec(raw):
+    """AMENDMENT 1: the FS inputs demand the FEATURE SPEC PROPOSAL banner format
+    (the propose-review surface), not a file tree. Extract the Gherkin from the
+    proposal (banner chrome stripped) and run the applicable declared gates.
+    Manifest/summary/three-file gates are inapplicable to this surface (recorded
+    in the amendment) and are not run."""
     findings = []
-    parts = FILE_BOUNDARY.split(raw)
-    # parts = [preamble, name1, body1, name2, body2, ...]
-    files = {}
-    for i in range(1, len(parts) - 1, 2):
-        files[parts[i].strip()] = parts[i + 1].strip() + "\n"
-    if not files:
-        return ["layout: no '=== FILE: … ===' sections found"], None
+    if "FEATURE SPEC PROPOSAL" not in raw:
+        findings.append("layout: no 'FEATURE SPEC PROPOSAL' banner found")
+    m = re.search(r"^\s*Feature:", raw, re.M)
+    if not m:
+        return findings + ["layout: no 'Feature:' block found"], None
 
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        feature_names = [n for n in files if n.endswith(".feature")]
-        slug = feature_names[0].rsplit(".", 1)[0] if feature_names else "unknown"
-        spec_dir = root / "features" / slug
-        spec_dir.mkdir(parents=True)
-        for name, body in files.items():
-            (spec_dir / name).write_text(body)
+    tail = raw[m.start():]
+    end = re.search(r"^\s*Total:\s", tail, re.M)
+    body = tail[: end.end() if end else len(tail)]
+    lines = [ln for ln in body.splitlines()
+             if "━" not in ln and not re.match(r"^\s*Total:\s", ln)]
+    feature_text = "\n".join(lines) + "\n"
 
-        for f in spec_gates.spec_layout_findings(root):
-            findings.append(f"layout: {f}")
-        try:
-            paths = spec_gates.spec_paths(root)
-        except Exception as e:
-            findings.append(f"layout: {e}")
-            return findings, None
+    parsed = spec_gates.parse_feature(feature_text)
+    for f in parsed.get("findings", []):
+        findings.append(f"gherkin: {f}")
+    for f in spec_gates.wrapped_step_findings(parsed):
+        findings.append(f"wrapped_step: {f}")
+    banlist = json.loads(BANLIST.read_text())
+    for f in spec_gates.find_banned_language(parsed, banlist):
+        findings.append(f"banned_language: {f}")
+    for f in spec_gates.implementation_comment_findings(feature_text):
+        findings.append(f"implementation_comment: {f}")
 
-        feature_text = paths["feature"].read_text()
-        parsed = spec_gates.parse_feature(feature_text)
-        for f in parsed.get("findings", []):
-            findings.append(f"gherkin: {f}")
-        for f in spec_gates.wrapped_step_findings(parsed):
-            findings.append(f"wrapped_step: {f}")
-        banlist = json.loads(BANLIST.read_text())
-        for f in spec_gates.find_banned_language(parsed, banlist):
-            findings.append(f"banned_language: {f}")
-        for f in spec_gates.implementation_comment_findings(feature_text):
-            findings.append(f"implementation_comment: {f}")
+    n_scenarios = len(parsed.get("scenarios", []))
+    if n_scenarios < 8:
+        findings.append(f"floor: {n_scenarios} scenarios < 8")
 
-        scenario_names = {s.get("name") for s in parsed.get("scenarios", [])}
-        n_scenarios = len(parsed.get("scenarios", []))
-        if n_scenarios < 8:
-            findings.append(f"floor: {n_scenarios} scenarios < 8")
-
-        try:
-            manifest = spec_gates.load_assumptions_manifest(paths["assumptions"])
-            for f in spec_gates.manifest_schema_findings(manifest, scenario_names):
-                findings.append(f"manifest: {f}")
-            for f in spec_gates.annotation_findings(parsed, manifest):
-                findings.append(f"annotation: {f}")
-        except Exception as e:
-            findings.append(f"manifest: unloadable ({e})")
-            manifest = None
-
-        try:
-            summary = spec_gates.parse_summary(paths["summary"].read_text())
-            if manifest is not None:
-                entries = manifest.get("assumptions", manifest if isinstance(manifest, list) else [])
-                n_assum = len(entries)
-                for key, expect in (("scenarios", n_scenarios), ("assumptions", n_assum)):
-                    got = summary.get(key)
-                    if got is not None and got != expect:
-                        findings.append(f"coherence: summary {key}={got} but actual {expect}")
-        except Exception as e:
-            findings.append(f"summary: unparseable ({e})")
-
-    return findings, {"files": sorted(files), "scenarios": n_scenarios}
+    return findings, {"scenarios": n_scenarios}
 
 
 def grade_record(record, input_payload):

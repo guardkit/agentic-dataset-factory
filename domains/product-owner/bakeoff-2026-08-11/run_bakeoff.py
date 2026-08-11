@@ -57,6 +57,9 @@ def main():
     ap.add_argument("--temperature", type=float, default=None)
     ap.add_argument("--top-p", type=float, default=None)
     ap.add_argument("--max-tokens", type=int, default=None)
+    ap.add_argument("--thinking", action="store_true",
+                    help="send chat_template_kwargs {'thinking': true} (Amendment 1: "
+                         "the T1 seat defaults thinking off; the serving contract demands it)")
     args = ap.parse_args()
 
     n = verify_manifest()
@@ -87,6 +90,8 @@ def main():
             body["top_p"] = args.top_p
         if args.max_tokens is not None:
             body["max_tokens"] = args.max_tokens
+        if args.thinking:
+            body["chat_template_kwargs"] = {"thinking": True}
 
         req_sha = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
         t0 = time.time()

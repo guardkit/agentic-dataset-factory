@@ -133,11 +133,21 @@ def main():
             distinct.append((session_id, f, d))
         by_shape[shape] = distinct
 
+    # AMENDMENT 1 (2026-08-11): captures bank only the user message — production adds
+    # the role system prompt outside the trace. GF inputs get the production
+    # player_greenfield.md as system (the exam's own assembly shape). FS inputs embed
+    # their full methodology text in the user message already, so they stay verbatim.
+    gf_system = Path(
+        "/home/richardwoollcott/Projects/appmilla_github/specialist-agent/roles/product-owner/prompts/player_greenfield.md"
+    ).read_text()
+
     payloads = []
     for shape in ("GF", "FS"):
         for i, (session_id, f, d) in enumerate(pick_three(by_shape[shape]), 1):
             msgs = d["iterations"][0]["player_input"]["messages"]
-            head = (msgs[0].get("content") or "")[:80].replace("\n", " ")
+            if shape == "GF":
+                msgs = [{"role": "system", "content": gf_system}] + msgs
+            head = (msgs[-1].get("content") or "")[:80].replace("\n", " ")
             print(f"{shape}-{i} input head: {head!r}")
             payloads.append({
                 "bakeoff_id": f"{shape}-{i}",

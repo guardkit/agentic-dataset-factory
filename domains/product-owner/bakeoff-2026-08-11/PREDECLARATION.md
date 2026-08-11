@@ -89,6 +89,36 @@ finding count is recorded.
 Operational telemetry (tokens/sec, wall-clock, GPU temperature under the thermal cap)
 is recorded but decides nothing.
 
+## AMENDMENT 1 — harness corrections after round-1 grading (2026-08-11, same day; applied to ALL candidates uniformly)
+
+Round 1 ran end-to-end and its grading exposed four harness defects (not candidate
+defects). Round-1 responses and grades are preserved untouched in `responses-r1/`
+and `grades-r1/`. The corrections, each applied identically to every candidate:
+
+1. **GF inputs were underspecified — selector bug.** The captures' `player_input.messages`
+   holds only the user message; production adds the role system prompt outside the
+   trace. No candidate could know the demanded output contract. Fix: GF inputs
+   rebuilt as [system = the production `player_greenfield.md`, user = the captured
+   brief verbatim] — exactly the exam's own assembly shape for greenfield. FS and EX
+   inputs are byte-unchanged (SHAs hold).
+2. **The FS grader materialized the wrong surface — grader bug.** The FS inputs
+   demand the FEATURE SPEC PROPOSAL banner format (the propose-review surface), not
+   the `=== FILE:` file-emission format. Fix: the materializer parses the proposal
+   format (banner chrome stripped). The manifest/summary/three-file gates are
+   inapplicable to this surface and are recorded as such for all candidates; the
+   applicable declared gates stand (Gherkin structural parse, single-physical-line
+   steps, banned implementation language, ≥8 scenarios).
+3. **T1's seat hides thinking by default — params correction.** The seat launches
+   with `--default-chat-template-kwargs '{"thinking":false}'` while the serving
+   contract embedded in the inputs demands a think block (T2's seat emits reasoning
+   natively). Fix: T1 requests carry `chat_template_kwargs: {"thinking": true}`.
+4. **The reasoning re-wrap accepts this stack's field name** (`reasoning` as well as
+   `reasoning_content`) — belt-and-braces; round 1 showed the field empty either way.
+
+Re-runs under the amendment: T1 all nine (the params correction affects every
+artifact); T2 and T3 the three rebuilt GF inputs only (their FS/EX responses stand
+and are re-graded with the corrected grader). The decision rule is unchanged.
+
 ## Disposal
 
 Bake-off outputs live under this directory only. **No bake-off output ever enters the
