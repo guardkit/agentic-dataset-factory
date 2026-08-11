@@ -1,0 +1,401 @@
+{
+  "data": [
+    {
+      "id": "architect-agent",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "software-architect",
+            "ddd-architect"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "coach-ft-v3",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "autobuild-coach-ft",
+            "coach_test_ft"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "coach-ft-v4",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "loaded"
+      }
+    },
+    {
+      "id": "dcl-probe-gemma4-e4b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "dcl-probe-qwen3-4b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "dcl-tuned-qwen3-4b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "embed",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "qwen3-embedding"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "loaded"
+      }
+    },
+    {
+      "id": "gemma4-26b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "gemma4-26b-base",
+            "gemma-4-26b-a4b-moe"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "gemma4-coach",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "gemma4:26b",
+            "gemma-4-26b-a4b-it",
+            "autobuild-coach",
+            "coach_test"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "gemma4-tutor",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "study-tutor",
+            "gcse-tutor",
+            "gemma4-specialist"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "gpt-oss-120b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "openai/gpt-oss-120b",
+            "gpt-oss"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "granite-docling",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "granite-docling-258M",
+            "docling"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "granite-vision-4-1-4b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "granite-vision-4.1-4b",
+            "granite-vision"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "parakeet-tdt-0.6b-v3",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "parakeet-tdt",
+            "parakeet"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-coach",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-ft",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-ft-v2",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-ft-v3",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-ft-v4",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qav-shadow",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qwen3-coder-30b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "autobuild-coder"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qwen3-tts-0.6b",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "qwen3-tts",
+            "tts-1"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    },
+    {
+      "id": "qwen36-workhorse",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "aliases": [
+            "autobuild-player",
+            "coach",
+            "jarvis-reasoner",
+            "forge-orchestrator",
+            "product-owner-agent",
+            "dataset-factory",
+            "claude-sonnet-4-6",
+            "claude-opus-4-7",
+            "claude-sonnet-4-5-20250929"
+          ],
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "loaded"
+      }
+    },
+    {
+      "id": "tutor-coach",
+      "object": "model",
+      "created": 1786452470,
+      "owned_by": "llama-swap",
+      "meta": {
+        "llamaswap": {
+          "type": "model"
+        }
+      },
+      "status": {
+        "value": "unloaded"
+      }
+    }
+  ],
+  "object": "list"
+}

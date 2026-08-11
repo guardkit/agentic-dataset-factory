@@ -1,0 +1,84 @@
+[
+  {
+    "bakeoff_id": "EX-1",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "EX-2",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "EX-3",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "FS-1",
+    "pass": false,
+    "findings": [
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 43}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Requesting the readiness endpoint returns a success status with service details', 'step': 'Given I request the readiness endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Attempting to mutate the readiness endpoint via POST is rejected', 'step': 'Given I send a mutation request to the readiness endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Requesting the readiness endpoint with a trailing slash is handled correctly', 'step': 'Given I request the readiness endpoint with a trailing slash', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Requesting the readiness endpoint at the exact path succeeds', 'step': 'Given I request the readiness endpoint at the exact path', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Attempting to mutate the readiness endpoint via PUT is rejected', 'step': 'Given I send a mutation request to the readiness endpoint using PUT', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Multiple concurrent readiness checks do not interfere with each other', 'step': 'Given multiple orchestration systems simultaneously request the readiness endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Requesting the readiness endpoint with unexpected query parameters returns the standard response', 'step': 'Given I request the readiness endpoint with arbitrary query parameters', 'matched_text': 'endpoint'}"
+    ],
+    "n_findings": 8
+  },
+  {
+    "bakeoff_id": "FS-2",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "FS-3",
+    "pass": false,
+    "findings": [
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Retrieving version metadata succeeds', 'step': 'When I request the version endpoint using the GET method', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'The response shape matches the expected contract', 'step': 'When I request the version endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'A response with empty string values is rejected by the contract', 'step': 'When I request the version endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Non-GET methods are rejected', 'step': 'When I attempt to modify the version endpoint using POST', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Concurrent requests to the version endpoint do not cause contention', 'step': 'When multiple clients request the version endpoint simultaneously', 'matched_text': 'endpoint'}",
+      "floor: 5 scenarios < 8"
+    ],
+    "n_findings": 6
+  },
+  {
+    "bakeoff_id": "GF-1",
+    "pass": false,
+    "findings": [
+      "assumptions: 2 < 3 floor"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "GF-2",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "GF-3",
+    "pass": false,
+    "findings": [
+      "mode: expected 'greenfield', got None",
+      "contract: roadmap: missing required field 'project_name'",
+      "contract: roadmap: missing required field 'priority_rationale'",
+      "contract: roadmap: missing required field 'mode'",
+      "contract: roadmap: missing required field 'constraints_and_dependencies'",
+      "contract: roadmap: missing required field 'open_questions'",
+      "contract: roadmap: missing required field 'epics'",
+      "contract: roadmap: missing required field 'feature_spec_inputs'",
+      "assumptions: 0 < 3 floor"
+    ],
+    "n_findings": 9
+  }
+]

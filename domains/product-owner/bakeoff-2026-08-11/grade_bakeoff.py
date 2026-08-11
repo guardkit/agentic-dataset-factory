@@ -45,7 +45,7 @@ def rewrap_reasoning(record):
     return content
 
 
-def grade_roadmap(raw, mode_required, corpus_names):
+def grade_roadmap(raw, mode_required, corpus_names, input_messages=()):
     findings = []
     try:
         payload = grading.parse_response(raw)
@@ -62,8 +62,20 @@ def grade_roadmap(raw, mode_required, corpus_names):
 
     cited = grading.collect_cited_documents(payload)
     if mode_required == "greenfield":
-        if cited:
-            findings.append(f"grounding: greenfield must cite nothing, cites {sorted(cited)[:5]}")
+        # AMENDMENT 2: the production player_greenfield.md REQUIRES request-references
+        # (`request` or `request:<verbatim fragment>`) in source_documents and forbids
+        # filenames. So: request-refs are not citations; a request: fragment must quote
+        # the problem statement verbatim; anything else cited is a fabrication.
+        problem = "\n".join(m.get("content") or "" for m in input_messages)
+        for c in sorted(cited):
+            if c == "request":
+                continue
+            if c.startswith("request:"):
+                frag = c[len("request:"):].strip()
+                if frag and frag not in problem:
+                    findings.append(f"grounding: request-ref fragment not verbatim in problem statement: {c[:80]}")
+            else:
+                findings.append(f"grounding: greenfield cites a filename (forbidden): {c[:80]}")
         if payload.get("coverage_score") is not None:
             findings.append("grounding: greenfield coverage_score must be null")
         assumptions = payload.get("assumptions") or []
@@ -119,11 +131,11 @@ def grade_record(record, input_payload):
     if not raw:
         return {"bakeoff_id": bid, "pass": False, "findings": ["no_response"], "n_findings": 1}
     if bid.startswith("GF"):
-        findings, _ = grade_roadmap(raw, "greenfield", set())
+        findings, _ = grade_roadmap(raw, "greenfield", set(), input_payload["messages"])
     elif bid.startswith("EX"):
         m = re.search(r"^## File: (.+)$", input_payload["messages"][-1]["content"], re.M)
         corpus = {m.group(1).strip()} if m else set()
-        findings, _ = grade_roadmap(raw, "extract", corpus)
+        findings, _ = grade_roadmap(raw, "extract", corpus, input_payload["messages"])
     else:
         findings, _ = grade_spec(raw)
     findings = [str(f) for f in findings]

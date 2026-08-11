@@ -1,0 +1,60 @@
+{
+  "bakeoff_id": "GF-1",
+  "candidate": "T1",
+  "model": "deepseek-v4-flash-0731",
+  "endpoint": "http://localhost:8888/v1",
+  "request_sha256": "984e6f96a4a52bacf685c2833edf8f8c20cb5b2cc2332ec6b2c824d8e502821a",
+  "params": {
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_tokens": 16384
+  },
+  "elapsed_seconds": 2.2,
+  "transport_error": null,
+  "response": {
+    "id": "chatcmpl-88d60441eea669d3",
+    "object": "chat.completion",
+    "created": 1786451660,
+    "model": "deepseek-v4-flash-0731",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'll add a `/version` endpoint to the api_test service. Let me first explore the existing codebase to understand the structure and patterns used.\n\n<\uff5cDSML\uff5ctool_calls>\n<\uff5cDSML\uff5cinvoke name=\"Bash\">\n<\uff5cDSML\uff5cparameter name=\"command\" string=\"true\">find . -type f | head -50</\uff5cDSML\uff5cparameter>\n<\uff5cDSML\uff5cparameter name=\"description\" string=\"true\">List files in repository</\uff5cDSML\uff5cparameter>\n</\uff5cDSML\uff5cinvoke>\n</\uff5cDSML\uff5ctool_calls>",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "tool_calls": [],
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "stop",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.21.1rc1.dev339+g1967a5627bc3-tp2-f5b59d24",
+    "usage": {
+      "prompt_tokens": 112,
+      "total_tokens": 212,
+      "completion_tokens": 100,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null
+  },
+  "content": "I'll add a `/version` endpoint to the api_test service. Let me first explore the existing codebase to understand the structure and patterns used.\n\n<\uff5cDSML\uff5ctool_calls>\n<\uff5cDSML\uff5cinvoke name=\"Bash\">\n<\uff5cDSML\uff5cparameter name=\"command\" string=\"true\">find . -type f | head -50</\uff5cDSML\uff5cparameter>\n<\uff5cDSML\uff5cparameter name=\"description\" string=\"true\">List files in repository</\uff5cDSML\uff5cparameter>\n</\uff5cDSML\uff5cinvoke>\n</\uff5cDSML\uff5ctool_calls>",
+  "usage": {
+    "prompt_tokens": 112,
+    "total_tokens": 212,
+    "completion_tokens": 100,
+    "prompt_tokens_details": null
+  },
+  "timestamp_utc": "2026-08-11T12:34:22Z"
+}

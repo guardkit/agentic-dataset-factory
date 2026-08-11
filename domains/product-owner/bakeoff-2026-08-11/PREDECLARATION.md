@@ -119,6 +119,25 @@ Re-runs under the amendment: T1 all nine (the params correction affects every
 artifact); T2 and T3 the three rebuilt GF inputs only (their FS/EX responses stand
 and are re-graded with the corrected grader). The decision rule is unchanged.
 
+## AMENDMENT 2 — greenfield grounding gate corrected to the prompt's own contract (2026-08-11, same day)
+
+All three candidates emitted `request:<fragment>` references in greenfield
+`source_documents` — because the production `player_greenfield.md` REQUIRES exactly
+that (its UNGROUNDED_FEATURE rule rejects empty source_documents; its
+FABRICATED_SOURCE_REFERENCE rule forbids filenames). The original gate ("cite
+nothing") was borrowed from the frozen exam task and contradicts the instructions
+the candidates were given. Corrected gate, applied to all candidates uniformly:
+request-refs are not citations; a `request:` fragment must quote the problem
+statement verbatim; any real filename cited remains a violation. No re-generation —
+the same banked responses are re-graded.
+
+**Flagged for Rich (exam-side, NOT changed by this lane):** the frozen
+`po-held-004` gate hard-asserts empty `source_documents` while the live prompt
+(which the exam harness assembles at run time) demands request-refs — the exam
+task and the current prompt are in an impossible bind that predates this lane
+(prompt convention added ~07-11; exam gold built 07-03). The freeze law is
+raise-only; reconciling this is Rich's ruling at the exam's first real sitting.
+
 ## Disposal
 
 Bake-off outputs live under this directory only. **No bake-off output ever enters the

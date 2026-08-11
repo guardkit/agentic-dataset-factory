@@ -1,0 +1,115 @@
+[
+  {
+    "bakeoff_id": "EX-1",
+    "pass": false,
+    "findings": [
+      "fabricated: forge/docs/design/contracts/API-nats-agent-dispatch.md",
+      "fabricated: forge/docs/design/contracts/API-nats-approval-protocol.md",
+      "fabricated: forge/docs/design/contracts/API-nats-fleet-lifecycle.md",
+      "fabricated: forge/docs/design/contracts/API-nats-pipeline-events.md",
+      "fabricated: forge/docs/design/models/DM-discovery.md",
+      "fabricated: nats-core/docs/design/contracts/agent-manifest-contract.md",
+      "fabricated: nats-core/docs/design/specs/nats-core-system-spec.md"
+    ],
+    "n_findings": 7
+  },
+  {
+    "bakeoff_id": "EX-2",
+    "pass": false,
+    "findings": [
+      "shape: no valid JSON object found in output"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "EX-3",
+    "pass": false,
+    "findings": [
+      "shape: first fenced payload is not valid JSON: Expecting property name enclosed in double quotes: line 245 column 5 (char 17824)"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-1",
+    "pass": false,
+    "findings": [
+      "gherkin: {'defect': 'step_outside_scenario', 'line': 14, 'text': 'But the feature is fundamentally about HTTP semantics \u2014 200 vs 405. And the acceptance criteria explicitly mention \"Returns HTTP 200 status code\" and \"Returns HTTP 405 status code\". In this case, the HTTP status code IS the domain behaviour. The whole point of this endpoint is its HTTP semantics.'}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 27}",
+      "gherkin: {'defect': 'step_outside_scenario', 'line': 36, 'text': 'Given the service is running and able to serve requests'}",
+      "gherkin: {'defect': 'step_outside_scenario', 'line': 37, 'text': 'When I check the readiness of the service'}",
+      "gherkin: {'defect': 'step_outside_scenario', 'line': 38, 'text': 'Then the service should be reported as ready'}",
+      "gherkin: {'defect': 'step_outside_scenario', 'line': 39, 'text': 'And the service should be identified as \"api_test\"'}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 63}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 71, 'text': 'Wait, but POST scenario shouldn\\'t have this background necessarily \u2014 POST should reject regardless. Hmm, actually POST rejection works whether or not the service is \"able to serve\" \u2014 well, if the service is down you get no response at all. The 405 is an application-level response that requires the server to be up. So background \"service is running\" is fine for all. Actually, let me not use a background for everything; the POST case doesn\\'t really need \"able to serve requests\" \u2014 it needs \"service is running\". I could use:', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 78, 'text': 'Hmm, that splits it. Let me use Background: Given the service is running. Then key example does And the service is able to serve requests.', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 80, 'text': 'Actually simpler: Background: Given the service is running. Good.', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 82, 'text': 'GROUP A: Key Examples', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 99, 'text': 'GROUP B: Boundary Conditions', 'scenario': 'Repeated readiness checks report the same result'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 109, 'text': 'Hmm \u2014 \"no other fields\" \u2014 that\\'s a regression guard. Good.', 'scenario': 'The readiness response reports exactly the agreed fields'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 111, 'text': 'GROUP C: Negative Cases', 'scenario': 'The readiness response reports exactly the agreed fields'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 121, 'text': 'Actually I want the \"405 Method Not Allowed\" visible. In domain language: \"Then the request should be rejected\" + \"And the error should indicate the method is not allowed\". That captures 405 semantics without writing the number. But honestly, the number IS the contract here. I\\'ll go with \"And the error should indicate the method is not allowed\" \u2014 that\\'s good domain language for 405.', 'scenario': 'A POST to the readiness endpoint is rejected'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 123, 'text': 'GROUP D: Edge Cases', 'scenario': 'A POST to the readiness endpoint is rejected'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 140, 'text': 'That last one is a bit redundant with the key example. Maybe better edge case: \"readiness check does not require external dependency checks\" \u2014 but I can\\'t easily express \"does not require\" in Gherkin without a negative test against a dependency. Let me make it:', 'scenario': 'The readiness check reports ready when the process is responsive'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 149, 'text': \"That expresses it better \u2014 readiness true with no dependencies configured confirms we don't require dependency checks.\", 'scenario': 'Readiness is reported without dependency checks'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 71, 'text': 'Wait, but POST scenario shouldn\\'t have this background necessarily \u2014 POST should reject regardless. Hmm, actually POST rejection works whether or not the service is \"able to serve\" \u2014 well, if the service is down you get no response at all. The 405 is an application-level response that requires the server to be up. So background \"service is running\" is fine for all. Actually, let me not use a background for everything; the POST case doesn\\'t really need \"able to serve requests\" \u2014 it needs \"service is running\". I could use:', 'scenario': '(background)'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 78, 'text': 'Hmm, that splits it. Let me use Background: Given the service is running. Then key example does And the service is able to serve requests.', 'scenario': '(background)'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 80, 'text': 'Actually simpler: Background: Given the service is running. Good.', 'scenario': '(background)'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 82, 'text': 'GROUP A: Key Examples', 'scenario': '(background)'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 99, 'text': 'GROUP B: Boundary Conditions', 'scenario': 'Repeated readiness checks report the same result'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 109, 'text': 'Hmm \u2014 \"no other fields\" \u2014 that\\'s a regression guard. Good.', 'scenario': 'The readiness response reports exactly the agreed fields'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 111, 'text': 'GROUP C: Negative Cases', 'scenario': 'The readiness response reports exactly the agreed fields'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 121, 'text': 'Actually I want the \"405 Method Not Allowed\" visible. In domain language: \"Then the request should be rejected\" + \"And the error should indicate the method is not allowed\". That captures 405 semantics without writing the number. But honestly, the number IS the contract here. I\\'ll go with \"And the error should indicate the method is not allowed\" \u2014 that\\'s good domain language for 405.', 'scenario': 'A POST to the readiness endpoint is rejected'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 123, 'text': 'GROUP D: Edge Cases', 'scenario': 'A POST to the readiness endpoint is rejected'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 140, 'text': 'That last one is a bit redundant with the key example. Maybe better edge case: \"readiness check does not require external dependency checks\" \u2014 but I can\\'t easily express \"does not require\" in Gherkin without a negative test against a dependency. Let me make it:', 'scenario': 'The readiness check reports ready when the process is responsive'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 149, 'text': \"That expresses it better \u2014 readiness true with no dependencies configured confirms we don't require dependency checks.\", 'scenario': 'Readiness is reported without dependency checks'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'A POST to the readiness endpoint is rejected', 'step': 'When I submit an empty request to the readiness endpoint', 'matched_text': 'endpoint'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'Other write methods are rejected by the readiness endpoint', 'step': 'When I attempt a write request to the readiness endpoint', 'matched_text': 'endpoint'}",
+      "floor: 7 scenarios < 8"
+    ],
+    "n_findings": 32
+  },
+  {
+    "bakeoff_id": "FS-2",
+    "pass": false,
+    "findings": [
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 51}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 93}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 149}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 190}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'The watchdog records a delivery failure when Slack is unreachable', 'step': 'Given the Slack endpoint is unavailable', 'matched_text': 'endpoint'}"
+    ],
+    "n_findings": 5
+  },
+  {
+    "bakeoff_id": "FS-3",
+    "pass": false,
+    "findings": [
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 17, 'text': 'Context loaded: stack=generic, product documentation EPIC-001 present (2 features), 0 existing .feature files, 0 ADRs, 5 prior assumptions available from planning input (ASM-001..005)', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'wrapped_step_continuation', 'line': 27, 'text': 'FEATURE SPEC PROPOSAL: Version Endpoint', 'scenario': '(background)'}",
+      "gherkin: {'defect': 'multiple_feature_blocks', 'line': 29}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 17, 'text': 'Context loaded: stack=generic, product documentation EPIC-001 present (2 features), 0 existing .feature files, 0 ADRs, 5 prior assumptions available from planning input (ASM-001..005)', 'scenario': '(background)'}",
+      "wrapped_step: {'defect': 'wrapped_step_continuation', 'line': 27, 'text': 'FEATURE SPEC PROPOSAL: Version Endpoint', 'scenario': '(background)'}",
+      "banned_language: {'group': 'tech-internals', 'scenario': 'A write method on /version is rejected as not allowed', 'step': 'And the error should indicate the method is not allowed on this endpoint', 'matched_text': 'endpoint'}",
+      "floor: 7 scenarios < 8"
+    ],
+    "n_findings": 7
+  },
+  {
+    "bakeoff_id": "GF-1",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "GF-2",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "GF-3",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  }
+]

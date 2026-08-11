@@ -1,0 +1,68 @@
+[
+  {
+    "bakeoff_id": "EX-1",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "EX-2",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "EX-3",
+    "pass": true,
+    "findings": [],
+    "n_findings": 0
+  },
+  {
+    "bakeoff_id": "FS-1",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-2",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-3",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "GF-1",
+    "pass": false,
+    "findings": [
+      "shape: first fenced payload is not valid JSON: Expecting value: line 1 column 1 (char 0)"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "GF-2",
+    "pass": false,
+    "findings": [
+      "shape: first fenced payload is not valid JSON: Expecting value: line 1 column 1 (char 0)"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "GF-3",
+    "pass": false,
+    "findings": [
+      "shape: first fenced payload is not valid JSON: Expecting value: line 1 column 1 (char 0)"
+    ],
+    "n_findings": 1
+  }
+]

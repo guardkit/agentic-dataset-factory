@@ -1,0 +1,112 @@
+[
+  {
+    "bakeoff_id": "EX-1",
+    "pass": false,
+    "findings": [
+      "shape: no <think> block found \u2014 serving shape requires one"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "EX-2",
+    "pass": false,
+    "findings": [
+      "shape: no <think> block found \u2014 serving shape requires one"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "EX-3",
+    "pass": false,
+    "findings": [
+      "shape: no <think> block found \u2014 serving shape requires one"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-1",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-2",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "FS-3",
+    "pass": false,
+    "findings": [
+      "layout: no '=== FILE: \u2026 ===' sections found"
+    ],
+    "n_findings": 1
+  },
+  {
+    "bakeoff_id": "GF-1",
+    "pass": false,
+    "findings": [
+      "contract: roadmap: missing required field 'project_name'",
+      "contract: roadmap: missing required field 'priority_rationale'",
+      "contract: roadmap: missing required field 'constraints_and_dependencies'",
+      "contract: roadmap: missing required field 'open_questions'",
+      "contract: roadmap.epics[0]: missing required field 'name'",
+      "contract: roadmap.epics[0]: missing required field 'bounded_context'",
+      "contract: roadmap.epics[0]: missing required field 'description'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'feature_id'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'bounded_context'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'source_documents'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'constraints'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'suggested_context_files'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'depends_on'",
+      "contract: roadmap.epics[0]: missing required field 'source_documents'",
+      "contract: roadmap: missing required field 'feature_spec_inputs'",
+      "assumptions: 0 < 3 floor"
+    ],
+    "n_findings": 16
+  },
+  {
+    "bakeoff_id": "GF-2",
+    "pass": false,
+    "findings": [
+      "contract: roadmap: missing required field 'project_name'",
+      "contract: roadmap: missing required field 'priority_rationale'",
+      "contract: roadmap: missing required field 'constraints_and_dependencies'",
+      "contract: roadmap: missing required field 'open_questions'",
+      "contract: roadmap.epics[0]: missing required field 'name'",
+      "contract: roadmap.epics[0]: missing required field 'bounded_context'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'feature_id'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'bounded_context'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'source_documents'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'constraints'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'suggested_context_files'",
+      "contract: roadmap.epics[0].features[0]: missing required field 'depends_on'",
+      "contract: roadmap.epics[0].features[0].priority: 'high' is not a valid Literal (allowed: ['Critical', 'High', 'Low', 'Normal'] or null)",
+      "contract: roadmap.epics[0]: missing required field 'source_documents'",
+      "contract: roadmap: missing required field 'feature_spec_inputs'",
+      "assumptions: 0 < 3 floor"
+    ],
+    "n_findings": 16
+  },
+  {
+    "bakeoff_id": "GF-3",
+    "pass": false,
+    "findings": [
+      "mode: expected 'greenfield', got None",
+      "contract: roadmap: missing required field 'project_name'",
+      "contract: roadmap: missing required field 'priority_rationale'",
+      "contract: roadmap: missing required field 'mode'",
+      "contract: roadmap: missing required field 'constraints_and_dependencies'",
+      "contract: roadmap: missing required field 'open_questions'",
+      "contract: roadmap: missing required field 'epics'",
+      "contract: roadmap: missing required field 'feature_spec_inputs'",
+      "assumptions: 0 < 3 floor"
+    ],
+    "n_findings": 9
+  }
+]
