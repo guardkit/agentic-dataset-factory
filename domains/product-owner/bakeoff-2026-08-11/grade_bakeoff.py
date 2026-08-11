@@ -17,16 +17,16 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).parent
-FLEET_EVALS = Path("/home/richardwoollcott/Projects/appmilla_github/fleet-evals/harness")
+FLEET_EVALS = Path("/home/richardwoollcott/Projects/appmilla_github/fleet-evals")
 BANLIST = Path(
     "/home/richardwoollcott/Projects/appmilla_github/fleet-evals/tasks/"
     "po-held-007-feature-spec/test/reference/domain_language_banlist.json"
 )
 sys.path.insert(0, str(FLEET_EVALS))
 
-import grading  # noqa: E402
-import po_contract  # noqa: E402
-import spec_gates  # noqa: E402
+from harness import grading  # noqa: E402
+from harness import po_contract  # noqa: E402
+from harness import spec_gates  # noqa: E402
 
 FILE_BOUNDARY = re.compile(r"^=== FILE: (.+?) ===\s*$", re.M)
 
