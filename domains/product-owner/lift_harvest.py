@@ -831,6 +831,24 @@ def _extract_json_obj(text: str) -> dict[str, Any]:
     return json.loads(m.group(1))
 
 
+def _response_text(resp: Any) -> str:
+    """Full usable text of a chat response: content, plus the reasoning
+    channel as fallback material.
+
+    DEVIATION-NOTE (2026-08-11, smoke-run fix): the bake-off-winning teacher
+    (qwen36 behind the production alias, ``--reasoning auto``) can exhaust its
+    budget mid-reasoning, leaving ``content`` empty while the JSON (or the
+    material to demand a re-ask against) sits in ``additional_kwargs``'s
+    reasoning channel. Content stays primary; reasoning is appended only as
+    fallback scan material for :func:`_extract_json_obj`."""
+    text = _content_to_text(resp.content)
+    extra = getattr(resp, "additional_kwargs", None) or {}
+    reasoning = extra.get("reasoning_content") or extra.get("reasoning") or ""
+    if reasoning:
+        text = f"{text}\n{reasoning}" if text.strip() else str(reasoning)
+    return text
+
+
 GLUE_SYSTEM_PROMPT = (
     "You are the domain-analysis assistant preparing Product Owner training "
     "material. You will be given a feature brief document, a feature-spec "
@@ -1202,7 +1220,7 @@ class HarvestLift:
                 ],
             )
             try:
-                obj = _extract_json_obj(_content_to_text(resp.content))
+                obj = _extract_json_obj(_response_text(resp))
             except (ValueError, json.JSONDecodeError) as exc:
                 error = f"Response was not one parseable JSON object: {exc}"
                 continue
@@ -1279,6 +1297,16 @@ class HarvestLift:
             ],
         )
         text = _content_to_text(resp.content).strip()
+        if not text:
+            # Same smoke-fix rationale as _response_text: a reasoning-auto
+            # teacher can return empty content with the usable prose in the
+            # reasoning channel. Use it alone (never concatenated — that would
+            # double the material). The §2.6 banned-term screen still polices
+            # meta-references in whatever we take.
+            extra = getattr(resp, "additional_kwargs", None) or {}
+            text = str(
+                extra.get("reasoning_content") or extra.get("reasoning") or ""
+            ).strip()
         # Defensive: the model must emit raw text; strip stray think tags so a
         # tag-echo cannot silently corrupt the §2.7-2 "exactly one block" rule.
         text = text.replace("<think>", "").replace("</think>", "").strip()
@@ -1368,7 +1396,9 @@ class HarvestLift:
                 ],
             )
             try:
-                return self._parse_coach_verdict(_content_to_text(resp.content))
+                # _response_text: gemma4-coach serves --reasoning auto (same
+                # empty-content trap as the teacher, caught by the smoke run).
+                return self._parse_coach_verdict(_response_text(resp))
             except Exception as exc:  # noqa: BLE001 - one re-ask on parse fail
                 last_exc = exc
         raise RuntimeError(f"Coach verdict unparseable after retry: {last_exc}")
@@ -1992,8 +2022,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     ap.add_argument("--golden-dir", default=str(_HERE / "golden_set"),
                     help="dir whose *.jsonl derive the golden slug set (§2.7-5)")
     ap.add_argument("--coach-temp", type=float, default=0.2)
-    ap.add_argument("--coach-max-tokens", type=int, default=2048)
-    ap.add_argument("--think-max-tokens", type=int, default=2000)
+    # 16384 (2026-08-11 smoke fix #3): gemma4-coach serves --reasoning auto and
+    # on real coach inputs spends >4096 tokens INSIDE thinking, returning empty
+    # content (probe-verified: small prompts answer fine at 256 tokens; the
+    # budget must cover long thinking + the verdict).
+    ap.add_argument("--coach-max-tokens", type=int, default=16384)
+    # 6000 not 2000 (2026-08-11 smoke fix): a reasoning-auto teacher spends
+    # internal reasoning tokens BEFORE the requested output; 2000 exhausted
+    # mid-reasoning on both smoke records, returning empty content.
+    ap.add_argument("--think-max-tokens", type=int, default=6000)
     ap.add_argument("--timeout", type=int, default=300)
     ap.add_argument("--log-level", default="INFO")
     return ap
