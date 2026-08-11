@@ -89,3 +89,18 @@ No training. Factory seats never drained outside the two Rich-granted windows
 untouched. fleet-evals received zero writes (harness imported read-only).
 specialist-agent strictly read-only. No NATS. Corpus private per DF-008.
 Path-limited commits throughout, staged-stranger checks before each.
+
+## Addendum — the output-wipe incident and the re-homing (same evening)
+
+Launching the Rich-approved thin-shapes slice, a mangled shell backgrounding left
+a first `agent.py` instance alive; with its checkpoint archived it declared a
+fresh start and CLEANED `output/` recursively — wiping the day's corpus artifacts
+(`output/harvest/`, `output/trace-export/`). Nothing unrecoverable was lost: the
+bake-off record was committed under `domains/`, and both pipelines are
+deterministic. **Structural lesson, now enforced: the generation loop OWNS
+`output/` and cleans it on fresh start — corpus artifacts must never live under
+it.** All corpus outputs are re-homed to `corpora/` (gitignored, DF-008): the
+trace-export regenerated identically (93 filtered rows, zero leakage), the
+harvest lift re-run into `corpora/harvest/` (same deterministic row identities;
+the job-6 leakage discard re-applied on completion). The slice relaunches with
+exclusive ownership of `output/` after the lift completes.

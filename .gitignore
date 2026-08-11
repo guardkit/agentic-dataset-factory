@@ -108,3 +108,4 @@ domains/coach-agent/v3_prompts/
 !.env.sample
 !*.env.example
 !*.env.sample
+corpora/
