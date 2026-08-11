@@ -92,14 +92,14 @@ The Player agent must follow these guidelines when generating product-owner-doma
   "epics": [
     {
       "id": "str", "name": "str", "bounded_context": "str", "description": "str",
-      "source_documents": [ {"filename": "str", "contribution": "str"} ],
+      "source_documents": ["str"],
       "features": [
         {
           "feature_id": "str", "title": "str",
           "description": "2+ sentences, behavioural, domain language, spec-ready",
           "bounded_context": "str", "constraints": ["str"],
           "suggested_context_files": ["str"], "depends_on": ["str"],
-          "source_documents": [ {"filename": "str", "contribution": "str"} ]
+          "source_documents": ["str"]
         }
       ]
     }
@@ -119,6 +119,8 @@ The Player agent must follow these guidelines when generating product-owner-doma
   ]
 }
 ```
+
+*(Schema correction 2026-08-11, WS4-S2, per `SPEC-po-phase2-harvest-lift.md` §5.7: `source_documents` are plain filename strings at epic and feature level — `Epic.source_documents: list[str]`, `FeatureSpecInput.source_documents: list[str]` at the `69c8620` pin — and `{filename, contribution}` objects ONLY at roadmap level, per `OUTPUT-CONTRACT.md` §A. The previous inline schema showed objects at every level.)*
 
 **Grounding discipline (mode-aware, critical)**: In the **no-corpus** generative modes (`greenfield`/`idea` — Phase 1 has no `## File:` documents), `coverage_score` MUST be `null`, `source_documents` MUST be empty at every level, and you invent NO citations — ground features in the brief you construct; empty `source_documents` is correct here, not a failure. In **corpus** modes (`extract`), every `source_documents` entry MUST reference a document actually provided as a `## File: <filename>` block (cite by that exact filename), cover the provided material, and never cite a source that was not provided. Surface unstated parameters/policies as `assumptions` (never invent a confident value). Propose features; do not ask the user questions.
 
@@ -157,6 +159,14 @@ Apply different criteria depending on the example's `metadata.layer` value:
 - **Knowledge layer**: Evaluate `terminology_correct`, `completeness`, and `no_verbatim_reproduction`.
 
 Only include the criteria applicable to the example's layer in your `criteria_met` response.
+
+### Shape-aware criteria routing (added 2026-08-11, WS4-S2, per `SPEC-po-phase2-harvest-lift.md` §5.4)
+
+For behaviour rows, first identify the fenced object's shape (`ProductRoadmap`, `EpicPlan`, or `EnrichmentBatch`), then route the criteria:
+
+- **`ProductRoadmap` / `EpicPlan` rows**: `acceptance_criteria_testability` applies only if acceptance-criteria fields are populated — absence is NOT a failure (ACs are deliberately deferred to extract Phase B; do not raise an unverifiable-criterion blocking issue for their absence).
+- **`EpicPlan` rows**: `prioritisation_rationale` is limited to the `priority_rationale` field (stubs carry no enums); enrichment fields present on a stub are an ENRICHMENT_LEAK failure under `decomposition_coherence`.
+- **`EnrichmentBatch` rows**: `assumption_explicitness` is evaluated through `open_questions` on enrichments (roadmap-level assumptions are Phase-A/dispatcher territory — absence of an `assumptions` field is not a failure); `decomposition_coherence` is evaluated as stub-fidelity (each enrichment faithfully expands its stub's intent), not epic nesting; `prioritisation_rationale` = enum conservatism + escalation evidenced via `field_citations.priority`.
 
 **Failure profile (fleet principle):** PO judgment errors should be **loud or conservative** — surfacing an unknown as an open assumption (good) rather than inventing a confident requirement (bad). Stricter-than-frontier on assumptions is the target posture, not a fault.
 
@@ -241,8 +251,10 @@ Per-example metadata fields with constrained valid values. Every field is requir
 | mode | string | yes | idea, extract, greenfield, evolve, impact, scope |
 | source_books | array of strings | yes | adzic_sbe, adzic_impact_mapping, perri_build_trap, patton_story_mapping, torres_continuous_discovery, cagan_inspired, olsen_lean_product, cohn_user_stories |
 | topic | string | yes | outcome_vs_output, feature_slicing, walking_skeleton, acceptance_criteria, gherkin_ground_truth, assumption_confidence, assumption_testing, mvp_scoping, scope_boundaries, prioritisation_value_risk, impact_mapping, opportunity_solution_tree, invest, continuous_discovery, pmf_pyramid, story_mapping, cross_framework_synthesis |
-| source | string | yes | synthetic |
+| source | string | yes | synthetic, harvest, flywheel |
 | turns | integer | yes | 1+ (number of conversation turns) |
+
+**`source` values (note added 2026-08-11, WS4-S2, per `SPEC-po-phase2-harvest-lift.md` §3):** `harvest` = rows reconstructed from real session history under the WS4-S2 reconstruction contract; harvest rows carry `source_books: []`, a mandatory `metadata.harvest` provenance block (spec §2.8), and a `weight` key (spec §4). `flywheel` is **reserved now, produced by nobody until WS4-S7's Chronicler**; `flywheel` rows will be Coach-validated before joining any training set (WS4 §6.2).
 
 ## Layer Routing
 
