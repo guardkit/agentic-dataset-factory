@@ -104,3 +104,11 @@ trace-export regenerated identically (93 filtered rows, zero leakage), the
 harvest lift re-run into `corpora/harvest/` (same deterministic row identities;
 the job-6 leakage discard re-applied on completion). The slice relaunches with
 exclusive ownership of `output/` after the lift completes.
+
+**Regeneration outcome (2026-08-12, closing the addendum):** the re-run yielded
+17 accepted pre-gate (was 18) and the leakage gate discarded 4 (was 3) — **the
+final corpus is 13 clean rows** in `corpora/harvest/train_harvest.jsonl`, with
+12 quarantined and 8 in review. Deterministic row identities held; WHICH rows
+clear the Coach varies at the margin between runs (temperature ~0.1 verdicts) —
+the honest cost of the wipe was two marginal rows, both recoverable from
+`rejected_rows.jsonl` review if ever wanted. Trace-export: 93 rows, identical.
