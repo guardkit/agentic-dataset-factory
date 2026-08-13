@@ -19,7 +19,7 @@ domain: product-owner
 
 player:
   provider: local
-  model: product-owner-agent   # 2026-08-11: the bake-off winner (5/9 vs DeepSeek 3/9, pre-declared rule) — the production PO seat; self-distillation risk noted in PLAN §8, policed by the independent Coach gate + the frozen exam
+  model: gpt-oss-120b          # 2026-08-13 (Rich's call after the wipe reset the economics): the Decision-B teacher restored for the SYNTHETIC half — pilot-proven 92% Coach acceptance vs qwen36's measured 48% over 270 targets on this loop; the qwen path would need a gpt-oss fallback pass for its holes anyway. Two-teacher corpus diversity preserved: real halves carry qwen's production voice, synthetic carries gpt-oss. Bake-off verdict untouched (it governs teacher-on-real-inputs; this is Coach-gated synthetic authorship).
   endpoint: http://localhost:9000/v1
   temperature: 0.5
   max_tokens: 12288                # 2026-08-12: qwen36 thinks before answering (reasoning-auto) and writes 8-18KB roadmaps — the 4096 default truncated mid-JSON, failing every format-gate turn (slice targets 0-1)
