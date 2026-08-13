@@ -112,3 +112,15 @@ final corpus is 13 clean rows** in `corpora/harvest/train_harvest.jsonl`, with
 clear the Coach varies at the margin between runs (temperature ~0.1 verdicts) —
 the honest cost of the wipe was two marginal rows, both recoverable from
 `rejected_rows.jsonl` review if ever wanted. Trace-export: 93 rows, identical.
+
+**Slice run log (2026-08-13 morning, honest):** the overnight run processed 270
+of 300 targets (129 accepted) and died in the GB10's ~06:42 reboot. My relaunch
+omitted `--resume` — agent.py's checkpoint is inert without that explicit flag,
+and the default fresh start CLEANED the 126 banked rows. **Operational law
+learned twice, now recorded: relaunching agent.py after any interruption is
+`agent.py --resume`, never bare.** The full 300 re-run is underway (~26h) with a
+10-minute mirror of `train.jsonl` into `corpora/synthetic-mirror/` so banked
+rows survive any future wipe or reboot. Second datum banked: the overnight
+acceptance rate was ~48% (129/270) vs the July pilot's 92% with gpt-oss-120b as
+Player — the independent Coach rejects the qwen36 Player's work far more often;
+side-by-side in the final coverage report.
