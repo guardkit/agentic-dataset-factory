@@ -704,7 +704,10 @@ async def _run_window2(
     (think-tag normalisation → JSON extraction → post-generation
     validation → orchestrator write); any failure in that path routes the
     row back to revision with the same feedback strings the sequential
-    loop uses.
+    loop uses.  The accepting verdict is pinned to the log
+    (``accept_pending``) BEFORE the write, so a crash in the write gap
+    resumes as a redo of only the write — the Coach is never re-consulted
+    for a row whose verdict already landed.
 
     Returns:
         ``(accepted, revise, rejected)`` row counts for this window.
@@ -718,6 +721,34 @@ async def _run_window2(
     logger.info(
         "window2_start: pass=%d, awaiting_rows=%d", state.pass_number, len(awaiting)
     )
+
+    # Finish rows whose accepting verdict was recorded but whose write was
+    # interrupted (crash between ``accept_pending`` and ``coach_done``):
+    # redo ONLY the write from the checkpointed content.  Extraction and
+    # validation are deterministic over that content, so the redo reaches
+    # the same example JSON the pre-crash invocation validated.
+    for idx in state.accept_pending_indices():
+        player_content = state.rows[idx].player_content or ""
+        example_json, feedback = _validate_accepted_row(player_content, idx)
+        if example_json is not None:
+            feedback = _write_accepted_row(write_tool, example_json, idx)
+        if feedback is None:
+            accepted += 1
+            mgr.record(
+                "coach_done",
+                index=idx,
+                **{"pass": state.pass_number},
+                status="accepted",
+            )
+        else:
+            revise += 1
+            mgr.record(
+                "coach_done",
+                index=idx,
+                **{"pass": state.pass_number},
+                status="revise",
+                coach_feedback=feedback,
+            )
 
     for idx in awaiting:
         row = row_by_index[idx]
@@ -774,9 +805,18 @@ async def _run_window2(
         )
 
         if verdict.is_accepted:
-            feedback = _accept_row(
-                write_tool, player_content, verdict, idx
-            )
+            example_json, feedback = _validate_accepted_row(player_content, idx)
+            if example_json is not None:
+                # Pin the verdict BEFORE the write: a crash in the write
+                # gap resumes as a write-only redo (see the loop above),
+                # matching sequential's write-then-checkpoint at-least-once
+                # semantics (ADR-ARCH-010) without a Coach re-evaluation.
+                mgr.record(
+                    "accept_pending", index=idx, **{"pass": state.pass_number}
+                )
+                feedback = _write_accepted_row(
+                    write_tool, example_json, idx, score=verdict.score
+                )
             if feedback is None:
                 accepted += 1
                 mgr.record(
@@ -825,23 +865,23 @@ async def _run_window2(
     return accepted, revise, rejected
 
 
-def _accept_row(
-    write_tool: Callable,
+def _validate_accepted_row(
     player_content: str,
-    verdict: CoachVerdict,
     index: int,
-) -> str | None:
-    """Run the acceptance path for a Coach-accepted row.
+) -> tuple[str | None, str | None]:
+    """Extract and validate a Coach-accepted row's example JSON.
+
+    Side-effect free and deterministic over the checkpointed content, so
+    a crash-resume redo reaches exactly the JSON the pre-crash invocation
+    validated.
 
     Args:
-        write_tool: The ``write_output`` tool (orchestrator-owned writes).
         player_content: Checkpointed Player output.
-        verdict: The accepting verdict (for logging context).
         index: Row index (for logging).
 
     Returns:
-        ``None`` on success (row written), or a revision-feedback string
-        when extraction / validation / write failed.
+        ``(example_json, None)`` when valid, or ``(None, feedback)`` with
+        a revision-feedback string when extraction / validation failed.
     """
     player_content = normalise_think_closing_tags(player_content)
     try:
@@ -852,7 +892,7 @@ def _accept_row(
             index,
             exc,
         )
-        return (
+        return None, (
             "Your response could not be parsed as valid JSON. "
             "Return the complete training example as a single JSON "
             "object with 'messages' and 'metadata' keys."
@@ -865,11 +905,33 @@ def _accept_row(
             index,
             post_gen_result.reason,
         )
-        return (
+        return None, (
             f"Post-generation validation failed: {post_gen_result.reason}. "
             f"Revise the example to fix this defect."
         )
 
+    return example_json, None
+
+
+def _write_accepted_row(
+    write_tool: Callable,
+    example_json: str,
+    index: int,
+    score: int | None = None,
+) -> str | None:
+    """Invoke the orchestrator write for a validated accepted row.
+
+    Args:
+        write_tool: The ``write_output`` tool (orchestrator-owned writes).
+        example_json: The validated example JSON to write.
+        index: Row index (for logging).
+        score: Verdict score for logging; None on a crash-resume write
+            redo (the verdict lives in the pre-crash log).
+
+    Returns:
+        ``None`` on success (row written), or a revision-feedback string
+        when write validation failed.
+    """
     write_result = write_tool.invoke({"example_json": example_json})
     if isinstance(write_result, str) and write_result.startswith("Error:"):
         logger.warning(
@@ -881,9 +943,9 @@ def _accept_row(
         )
 
     logger.info(
-        "target_accepted: index=%d, score=%d (batch window 2)",
+        "target_accepted: index=%d, score=%s (batch window 2)",
         index,
-        verdict.score,
+        "redo" if score is None else score,
     )
     return None
 
@@ -982,6 +1044,14 @@ async def run_batch_generation_loop(
                 f"{fingerprint}). Restore the original config, or start "
                 "fresh (discarding checkpointed window work)."
             )
+        if state.max_passes is not None and state.max_passes != max_passes:
+            raise BatchStateError(
+                "max_passes changed since the run started "
+                f"(recorded {state.max_passes}, current {max_passes} — "
+                "batch.max_passes falls back to generation max_turns). "
+                "Restore the original config, or start fresh (discarding "
+                "checkpointed window work)."
+            )
         if state.complete:
             logger.info("Batch run already complete; nothing to do.")
             return BatchWindowOutcome(
@@ -1023,7 +1093,7 @@ async def run_batch_generation_loop(
         )
 
     # Window 2
-    accepted, revise, rejected = await _run_window2(
+    await _run_window2(
         coach,
         coach_fallback,
         rows,
@@ -1035,14 +1105,21 @@ async def run_batch_generation_loop(
         token_usage,
     )
     pass_number = state.pass_number
-    total_accepted = state.accepted_count + accepted
 
-    if revise > 0 and pass_number < max_passes:
+    # Pause-into-next-pass vs run-complete is decided from the REPLAYED
+    # log, never from this invocation's local counters: a revise verdict
+    # recorded before a crash is invisible to the local counts, and a
+    # counter-based branch would terminally reject such rows with a false
+    # ``max_turns_exhausted`` reason on resume.
+    post_state = mgr.replay()
+    pending_revise = post_state.revise_indices()
+
+    if pending_revise and pass_number < max_passes:
         mgr.record("window2_complete", **{"pass": pass_number}, next="pass")
         instruction = _window2_instruction(
             pass_number=pass_number,
-            accepted=total_accepted,
-            pending=revise,
+            accepted=post_state.accepted_count,
+            pending=len(pending_revise),
             operator_note=getattr(batch, "operator_note", ""),
         )
         _log_window_tokens(token_usage)
@@ -1053,10 +1130,10 @@ async def run_batch_generation_loop(
             operator_instruction=instruction,
         )
 
-    # Run complete — finalise any rows still pending revision.
+    # Run complete — finalise any rows still pending revision (out of
+    # passes; the replayed set covers pre-crash revise verdicts too).
     row_by_index = {r.index: r for r in rows}
-    final_state = mgr.replay()
-    for idx in final_state.revise_indices():
+    for idx in pending_revise:
         row = row_by_index[idx]
         record = _build_rejection_record(
             target=row.target,

@@ -14,10 +14,15 @@ writes it.
 
 Event vocabulary (one JSON object per line):
 
-- ``run_started``    — total_rows, fingerprint (target-collection identity)
+- ``run_started``    — total_rows, fingerprint (target-collection identity),
+  max_passes (verified on resume, like the fingerprint)
 - ``player_done``    — index, pass, status ``ok`` (+player_content) or
   ``failed`` (+reason)
 - ``window1_complete`` — pass
+- ``accept_pending`` — index, pass (accepting verdict pinned to the log;
+  the orchestrator write is in flight — a crash before the row's
+  ``coach_done`` resumes as a redo of ONLY the write, never a Coach
+  re-evaluation)
 - ``coach_done``     — index, pass, status ``accepted`` / ``revise``
   (+coach_feedback) / ``rejected`` (+reason)
 - ``window2_complete`` — pass, next ``pass`` or ``complete``
@@ -44,6 +49,7 @@ BATCH_STATE_FILENAME = ".batch_state.jsonl"
 # Row lifecycle states
 ROW_PENDING_PLAYER = "pending_player"
 ROW_AWAITING_COACH = "awaiting_coach"
+ROW_ACCEPT_PENDING = "accept_pending"
 ROW_REVISE = "revise"
 ROW_ACCEPTED = "accepted"
 ROW_REJECTED = "rejected"
@@ -78,6 +84,10 @@ class BatchRunState:
         started: True once a ``run_started`` event has been recorded.
         total_rows: Number of collected generation rows.
         fingerprint: Target-collection fingerprint recorded at run start.
+        max_passes: Pass cap recorded at run start (verified on resume so
+            a mid-run ``max_turns``/``batch.max_passes`` config change is
+            caught, like the fingerprint); None for logs predating the
+            field.
         pass_number: Current pass (1-based; one pass = one Player-Coach
             cycle per pending row, split across two windows).
         window: Current window — 1 (Player/teacher legs) or 2 (Coach legs).
@@ -90,6 +100,7 @@ class BatchRunState:
     started: bool = False
     total_rows: int = 0
     fingerprint: str = ""
+    max_passes: int | None = None
     pass_number: int = 1
     window: int = 1
     complete: bool = False
@@ -107,6 +118,14 @@ class BatchRunState:
         """Row indices with a checkpointed Player output awaiting the Coach."""
         return sorted(
             i for i, r in self.rows.items() if r.status == ROW_AWAITING_COACH
+        )
+
+    def accept_pending_indices(self) -> list[int]:
+        """Row indices whose accepting verdict is pinned but whose write
+        was interrupted (crash between ``accept_pending`` and
+        ``coach_done``) — resume redoes only the write."""
+        return sorted(
+            i for i, r in self.rows.items() if r.status == ROW_ACCEPT_PENDING
         )
 
     def revise_indices(self) -> list[int]:
@@ -224,6 +243,10 @@ class BatchStateManager:
             state.started = True
             state.total_rows = int(ev["total_rows"])
             state.fingerprint = str(ev.get("fingerprint", ""))
+            recorded_max_passes = ev.get("max_passes")
+            state.max_passes = (
+                int(recorded_max_passes) if recorded_max_passes is not None else None
+            )
             state.rows = {i: RowState() for i in range(state.total_rows)}
         elif name == "player_done":
             row = state.rows[int(ev["index"])]
@@ -236,6 +259,8 @@ class BatchStateManager:
                 row.reason = str(ev.get("reason", "unknown"))
         elif name == "window1_complete":
             state.window = 2
+        elif name == "accept_pending":
+            state.rows[int(ev["index"])].status = ROW_ACCEPT_PENDING
         elif name == "coach_done":
             row = state.rows[int(ev["index"])]
             state.coach_evals += 1
@@ -272,6 +297,7 @@ __all__ = [
     "BatchRunState",
     "BatchStateError",
     "BatchStateManager",
+    "ROW_ACCEPT_PENDING",
     "ROW_ACCEPTED",
     "ROW_AWAITING_COACH",
     "ROW_PENDING_PLAYER",

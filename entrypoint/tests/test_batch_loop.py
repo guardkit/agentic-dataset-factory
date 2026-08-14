@@ -692,6 +692,248 @@ class TestCrashResume:
         assert outcome.result.accepted == 3
 
     @pytest.mark.asyncio
+    async def test_replayed_revise_verdict_survives_crash_resume(
+        self, tmp_path: Path
+    ) -> None:
+        """BLOCKER regression (drive receipt 2026-08-14): a revise verdict
+        recorded BEFORE a crash must pause the run into the next pass on
+        resume — not be terminally rejected as ``max_turns_exhausted`` at
+        pass 1 because the invocation-local revise counter never saw it."""
+        targets = [_make_target(category=f"Cat-{i}") for i in range(3)]
+        config = _make_generation_config(max_turns=3)
+        output_mgr = _make_output_manager()
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+        )
+        # Crash simulation: row 0's revise verdict landed (fsynced), then
+        # SIGKILL before rows 1-2 were coached.
+        mgr = BatchStateManager(tmp_path)
+        mgr.record(
+            "coach_done",
+            index=0,
+            **{"pass": 1},
+            status="revise",
+            coach_feedback="Too shallow",
+        )
+
+        coach = _make_mock_coach([_make_accept_verdict()] * 2)
+        outcome = await _run(
+            tmp_path,
+            player=AsyncMock(),
+            coach=coach,
+            targets=targets,
+            config=config,
+            output_mgr=output_mgr,
+            resume=True,
+        )
+
+        assert coach.ainvoke.await_count == 2  # rows 1 and 2 only
+        assert outcome.status == "paused"  # into pass 2 — NOT complete
+        assert outcome.window == 2
+        assert "pass 2" in outcome.operator_instruction
+        assert "1 row(s) pending revision" in outcome.operator_instruction
+        events = _state_events(tmp_path)
+        assert not [e for e in events if e["event"] == "row_finalised"]
+        assert not [e for e in events if e["event"] == "run_complete"]
+        output_mgr.rejected_fh.write.assert_not_called()
+
+        # Pass 2 window 1 redoes ONLY row 0, with the pre-crash feedback.
+        player = _make_mock_player()
+        outcome = await _run(
+            tmp_path,
+            player=player,
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+            resume=True,
+        )
+        assert outcome.status == "paused"
+        assert outcome.window == 1
+        assert outcome.pass_number == 2
+        assert player.ainvoke.await_count == 1
+        msg = player.ainvoke.await_args_list[0][0][0]["messages"][0]["content"]
+        assert "Too shallow" in msg
+
+    @pytest.mark.asyncio
+    async def test_crash_after_last_coach_leg_still_pauses_into_next_pass(
+        self, tmp_path: Path
+    ) -> None:
+        """Crash after the final ``coach_done`` but before
+        ``window2_complete``: resume has NO rows awaiting the Coach, yet
+        must still pause into the next pass for the replayed revise row."""
+        targets = [_make_target(category=f"Cat-{i}") for i in range(2)]
+        config = _make_generation_config(max_turns=3)
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+        )
+        mgr = BatchStateManager(tmp_path)
+        mgr.record("coach_done", index=0, **{"pass": 1}, status="accepted")
+        mgr.record(
+            "coach_done",
+            index=1,
+            **{"pass": 1},
+            status="revise",
+            coach_feedback="Weak evidence",
+        )
+
+        coach = AsyncMock()
+        outcome = await _run(
+            tmp_path,
+            player=AsyncMock(),
+            coach=coach,
+            targets=targets,
+            config=config,
+            resume=True,
+        )
+
+        coach.ainvoke.assert_not_awaited()  # every verdict already landed
+        assert outcome.status == "paused"
+        assert outcome.window == 2
+        assert "1 row(s) accepted" in outcome.operator_instruction
+        assert "1 row(s) pending revision" in outcome.operator_instruction
+
+    @pytest.mark.asyncio
+    async def test_replayed_revise_still_finalised_when_passes_exhausted(
+        self, tmp_path: Path
+    ) -> None:
+        """Out of passes, a replayed revise row IS terminally rejected —
+        the crash-resume fix must not unbound the pass cap."""
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=1)
+        output_mgr = _make_output_manager()
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+        )
+        mgr = BatchStateManager(tmp_path)
+        mgr.record(
+            "coach_done",
+            index=0,
+            **{"pass": 1},
+            status="revise",
+            coach_feedback="Too shallow",
+        )
+
+        outcome = await _run(
+            tmp_path,
+            player=AsyncMock(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+            output_mgr=output_mgr,
+            resume=True,
+        )
+
+        assert outcome.status == "complete"
+        assert outcome.result is not None
+        assert outcome.result.accepted == 0
+        assert outcome.result.rejected == 1
+        written = output_mgr.rejected_fh.write.call_args[0][0]
+        assert json.loads(written)["reason"] == "max_turns_exhausted"
+
+    @pytest.mark.asyncio
+    async def test_crash_in_write_gap_redoes_only_the_write(
+        self, tmp_path: Path
+    ) -> None:
+        """A crash between ``accept_pending`` and ``coach_done`` resumes
+        as a write-only redo: the pinned verdict is honoured, the Coach is
+        never re-consulted."""
+        targets = [_make_target()]
+        config = _make_generation_config()
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+        )
+        mgr = BatchStateManager(tmp_path)
+        mgr.record("accept_pending", index=0, **{"pass": 1})
+
+        coach = AsyncMock()
+        write_tool = _make_mock_write_tool()
+        outcome = await _run(
+            tmp_path,
+            player=AsyncMock(),
+            coach=coach,
+            targets=targets,
+            config=config,
+            write_tool=write_tool,
+            resume=True,
+        )
+
+        coach.ainvoke.assert_not_awaited()
+        assert write_tool.invoke.call_count == 1
+        assert outcome.status == "complete"
+        assert outcome.result is not None
+        assert outcome.result.accepted == 1
+        events = _state_events(tmp_path)
+        coach_events = [e for e in events if e["event"] == "coach_done"]
+        assert coach_events == [
+            {"event": "coach_done", "index": 0, "pass": 1, "status": "accepted"}
+        ]
+
+    @pytest.mark.asyncio
+    async def test_accepting_verdict_is_pinned_before_the_write(
+        self, tmp_path: Path
+    ) -> None:
+        """``accept_pending`` reaches the fsynced log BEFORE the
+        orchestrator write runs (the crash-in-the-gap contract)."""
+        targets = [_make_target()]
+        config = _make_generation_config()
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+        )
+
+        events_at_write: list[list[str]] = []
+        write_tool = MagicMock()
+
+        def _capture(args: dict[str, Any]) -> str:
+            events_at_write.append([e["event"] for e in _state_events(tmp_path)])
+            return "Written to output/train.jsonl (example #1)"
+
+        write_tool.invoke.side_effect = _capture
+
+        outcome = await _run(
+            tmp_path,
+            player=AsyncMock(),
+            coach=_make_mock_coach([_make_accept_verdict()]),
+            targets=targets,
+            config=config,
+            write_tool=write_tool,
+            resume=True,
+        )
+
+        assert outcome.status == "complete"
+        assert events_at_write[0][-1] == "accept_pending"
+        accept_events = [
+            e["event"]
+            for e in _state_events(tmp_path)
+            if e["event"] in ("accept_pending", "coach_done")
+        ]
+        assert accept_events == ["accept_pending", "coach_done"]
+
+    @pytest.mark.asyncio
     async def test_truncated_final_line_is_tolerated(self, tmp_path: Path) -> None:
         """A crash mid-write leaves a truncated line; the row is redone."""
         targets = [_make_target(category=f"Cat-{i}") for i in range(2)]
@@ -741,6 +983,35 @@ class TestCrashResume:
                 coach=AsyncMock(),
                 targets=targets,
                 config=config,
+                resume=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_max_passes_change_is_refused_on_resume(
+        self, tmp_path: Path
+    ) -> None:
+        """A mid-run max_passes/max_turns change is caught on resume,
+        like the target fingerprint."""
+        targets = [_make_target()]
+        config = _make_generation_config(max_turns=3)
+
+        await _run(
+            tmp_path,
+            player=_make_mock_player(),
+            coach=AsyncMock(),
+            targets=targets,
+            config=config,
+            batch=BatchConfig(max_passes=2),
+        )
+
+        with pytest.raises(BatchStateError, match="max_passes"):
+            await _run(
+                tmp_path,
+                player=AsyncMock(),
+                coach=AsyncMock(),
+                targets=targets,
+                config=config,
+                batch=BatchConfig(max_passes=3),
                 resume=True,
             )
 
