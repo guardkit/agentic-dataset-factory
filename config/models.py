@@ -233,6 +233,69 @@ class GenerationConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# BatchConfig (two-window batched-legs mode — ADR-ARCH-006 dated note)
+# ---------------------------------------------------------------------------
+
+
+class BatchConfig(BaseModel):
+    """Two-window batched-legs mode configuration (opt-in, additive).
+
+    Batch mode splits a run into windows at the orchestration level:
+    window 1 runs ALL Player/teacher legs (outputs checkpointed per row),
+    window 2 runs ALL Coach legs plus the acceptance/write path.  The run
+    stops at each window boundary so the OPERATOR can switch the serving
+    posture (needed when the teacher and the Coach fleet cannot co-reside
+    — e.g. a two-node tensor-parallel teacher that drains llama-swap while
+    it serves).  Sequential mode remains the default; existing domains are
+    unaffected when this block is absent.
+
+    Attributes:
+        enabled: Engage batch mode from config (equivalent to the
+            ``--batch`` CLI flag).  Defaults to ``False`` — sequential.
+        teacher: Optional window-1 Player/teacher seat model configuration
+            (the same ``ModelConfig`` seam as ``player``/``coach``; no code
+            assumes model names).  ``None`` uses the ``player`` block.
+        max_passes: Optional cap on Player-Coach passes per row (one pass =
+            window 1 + window 2).  ``None`` uses ``generation.max_turns``,
+            matching sequential revision semantics.
+        operator_note: Optional free-text appended to the window-boundary
+            operator instructions (e.g. the serving runbook to follow).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = Field(
+        default=False,
+        description=(
+            "Engage two-window batch mode. False (default) keeps the "
+            "sequential loop (ADR-ARCH-006)."
+        ),
+    )
+    teacher: ModelConfig | None = Field(
+        default=None,
+        description=(
+            "Window-1 Player/teacher seat model config; None uses the "
+            "player block (same ModelConfig seam)."
+        ),
+    )
+    max_passes: int | None = Field(
+        default=None,
+        ge=1,
+        description=(
+            "Max Player-Coach passes per row in batch mode; None uses "
+            "generation.max_turns."
+        ),
+    )
+    operator_note: str = Field(
+        default="",
+        description=(
+            "Free text appended to window-boundary operator instructions "
+            "(e.g. which serving runbook governs the drain/revive acts)."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # ChunkingConfig
 # ---------------------------------------------------------------------------
 
@@ -345,6 +408,7 @@ class AgentConfig(BaseModel):
         player: Player agent model configuration.
         coach: Coach agent model configuration.
         generation: Generation loop parameters.
+        batch: Two-window batched-legs mode (opt-in; sequential default).
         chunking: Ingestion chunking parameters.
         logging: Logging configuration.
     """
@@ -358,6 +422,7 @@ class AgentConfig(BaseModel):
     player: ModelConfig
     coach: ModelConfig
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
+    batch: BatchConfig = Field(default_factory=BatchConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
@@ -376,6 +441,7 @@ class AgentConfig(BaseModel):
 
 __all__ = [
     "AgentConfig",
+    "BatchConfig",
     "ChunkingConfig",
     "GenerationConfig",
     "LoggingConfig",
