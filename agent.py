@@ -51,6 +51,7 @@ from entrypoint.checkpoint import CheckpointManager, LockManager, prepare_output
 from entrypoint.generation_loop import run_generation_loop
 from entrypoint.output import OutputFileManager
 from entrypoint.startup import configure_langsmith, resolve_domain, verify_chromadb_collection
+from gates.quote_gate import build_gates
 from prompts.coach_prompts import build_coach_prompt
 from prompts.player_prompts import build_player_prompt
 from tools.tool_factory import create_player_tools, create_write_tool
@@ -253,6 +254,12 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                     "Resume requested but no checkpoint found; starting from index 0"
                 )
 
+        # Step 11a: Per-sample gates (Stage 2 fabrication gate + dedup).
+        # Absent gates block => all None => the loop is exactly as before.
+        quote_gate, dup_detector, gate_report = build_gates(
+            config.gates, OUTPUT_DIR, resume=resume
+        )
+
         # Step 12: Run generation loop with lock and output file management
         lock = LockManager(OUTPUT_DIR)
         lock.acquire()
@@ -277,6 +284,9 @@ def run_pipeline(state: PipelineState) -> PipelineState:
                             "behaviour": coach_fallback_behaviour,
                             "knowledge": coach_fallback_knowledge,
                         },
+                        quote_gate=quote_gate,
+                        dup_detector=dup_detector,
+                        gate_report=gate_report,
                     )
                 )
         finally:
@@ -430,6 +440,12 @@ def _run_batch_pipeline(state: PipelineState, config) -> PipelineState:
             teacher_model_config.endpoint or "(provider default)",
         )
 
+        # Per-sample gates (Stage 2 fabrication gate + dedup) — window 2
+        # applies them; absent gates block => all None => loop as before.
+        quote_gate, dup_detector, gate_report = build_gates(
+            config.gates, OUTPUT_DIR, resume=resume
+        )
+
         lock = LockManager(OUTPUT_DIR)
         lock.acquire()
         try:
@@ -454,6 +470,9 @@ def _run_batch_pipeline(state: PipelineState, config) -> PipelineState:
                             "behaviour": coach_fallback_behaviour,
                             "knowledge": coach_fallback_knowledge,
                         },
+                        quote_gate=quote_gate,
+                        dup_detector=dup_detector,
+                        gate_report=gate_report,
                     )
                 )
         finally:

@@ -80,6 +80,8 @@ if TYPE_CHECKING:
     from config.models import AgentConfig, GenerationConfig, ModelConfig
     from domain_config.models import GenerationTarget
     from entrypoint.output import OutputFileManager
+    from gates.quote_gate import GateReport, QuoteGate
+    from synthesis.validator import DuplicateDetector
 
 logger = logging.getLogger(__name__)
 
@@ -696,6 +698,9 @@ async def _run_window2(
     output_manager: OutputFileManager,
     write_tool: Callable,
     token_usage: TokenUsage,
+    quote_gate: QuoteGate | None = None,
+    dup_detector: DuplicateDetector | None = None,
+    gate_report: GateReport | None = None,
 ) -> tuple[int, int, int]:
     """Run window 2: Coach legs + acceptance path over checkpointed rows.
 
@@ -708,6 +713,13 @@ async def _run_window2(
     (``accept_pending``) BEFORE the write, so a crash in the write gap
     resumes as a redo of only the write — the Coach is never re-consulted
     for a row whose verdict already landed.
+
+    The per-sample gates (Stage 2 fabrication gate + dedup) run BETWEEN
+    the acceptance-path validation and the ``accept_pending`` pin, so a
+    gate-flagged row routes to revision without ever recording an
+    accepting verdict; a crash-redo row (``accept_pending`` already
+    recorded) therefore passed the gates pre-crash and only its write is
+    redone.
 
     Returns:
         ``(accepted, revise, rejected)`` row counts for this window.
@@ -731,7 +743,15 @@ async def _run_window2(
         player_content = state.rows[idx].player_content or ""
         example_json, feedback = _validate_accepted_row(player_content, idx)
         if example_json is not None:
+            # Gates already passed pre-crash (accept_pending is only pinned
+            # after them) — redo ONLY the write, then let dedup learn it.
             feedback = _write_accepted_row(write_tool, example_json, idx)
+            if feedback is None and dup_detector is not None:
+                from gates.quote_gate import example_assistant_contents
+
+                dup_detector.record_contents(
+                    example_assistant_contents(example_json)
+                )
         if feedback is None:
             accepted += 1
             mgr.record(
@@ -765,7 +785,15 @@ async def _run_window2(
             )
         except asyncio.TimeoutError:
             rejected += 1
-            _reject_row(mgr, output_manager, row, state.pass_number, "timeout", [])
+            _reject_row(
+                mgr,
+                output_manager,
+                row,
+                state.pass_number,
+                "timeout",
+                [],
+                gate_report=gate_report,
+            )
             continue
         except CoachRefusalError as exc:
             rejected += 1
@@ -776,6 +804,7 @@ async def _run_window2(
                 state.pass_number,
                 f"coach_refusal: {exc.reason}",
                 [],
+                gate_report=gate_report,
             )
             continue
         except (
@@ -793,6 +822,7 @@ async def _run_window2(
                 state.pass_number,
                 f"llm_failure: {exc}",
                 [],
+                gate_report=gate_report,
             )
             continue
 
@@ -806,6 +836,56 @@ async def _run_window2(
 
         if verdict.is_accepted:
             example_json, feedback = _validate_accepted_row(player_content, idx)
+
+            # Fabrication gate (Stage 2) — BEFORE the accept_pending pin,
+            # so a flagged row routes to revision with no accepting
+            # verdict recorded (mirrors the sequential choke point).
+            if example_json is not None and quote_gate is not None:
+                gate_result = quote_gate.check_example(example_json)
+                if gate_report is not None:
+                    gate_report.record(gate_result, idx)
+                if gate_result.status == "failed":
+                    logger.warning(
+                        "quote_gate_failed: index=%d, pass=%d, subject=%s, "
+                        "fabricated_spans=%d (batch window 2)",
+                        idx,
+                        state.pass_number,
+                        gate_result.subject,
+                        len(gate_result.fabricated_spans),
+                    )
+                    feedback = quote_gate.feedback_for(gate_result)
+                    example_json = None
+                elif gate_result.status == "unverifiable":
+                    logger.warning(
+                        "quote_gate_unverifiable: index=%d, subject=%s, "
+                        "reason=%s (sample NOT quote-verified — counted)",
+                        idx,
+                        gate_result.subject,
+                        gate_result.reason,
+                    )
+
+            # Duplicate detection (gates.dedup) — hash recorded only
+            # after the successful write below.
+            assistant_contents: list[str] = []
+            if example_json is not None and dup_detector is not None:
+                from gates.quote_gate import (
+                    DUPLICATE_FEEDBACK,
+                    example_assistant_contents,
+                )
+
+                assistant_contents = example_assistant_contents(example_json)
+                if dup_detector.seen_contents(assistant_contents):
+                    logger.warning(
+                        "duplicate_detected: index=%d, pass=%d "
+                        "(batch window 2)",
+                        idx,
+                        state.pass_number,
+                    )
+                    if gate_report is not None:
+                        gate_report.record_duplicate(idx)
+                    feedback = DUPLICATE_FEEDBACK
+                    example_json = None
+
             if example_json is not None:
                 # Pin the verdict BEFORE the write: a crash in the write
                 # gap resumes as a write-only redo (see the loop above),
@@ -817,6 +897,8 @@ async def _run_window2(
                 feedback = _write_accepted_row(
                     write_tool, example_json, idx, score=verdict.score
                 )
+                if feedback is None and dup_detector is not None:
+                    dup_detector.record_contents(assistant_contents)
             if feedback is None:
                 accepted += 1
                 mgr.record(
@@ -957,6 +1039,7 @@ def _reject_row(
     pass_number: int,
     reason: str,
     history: list[dict[str, Any]],
+    gate_report: GateReport | None = None,
 ) -> None:
     """Terminally reject a row: rejected.jsonl record + state event."""
     record = _build_rejection_record(
@@ -967,6 +1050,8 @@ def _reject_row(
     )
     output_manager.rejected_fh.write(json.dumps(record) + "\n")
     output_manager.rejected_fh.flush()
+    if gate_report is not None:
+        gate_report.note_terminal_rejection(row.index)
     mgr.record(
         "coach_done",
         index=row.index,
@@ -996,6 +1081,9 @@ async def run_batch_generation_loop(
     resume: bool = False,
     rag_tool: Callable | None = None,
     coach_fallback: Any | dict[str, Any] | None = None,
+    quote_gate: QuoteGate | None = None,
+    dup_detector: DuplicateDetector | None = None,
+    gate_report: GateReport | None = None,
 ) -> BatchWindowOutcome:
     """Run ONE window of the two-window batched-legs generation loop.
 
@@ -1018,6 +1106,12 @@ async def run_batch_generation_loop(
         rag_tool: Optional ``rag_retrieval`` tool.
         coach_fallback: Optional non-structured fallback Coach (same shape
             as ``coach``).
+        quote_gate: Optional per-sample quote-verification gate (Stage 2
+            fabrication gate), applied in window 2 between acceptance
+            validation and the write.  ``None`` leaves the loop as before.
+        dup_detector: Optional duplicate detector (``gates.dedup``).
+        gate_report: Run-level gate accounting, persisted to the output
+            dir at every window-2 exit (the run spans invocations).
 
     Returns:
         A :class:`BatchWindowOutcome` (paused at a boundary, or complete
@@ -1103,6 +1197,9 @@ async def run_batch_generation_loop(
         output_manager,
         write_tool,
         token_usage,
+        quote_gate=quote_gate,
+        dup_detector=dup_detector,
+        gate_report=gate_report,
     )
     pass_number = state.pass_number
 
@@ -1123,6 +1220,10 @@ async def run_batch_generation_loop(
             operator_note=getattr(batch, "operator_note", ""),
         )
         _log_window_tokens(token_usage)
+        # Persist gate accounting at every window-2 exit — the run spans
+        # attended invocations and the next one resumes from this file.
+        if gate_report is not None:
+            gate_report.write_and_log()
         return BatchWindowOutcome(
             status="paused",
             window=2,
@@ -1143,6 +1244,8 @@ async def run_batch_generation_loop(
         )
         output_manager.rejected_fh.write(json.dumps(record) + "\n")
         output_manager.rejected_fh.flush()
+        if gate_report is not None:
+            gate_report.note_terminal_rejection(idx)
         mgr.record("row_finalised", index=idx, reason="max_turns_exhausted")
     mgr.record("window2_complete", **{"pass": pass_number}, next="complete")
     mgr.record("run_complete")
@@ -1158,6 +1261,8 @@ async def run_batch_generation_loop(
         result.elapsed_seconds,
     )
     _log_window_tokens(token_usage)
+    if gate_report is not None:
+        gate_report.write_and_log()
     return BatchWindowOutcome(
         status="complete",
         window=2,

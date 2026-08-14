@@ -296,6 +296,117 @@ class BatchConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# GatesConfig (per-sample dataset gates — fabrication quote gate + dedup)
+# ---------------------------------------------------------------------------
+
+
+class QuoteGateConfig(BaseModel):
+    """Per-sample quote-verification (fabrication) gate configuration.
+
+    The gate extracts quoted spans from an accepted sample's assistant
+    turns and verifies each against the sample's subject corpus (windowed
+    similarity — see ``gates.quote_gate``).  A failed sample routes back
+    into the revise loop with the fabricated span named in the Coach
+    feedback.  Subjects with NO configured corpus are counted
+    ``unverifiable`` (loud in the gate report) — never silently blocked.
+
+    Attributes:
+        enabled: Engage the quote gate.  Defaults to ``False`` (opt-in
+            even within a ``gates:`` block — it needs corpus stores).
+        corpus_stores: Mapping of subject name to a ChromaDB persist
+            directory (the directory containing ``chroma.sqlite3``).
+            Read READ-ONLY via sqlite ``immutable=1`` — never a live
+            service.
+        subject_key: Metadata key on the generated example that names its
+            subject.  Defaults to ``"subject"``.
+        default_subject: Subject assumed when the metadata key is absent
+            (e.g. ``"english"`` for a single-subject domain).  ``None``
+            (default) counts such samples unverifiable.
+        match_threshold: Windowed-similarity ratio at or above which a
+            quoted span counts as verified.  Defaults to 0.95.
+        min_quote_words: Spans shorter than this many words are not
+            treated as quotations.  Defaults to 4.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = Field(
+        default=False,
+        description="Engage the per-sample quote-verification gate.",
+    )
+    corpus_stores: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Subject name -> ChromaDB persist directory (read-only sqlite "
+            "immutable=1; never a live service)."
+        ),
+    )
+    subject_key: str = Field(
+        default="subject",
+        min_length=1,
+        description="Example-metadata key naming the sample's subject.",
+    )
+    default_subject: str | None = Field(
+        default=None,
+        description=(
+            "Subject assumed when the metadata key is absent; None counts "
+            "such samples unverifiable."
+        ),
+    )
+    match_threshold: float = Field(
+        default=0.95,
+        gt=0.0,
+        le=1.0,
+        description="Windowed-similarity verification threshold.",
+    )
+    min_quote_words: int = Field(
+        default=4,
+        ge=1,
+        description="Minimum words for a span to count as a quotation.",
+    )
+
+
+class DedupConfig(BaseModel):
+    """Duplicate-detection wiring for the live loop.
+
+    Wires the (previously orphaned) ``synthesis.validator.DuplicateDetector``
+    into the orchestrator choke point.  Defaults to ``True`` — ON for any
+    run that declares a ``gates:`` block; runs without the block are
+    entirely unaffected (``AgentConfig.gates`` defaults to ``None``).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool = Field(
+        default=True,
+        description=(
+            "Reject duplicate assistant content at the choke point "
+            "(default ON within a gates block)."
+        ),
+    )
+
+
+class GatesConfig(BaseModel):
+    """Per-sample gates applied between Coach acceptance and the write.
+
+    Absent from ``agent-config.yaml`` (the default), NO gate machinery is
+    constructed and both loops behave exactly as before — existing
+    domains are byte-compatible.  Declaring the block turns dedup on by
+    default; the quote gate is opted into explicitly with its corpus
+    stores.
+
+    Attributes:
+        quote_gate: Per-sample quote-verification gate (opt-in).
+        dedup: Duplicate detection (default ON within this block).
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    quote_gate: QuoteGateConfig = Field(default_factory=QuoteGateConfig)
+    dedup: DedupConfig = Field(default_factory=DedupConfig)
+
+
+# ---------------------------------------------------------------------------
 # ChunkingConfig
 # ---------------------------------------------------------------------------
 
@@ -409,6 +520,9 @@ class AgentConfig(BaseModel):
         coach: Coach agent model configuration.
         generation: Generation loop parameters.
         batch: Two-window batched-legs mode (opt-in; sequential default).
+        gates: Per-sample gates (quote-verification + dedup).  ``None``
+            (default — block absent) constructs no gate machinery, keeping
+            existing domains byte-compatible.
         chunking: Ingestion chunking parameters.
         logging: Logging configuration.
     """
@@ -423,6 +537,13 @@ class AgentConfig(BaseModel):
     coach: ModelConfig
     generation: GenerationConfig = Field(default_factory=GenerationConfig)
     batch: BatchConfig = Field(default_factory=BatchConfig)
+    gates: GatesConfig | None = Field(
+        default=None,
+        description=(
+            "Per-sample gates block; absent (None) leaves both loops "
+            "exactly as before."
+        ),
+    )
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
@@ -443,7 +564,10 @@ __all__ = [
     "AgentConfig",
     "BatchConfig",
     "ChunkingConfig",
+    "DedupConfig",
+    "GatesConfig",
     "GenerationConfig",
     "LoggingConfig",
     "ModelConfig",
+    "QuoteGateConfig",
 ]
