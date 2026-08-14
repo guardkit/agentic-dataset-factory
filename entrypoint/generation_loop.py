@@ -44,6 +44,8 @@ if TYPE_CHECKING:
     from domain_config.models import GenerationTarget
     from entrypoint.checkpoint import CheckpointManager
     from entrypoint.output import OutputFileManager
+    from gates.quote_gate import GateReport, QuoteGate
+    from synthesis.validator import DuplicateDetector
 
 logger = logging.getLogger(__name__)
 
@@ -722,6 +724,9 @@ async def _process_single_target(
     rag_tool: Callable | None = None,
     coach_fallback: Any | None = None,
     mode: str | None = None,
+    quote_gate: QuoteGate | None = None,
+    dup_detector: DuplicateDetector | None = None,
+    gate_report: GateReport | None = None,
 ) -> tuple[bool, int, list[dict[str, Any]]]:
     """Process a single generation target through the Player-Coach cycle.
 
@@ -757,6 +762,15 @@ async def _process_single_target(
             outputs (TASK-CR-007).  Used as a third fallback when both
             the initial call and reframed-prompt retry produce refusals.
             May be a single agent or a dict (same shape as ``coach``).
+        quote_gate: Optional per-sample quote-verification gate applied
+            between Coach acceptance and the write; a failed sample
+            routes back into the revise loop with the fabricated span
+            named in the feedback (Stage 2 fabrication gate).
+        dup_detector: Optional duplicate detector (``gates.dedup``); a
+            duplicate accepted sample routes to revision, and the hash is
+            recorded only after a successful write.
+        gate_report: Run-level gate accounting; required when either gate
+            is provided.
 
     Returns:
         Tuple of (accepted: bool, turns_used: int, rejection_history: list).
@@ -1259,6 +1273,65 @@ async def _process_single_target(
                 )
                 continue
 
+            # Fabrication gate (Stage 2) — verify quoted spans against the
+            # subject corpus BEFORE the orchestrator write; a failed sample
+            # routes back into the revise loop with the fabricated span
+            # named (same pattern as the validation failure above).
+            if quote_gate is not None:
+                gate_result = quote_gate.check_example(example_json)
+                if gate_report is not None:
+                    gate_report.record(gate_result, target_index)
+                if gate_result.status == "failed":
+                    logger.warning(
+                        "quote_gate_failed: index=%d, turn=%d, subject=%s, "
+                        "fabricated_spans=%d",
+                        target_index,
+                        coach_turn,
+                        gate_result.subject,
+                        len(gate_result.fabricated_spans),
+                    )
+                    rejection_history.append(
+                        {
+                            "quote_gate_error": [
+                                q.to_dict() for q in gate_result.fabricated_spans
+                            ],
+                            **verdict.model_dump(),
+                        }
+                    )
+                    coach_feedback = quote_gate.feedback_for(gate_result)
+                    continue
+                if gate_result.status == "unverifiable":
+                    logger.warning(
+                        "quote_gate_unverifiable: index=%d, subject=%s, "
+                        "reason=%s (sample NOT quote-verified — counted)",
+                        target_index,
+                        gate_result.subject,
+                        gate_result.reason,
+                    )
+
+            # Duplicate detection (gates.dedup — the wired DuplicateDetector).
+            # The hash is recorded only after a successful write below.
+            if dup_detector is not None:
+                from gates.quote_gate import (
+                    DUPLICATE_FEEDBACK,
+                    example_assistant_contents,
+                )
+
+                assistant_contents = example_assistant_contents(example_json)
+                if dup_detector.seen_contents(assistant_contents):
+                    logger.warning(
+                        "duplicate_detected: index=%d, turn=%d",
+                        target_index,
+                        coach_turn,
+                    )
+                    if gate_report is not None:
+                        gate_report.record_duplicate(target_index)
+                    rejection_history.append(
+                        {"duplicate_error": True, **verdict.model_dump()}
+                    )
+                    coach_feedback = DUPLICATE_FEEDBACK
+                    continue
+
             # ORCHESTRATOR writes — not the Player (TASK-TRF-005)
             write_result = write_tool.invoke({"example_json": example_json})
             if isinstance(write_result, str) and write_result.startswith("Error:"):
@@ -1294,6 +1367,10 @@ async def _process_single_target(
                     f"Revise the example to fix the validation error."
                 )
                 continue
+
+            # Written — only now does the dedup seen-set learn this content.
+            if dup_detector is not None:
+                dup_detector.record_contents(assistant_contents)
 
             logger.info(
                 "target_accepted: index=%d, coach_turns=%d, "
@@ -1428,6 +1505,9 @@ async def run_generation_loop(
     start_index: int = 0,
     rag_tool: Callable | None = None,
     coach_fallback: Any | dict[str, Any] | None = None,
+    quote_gate: QuoteGate | None = None,
+    dup_detector: DuplicateDetector | None = None,
+    gate_report: GateReport | None = None,
 ) -> GenerationResult:
     """Run the sequential Player-Coach generation loop.
 
@@ -1467,6 +1547,12 @@ async def run_generation_loop(
             outputs (TASK-CR-007).  Same shape as ``coach`` (single agent
             or dict).  Used as a third fallback when both initial and
             reframed-prompt retries produce refusals.
+        quote_gate: Optional per-sample quote-verification gate (Stage 2
+            fabrication gate) applied between Coach acceptance and the
+            write.  ``None`` (default) leaves the loop exactly as before.
+        dup_detector: Optional duplicate detector (``gates.dedup``).
+        gate_report: Run-level gate accounting; written to the output dir
+            and logged when the loop completes.
 
     Returns:
         GenerationResult with aggregate statistics.
@@ -1561,6 +1647,9 @@ async def run_generation_loop(
                     rag_tool=rag_tool,
                     coach_fallback=coach_fallback,
                     mode=mode,
+                    quote_gate=quote_gate,
+                    dup_detector=dup_detector,
+                    gate_report=gate_report,
                 ),
                 timeout=config.target_timeout,
             )
@@ -1587,6 +1676,8 @@ async def run_generation_loop(
                 )
                 output_manager.rejected_fh.write(json.dumps(record) + "\n")
                 output_manager.rejected_fh.flush()
+                if gate_report is not None:
+                    gate_report.note_terminal_rejection(absolute_index)
 
                 logger.info(
                     "target_rejected: index=%d, turns=%d",
@@ -1607,6 +1698,8 @@ async def run_generation_loop(
             )
             output_manager.rejected_fh.write(json.dumps(record) + "\n")
             output_manager.rejected_fh.flush()
+            if gate_report is not None:
+                gate_report.note_terminal_rejection(absolute_index)
 
             logger.warning(
                 "target_rejected: index=%d, reason=timeout, timeout=%ds",
@@ -1629,6 +1722,8 @@ async def run_generation_loop(
             )
             output_manager.rejected_fh.write(json.dumps(record) + "\n")
             output_manager.rejected_fh.flush()
+            if gate_report is not None:
+                gate_report.note_terminal_rejection(absolute_index)
 
             logger.warning(
                 "target_rejected: index=%d, reason=coach_refusal, "
@@ -1655,6 +1750,8 @@ async def run_generation_loop(
             )
             output_manager.rejected_fh.write(json.dumps(record) + "\n")
             output_manager.rejected_fh.flush()
+            if gate_report is not None:
+                gate_report.note_terminal_rejection(absolute_index)
 
             logger.error(
                 "target_rejected: index=%d, reason=llm_failure, error=%s",
@@ -1710,6 +1807,10 @@ async def run_generation_loop(
             cumulative_tokens.completion_tokens,
             cumulative_tokens.total_tokens,
         )
+
+    # Per-run gate report — lands in the run output dir and the log.
+    if gate_report is not None:
+        gate_report.write_and_log()
 
     return GenerationResult(
         total_targets=num_targets,
