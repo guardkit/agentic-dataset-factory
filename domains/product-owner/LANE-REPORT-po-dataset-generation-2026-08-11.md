@@ -124,3 +124,13 @@ rows survive any future wipe or reboot. Second datum banked: the overnight
 acceptance rate was ~48% (129/270) vs the July pilot's 92% with gpt-oss-120b as
 Player — the independent Coach rejects the qwen36 Player's work far more often;
 side-by-side in the final coverage report.
+
+**FINAL (2026-08-14 evening): the corpus is COMPLETE — 323 rows.** The gpt-oss
+full run finished clean (258/300 accepted, 86%, 36.6h under the heatwave clock
+caps at ≤67°C); all job-6 gates green on the synthetic yield (zero leakage,
+zero dupes, mode balance ±2, top-name share 6%). Corpus of record:
+`MANIFEST-corpus-of-record-2026-08-14.md` (13 harvest + 93 trace + 217
+synthetic; real:synthetic 33:67). Ledgered adf defect: write-validation drops
+Coach-accepted rows on invalid `metadata.topic` (41 lost, banked nowhere — fix
+owed). Everything now waits on the training word, with the student list
+amending to "Gemma 4 AND Qwen 3.8" at that sitting.
