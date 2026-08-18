@@ -109,3 +109,6 @@ domains/coach-agent/v3_prompts/
 !*.env.example
 !*.env.sample
 corpora/
+
+# factory run logs (host-local, 300MB+)
+run_logs/
