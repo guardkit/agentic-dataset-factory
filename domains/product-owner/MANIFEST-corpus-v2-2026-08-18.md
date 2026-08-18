@@ -119,3 +119,77 @@ v2 train sha256: harvest `82379547…be3c0`, trace `fff2c1a6…d6ae`, synthetic 
 - GOAL.md still says greenfield `source_documents` "MUST be empty at every level" — right for idea, wrong for
   greenfield (deployed prompt requires feature-level `request:` refs). Not edited by this lane.
 - v2 was not Coach-re-reviewed and was not run against the frozen exam; v1 remains the corpus of record.
+
+## Fact-check pass — 2026-08-18 (lane-factcheck, Rich's word: fix-and-re-verify, bounded)
+
+**Why.** The independent verifier found that the pass-1 `desc_2sent` second sentences sometimes INVENT product
+facts not in the brief / title / first sentence ("derived from collaborative-filtering", "confidence percentage
+next to each transaction line item", "validates the email format and stores demographic and health metrics"). The
+pass-1 accept rules were mechanical (prefix + sentence count); "no new product facts" was instructed, never checked.
+Rich must not train on invented facts.
+
+**What was done.** `train_synthetic.jsonl` (215 rows, sha `ae5d5c47…2090`) was byte-copied to
+`train_synthetic.pre-factcheck-2026-08-18.jsonl` first. All 518 changed description pairs (188 rows; the other 5 of the
+523 pass-1 targets are all on v1 line 82, already in needs_review — verified) were enumerated
+from `pass1_results` + `teacher_calls.jsonl` and re-checked against the v1 file read-only (original sentence,
+added sentence, twin identical). Every added second sentence was JUDGED with the seat at temperature 0
+(system "You are a strict fact-checker for product requirement text."; brief + title + first sentence + second
+sentence; one-word answer RESTATES / IMPLIED / NEW_FACT; unparseable twice → NEW_FACT). Every NEW_FACT sentence
+was REWRITTEN (temperature 0.2, ≤2 attempts) to restate only the first sentence's user-facing outcome, accepted only
+if the first sentence is a whitespace-normalised prefix, EXACTLY 2 sentences by the serving regex, ≤90 words, no
+newline/markdown/JSON, no "As an AI", AND a fresh JUDGE call on the new second sentence returned RESTATES/IMPLIED.
+Accepted rewrites were written to BOTH `epics[].features[]` and the `feature_spec_inputs[]` twin. Rows with any
+feature still NEW_FACT after 2 attempts were MOVED to `needs_review.jsonl` (description left as pre-factcheck,
+`metadata.repairs` += `desc_2sent_newfact_unresolved`, reason recorded) — never silently kept. Every trained
+row that carries `desc_2sent` now also carries `desc_2sent_factchecked`.
+
+**Honest note on the judge.** The judge is the SAME production seat that wrote the sentences
+(`product-owner-agent` → `qwen36-workhorse`, `enable_thinking=false`, `reasoning_content` empty on all 1,939
+calls, temperature 0.0 judge / 0.2 rewrite, max_tokens 120, strictly sequential) — a self-judge, NOT the Coach and
+NOT a human. It never once answered IMPLIED (0/518 and 0/710 rejudges): under this prompt it is very strict, so the
+NEW_FACT count is an upper bound and the loss below is partly judge severity, not only invention. Spot-reads of
+NEW_FACT verdicts show genuinely invented specifics (transaction IDs, QR codes, budget-limit enforcement, "main
+dashboard"); spot-reads of unresolved rewrites show near-restatements the judge still refused. Every call
+(input/output/verdict) is in `teacher_calls_factcheck.jsonl`; every verdict per feature in `factcheck.jsonl`.
+
+| Count | |
+|---|---:|
+| pairs judged (features / rows) | 518 / 188 |
+| RESTATES / IMPLIED / NEW_FACT | 55 / 0 / 463 |
+| NEW_FACT rewritten and accepted (attempt 1 / attempt 2) | 250 (216 / 34) — all rejudged RESTATES |
+| NEW_FACT unresolved after 2 attempts (features) | 213 |
+| rows: untouched (no desc pairs) / stamped `desc_2sent_factchecked` / moved to needs_review | 27 / 54 (51 with ≥1 rewrite, 3 all-RESTATES) / **134** |
+| **`train_synthetic.jsonl` after** | **81 rows** (idea 24, greenfield 15, scope 15, evolve 14, impact 13) — was 215 |
+| `needs_review.jsonl` total | 135 (1 prior + 134) |
+| seat calls | 1,939 = 1 probe + 518 judge + 710 rewrite + 710 rejudge; 0 mechanical rejects; mean 0.58 s; judge pass 177 s, rewrite pass 946 s (≈19 min of seat time; ≈40 min lane wall) |
+
+**Re-verify (after write).** REAL serving parser (`ProductOwnerOutputHandler.parse`, corpus-lane `po_validate.py`
+unmodified) over the flat v2 dir: synthetic **81/81**, harvest 6/6 + Phase-B tolerant 7/7, trace PO-JSON 14/14.
+Think blocks byte-identical to the pre-factcheck file; non-assistant messages and metadata identical except the
+appended repair stamp; rewritten rows re-serialised as `<think>…</think>` + one ```json fence +
+`json.dumps(indent=2, ensure_ascii=False)` + nothing after; twins 168/168 identical; leakage 0, duplicate 0,
+credential 0 (same term lists / patterns as the corpus lane).
+
+**5 verbatim NEW_FACT examples, before → after** (first sentence unchanged):
+
+1. line 7 F1 "Spend Capture and Categorised Summary" — s1 *A user can record a transaction and instantly view a categorized summary of all spending for the current month, enabling insight into where money is going.* · before **The system groups each entry by predefined expense categories and displays the total amount spent per category.** → after **The user can see a breakdown of their total monthly spending organized by type.**
+2. line 12 F001 "Account Creation" — s1 *A user can create a new account using email and password, receiving a verification email to activate the account.* · before **The system enforces password complexity rules and rejects duplicate email addresses during the registration process.** → after **The user is able to successfully register a new account using an email and password combination.**
+3. line 14 F3 "Cancel appointment" — s1 *A patient can cancel a future appointment, triggering an automated cancellation email to the provider and freeing the slot for others.* · before **The system updates the appointment status to cancelled and removes the time slot from the provider's available schedule.** → after **The cancellation is confirmed and the appointment slot becomes available for other patients.**
+4. line 17 F1 "AI‑driven meeting time suggestions" — s1 *A user can receive a list of up to three suggested meeting times that minimise conflicts and respect participants' working hours, presented within the scheduling UI.* · before **The system displays these options as clickable cards allowing the user to select one to initiate the booking process.** → after **The user can choose one of these options to proceed with booking the meeting.**
+5. line 19 F1 "Account creation via email" — s1 *A user can register an account using an email address and password, receiving a verification email to activate the account.* · before **The system must send the verification link to the provided email address immediately after registration.** → after **The user receives an email containing a link to verify their account.**
+
+Verifier-cited cases: line 29 F2 ("confidence percentage next to each transaction line item") → rewritten
+"Each transaction in the list shows its assigned category and associated confidence level." (RESTATES — the brief
+names the confidence level); line 170 F1 ("validates the email format and stores demographic and health metrics") →
+"A user can provide their email address and personal health details to establish their account."; line 142
+(collaborative-filtering recommendations) → both features unresolved → row in needs_review.
+
+**Files now.** `train_synthetic.jsonl` (81) sha `34162e35…3a20` · `train_synthetic.pre-factcheck-2026-08-18.jsonl`
+(215) sha `ae5d5c47…2090` (= the previous train file, byte-identical) · `factcheck.jsonl` (518) ·
+`teacher_calls_factcheck.jsonl` (1,939) · `needs_review.jsonl` (135). Full shas in `RECEIPT.json` → `factcheck`.
+
+**Still owed.** The 134 needs_review rows (213 features) need either a human sentence, a Coach pass, or a different
+rewrite prompt (the bounded 2-attempt rewrite kept the offending sentence as its input, so it often kept the
+offending detail); the 81-row train set is small — Rich decides whether v2-synthetic trains at 81, or the
+needs_review rows come back after a second-opinion judge (a different seat or the Coach) — this lane did not decide.
+v1 remains the corpus of record.
