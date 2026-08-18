@@ -40,6 +40,83 @@ _LAYER_PATHS: dict[str, str] = {
 _ALLOWED_MESSAGE_KEYS: frozenset[str] = frozenset({"role", "content"})
 _VALID_ROLES: frozenset[str] = frozenset({"system", "user", "assistant"})
 
+# 2026-08-18 (Rich's word): metadata LABEL fields whose invented values must
+# never lose a Coach-ACCEPTED row.  The 08-13/14 PO run dropped 41 accepted
+# rows because the Player invented a ``metadata.topic`` outside the GOAL enum
+# and write validation failed 3 times.  For these fields the tool now falls
+# back deterministically to the nearest valid value, records the original
+# label on the row (``metadata.<field>_original``) and appends a line to the
+# ``rejected_metadata.jsonl`` sidecar next to train.jsonl — nothing vanishes
+# silently.  Every OTHER schema field keeps the strict path (``mode`` is
+# injected by the loop and checked downstream; a wrong ``mode`` corrupts).
+_LABEL_FALLBACK_FIELDS: frozenset[str] = frozenset({"topic"})
+_REJECTED_METADATA_SIDECAR = "rejected_metadata.jsonl"
+_DEFAULT_FALLBACK_LABELS: tuple[str, ...] = ("other", "general", "misc")
+
+
+def _normalise_label(value: str) -> str:
+    """Case-fold and collapse separators so ``Feature-Slicing`` == ``feature_slicing``."""
+    out = value.strip().lower()
+    for ch in (" ", "-", "/", "."):
+        out = out.replace(ch, "_")
+    while "__" in out:
+        out = out.replace("__", "_")
+    return out.strip("_")
+
+
+def resolve_label_fallback(value: str, valid_values: list[str]) -> tuple[str, str]:
+    """Deterministically map an invented label to the nearest valid enum value.
+
+    Order (first hit wins; enum order breaks ties):
+      1. ``exact_ci``  — case/separator-insensitive exact match.
+      2. ``substring`` — a valid value contained in the label, or the label
+         contained in a valid value (normalised); the LONGEST overlapping
+         valid value wins, enum order on ties.
+      3. ``token``     — any underscore-token of the label equals a token of
+         a valid value (e.g. ``prioritisation_matrix`` → ``prioritisation_value_risk``);
+         most shared tokens wins, enum order on ties.
+      4. ``default``   — ``other``/``general``/``misc`` if the enum has one,
+         else the FIRST enum value.
+
+    Returns:
+        ``(fallback_value, strategy)``.
+    """
+    if not valid_values:
+        return value, "no_enum"
+    norm = _normalise_label(str(value))
+    normalised = [(_normalise_label(v), v) for v in valid_values]
+
+    for nv, v in normalised:
+        if nv == norm:
+            return v, "exact_ci"
+
+    if norm:
+        best: tuple[int, int, str] | None = None  # (-len, enum_idx, value)
+        for idx, (nv, v) in enumerate(normalised):
+            if nv and (nv in norm or norm in nv):
+                cand = (-len(nv), idx, v)
+                if best is None or cand < best:
+                    best = cand
+        if best is not None:
+            return best[2], "substring"
+
+        tokens = {t for t in norm.split("_") if len(t) > 2}
+        best_tok: tuple[int, int, str] | None = None  # (-shared, enum_idx, value)
+        for idx, (nv, v) in enumerate(normalised):
+            shared = len(tokens & {t for t in nv.split("_") if len(t) > 2})
+            if shared:
+                cand = (-shared, idx, v)
+                if best_tok is None or cand < best_tok:
+                    best_tok = cand
+        if best_tok is not None:
+            return best_tok[2], "token"
+
+    for dflt in _DEFAULT_FALLBACK_LABELS:
+        for nv, v in normalised:
+            if nv == dflt:
+                return v, "default"
+    return valid_values[0], "default"
+
 
 # ---------------------------------------------------------------------------
 # Factory
@@ -180,6 +257,7 @@ def create_write_output_tool(
                 )
 
         # -- Step 9: Validate metadata fields against schema valid_values -------
+        label_fallbacks: list[dict[str, object]] = []
         for field_name, valid_values in schema_lookup.items():
             # Skip layer and type — already validated in steps 5/6
             if field_name in ("layer", "type"):
@@ -196,6 +274,34 @@ def create_write_output_tool(
                     )
             else:
                 if str(field_value) not in valid_values:
+                    if field_name in _LABEL_FALLBACK_FIELDS:
+                        # Never lose an accepted row on a label: fall back,
+                        # record the original on the row, sidecar it below.
+                        fallback, strategy = resolve_label_fallback(
+                            str(field_value), valid_values
+                        )
+                        metadata[f"{field_name}_original"] = field_value
+                        metadata[field_name] = fallback
+                        label_fallbacks.append(
+                            {
+                                "field": field_name,
+                                "original": field_value,
+                                "fallback": fallback,
+                                "strategy": strategy,
+                            }
+                        )
+                        logger.warning(
+                            "metadata.%s %r not in valid values — falling back "
+                            "to %r (%s); original kept in metadata.%s_original "
+                            "and %s",
+                            field_name,
+                            field_value,
+                            fallback,
+                            strategy,
+                            field_name,
+                            _REJECTED_METADATA_SIDECAR,
+                        )
+                        continue
                     return (
                         f"Error: metadata.{field_name} value '{field_value}' "
                         f"not in valid values"
@@ -219,6 +325,20 @@ def create_write_output_tool(
             example_counts[path_key] = example_counts.get(path_key, 0) + 1
             count = example_counts[path_key]
 
+            if label_fallbacks:
+                _append_rejected_metadata_sidecar(
+                    output_dir, label_fallbacks, str(target_path), count, metadata
+                )
+                notes = "; ".join(
+                    f"metadata.{fb['field']} {fb['original']!r} -> "
+                    f"{fb['fallback']!r} ({fb['strategy']})"
+                    for fb in label_fallbacks
+                )
+                return (
+                    f"Written to {target_path} (example #{count}) "
+                    f"[label fallback: {notes}]"
+                )
+
             return f"Written to {target_path} (example #{count})"
 
         except OSError as exc:
@@ -231,6 +351,39 @@ def create_write_output_tool(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _append_rejected_metadata_sidecar(
+    output_dir: Path,
+    fallbacks: list[dict[str, object]],
+    written_to: str,
+    example_number: int,
+    metadata: dict,
+) -> None:
+    """Append one line per label fallback to ``rejected_metadata.jsonl``.
+
+    Best-effort: a sidecar write failure is logged, never raised, and never
+    fails the (already written) row.
+    """
+    sidecar = output_dir / _REJECTED_METADATA_SIDECAR
+    try:
+        with open(sidecar, "a", encoding="utf-8") as f:
+            for fb in fallbacks:
+                line = {
+                    "field": fb["field"],
+                    "original": fb["original"],
+                    "fallback": fb["fallback"],
+                    "strategy": fb["strategy"],
+                    "written_to": written_to,
+                    "example_number": example_number,
+                    "layer": metadata.get("layer"),
+                    "mode": metadata.get("mode"),
+                    "dimension": metadata.get("dimension"),
+                }
+                f.write(json.dumps(line, ensure_ascii=False) + "\n")
+            f.flush()
+    except OSError as exc:
+        logger.error("Sidecar write failed for %s: %s", sidecar, exc)
 
 
 def _find_last_assistant_content(messages: list[dict]) -> str | None:

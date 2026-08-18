@@ -1328,3 +1328,130 @@ class TestGradeTargetTypeCoercion:
         """Null grade_target should be accepted (field is optional)."""
         result = grade_tool.invoke(self._make_example(None))
         assert "Written to" in result
+
+
+# ===========================================================================
+# 2026-08-18 (Rich's word): an ACCEPTED row is never lost on a metadata label
+# ===========================================================================
+
+
+_PO_TOPICS = [
+    "outcome_vs_output", "feature_slicing", "walking_skeleton",
+    "acceptance_criteria", "gherkin_ground_truth", "assumption_confidence",
+    "assumption_testing", "mvp_scoping", "scope_boundaries",
+    "prioritisation_value_risk", "impact_mapping", "opportunity_solution_tree",
+    "invest", "continuous_discovery", "pmf_pyramid", "story_mapping",
+    "cross_framework_synthesis",
+]
+
+
+class TestTopicLabelFallback:
+    """write_output falls back on an invented ``metadata.topic`` instead of
+    dropping the row: fallback written, original recorded on the row,
+    sidecar line appended.  Valid topics are untouched; other enum fields
+    stay strict."""
+
+    @pytest.fixture
+    def po_tool(self, output_dir: Path):
+        from tools.write_output import create_write_output_tool
+
+        schema = [
+            MetadataField(field="layer", type="string", required=True, valid_values=["behaviour", "knowledge"]),
+            MetadataField(field="type", type="string", required=True, valid_values=["reasoning", "direct"]),
+            MetadataField(field="mode", type="string", required=True, valid_values=["idea", "greenfield", "extract"]),
+            MetadataField(field="topic", type="string", required=True, valid_values=_PO_TOPICS),
+        ]
+        return create_write_output_tool(output_dir, schema)
+
+    def _row(self, topic: str, mode: str = "greenfield") -> str:
+        return json.dumps({
+            "messages": [
+                {"role": "system", "content": "PO"},
+                {"role": "user", "content": "brief"},
+                {"role": "assistant", "content": "<think>t</think>\n```json\n{}\n```"},
+            ],
+            "metadata": {"layer": "behaviour", "type": "reasoning", "mode": mode, "topic": topic},
+        })
+
+    def test_invented_topic_written_with_fallback_original_and_sidecar(self, po_tool, output_dir):
+        result = po_tool.invoke(self._row("discovery_habits"))
+        assert result.startswith("Written to"), result
+        assert "label fallback" in result
+        assert "'discovery_habits' -> 'continuous_discovery' (token)" in result
+
+        rows = [json.loads(ln) for ln in (output_dir / "train.jsonl").read_text().splitlines()]
+        assert len(rows) == 1
+        assert rows[0]["metadata"]["topic"] == "continuous_discovery"
+        assert rows[0]["metadata"]["topic_original"] == "discovery_habits"
+
+        sidecar = output_dir / "rejected_metadata.jsonl"
+        assert sidecar.exists()
+        lines = [json.loads(ln) for ln in sidecar.read_text().splitlines()]
+        assert lines == [{
+            "field": "topic", "original": "discovery_habits",
+            "fallback": "continuous_discovery", "strategy": "token",
+            "written_to": str(output_dir / "train.jsonl"), "example_number": 1,
+            "layer": "behaviour", "mode": "greenfield", "dimension": None,
+        }]
+
+    def test_valid_topic_untouched_no_sidecar(self, po_tool, output_dir):
+        result = po_tool.invoke(self._row("mvp_scoping"))
+        assert result == f"Written to {output_dir / 'train.jsonl'} (example #1)"
+        rows = [json.loads(ln) for ln in (output_dir / "train.jsonl").read_text().splitlines()]
+        assert rows[0]["metadata"]["topic"] == "mvp_scoping"
+        assert "topic_original" not in rows[0]["metadata"]
+        assert not (output_dir / "rejected_metadata.jsonl").exists()
+
+    def test_case_and_separator_insensitive_exact(self, po_tool, output_dir):
+        result = po_tool.invoke(self._row("MVP-Scoping"))
+        assert "'MVP-Scoping' -> 'mvp_scoping' (exact_ci)" in result
+
+    def test_unmappable_label_falls_to_first_enum_value(self, po_tool, output_dir):
+        result = po_tool.invoke(self._row("build_trap"))
+        assert "'build_trap' -> 'outcome_vs_output' (default)" in result
+        rows = [json.loads(ln) for ln in (output_dir / "train.jsonl").read_text().splitlines()]
+        assert rows[0]["metadata"]["topic_original"] == "build_trap"
+
+    def test_other_enum_fields_stay_strict(self, po_tool, output_dir):
+        result = po_tool.invoke(self._row("mvp_scoping", mode="hallucinated"))
+        assert result == "Error: metadata.mode value 'hallucinated' not in valid values"
+        assert not (output_dir / "train.jsonl").exists()
+
+    def test_sidecar_accumulates_across_rows(self, po_tool, output_dir):
+        po_tool.invoke(self._row("discovery_habits"))
+        po_tool.invoke(self._row("mvp_scoping"))
+        po_tool.invoke(self._row("pm_concepts"))
+        lines = [json.loads(ln) for ln in (output_dir / "rejected_metadata.jsonl").read_text().splitlines()]
+        assert [(ln["original"], ln["example_number"]) for ln in lines] == [
+            ("discovery_habits", 1), ("pm_concepts", 3),
+        ]
+        rows = [json.loads(ln) for ln in (output_dir / "train.jsonl").read_text().splitlines()]
+        assert len(rows) == 3
+
+
+class TestResolveLabelFallback:
+    def test_strategies_in_order(self):
+        from tools.write_output import resolve_label_fallback as r
+
+        assert r("Feature Slicing", _PO_TOPICS) == ("feature_slicing", "exact_ci")
+        assert r("impact_map", _PO_TOPICS) == ("impact_mapping", "substring")
+        assert r("assumption", _PO_TOPICS) == ("assumption_confidence", "substring")
+        assert r("invest_criteria", _PO_TOPICS) == ("invest", "substring")
+        assert r("prioritisation_matrix", _PO_TOPICS) == ("prioritisation_value_risk", "token")
+        assert r("xyz", _PO_TOPICS) == ("outcome_vs_output", "default")
+
+    def test_default_prefers_other_when_present(self):
+        from tools.write_output import resolve_label_fallback as r
+
+        assert r("zzz", ["alpha", "other", "beta"]) == ("other", "default")
+
+    def test_deterministic(self):
+        from tools.write_output import resolve_label_fallback as r
+
+        assert r("discovery", _PO_TOPICS) == r("discovery", _PO_TOPICS)
+        assert r("", _PO_TOPICS) == ("outcome_vs_output", "default")
+
+    def test_empty_enum_passthrough(self):
+        from tools.write_output import resolve_label_fallback as r
+
+        assert r("anything", []) == ("anything", "no_enum")
