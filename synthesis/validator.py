@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from typing import Literal
+from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -375,14 +375,31 @@ class SplitTracker:
 
 
 class DuplicateDetector:
-    """Detects duplicate training examples via SHA-256 of assistant content."""
+    """Detects duplicate training examples via SHA-256 of assistant content.
+
+    Two usage surfaces:
+
+    * ``check(example)`` — the original check-and-record call over a
+      ``TrainingExample`` (legacy synthesis path; behaviour unchanged).
+    * ``seen_contents`` / ``record_contents`` — the live-loop wiring over
+      raw assistant content strings (domain-schema agnostic), split so
+      the orchestrator records a hash only AFTER a successful write:
+      content that failed later gates or the write never poisons the
+      seen-set.
+    """
 
     def __init__(self) -> None:
         self._seen_hashes: set[str] = set()
 
-    def _compute_hash(self, example: TrainingExample) -> str:
-        combined = "".join(m.content for m in example.messages if m.role == "assistant")
+    @staticmethod
+    def _hash_contents(assistant_contents: Iterable[str]) -> str:
+        combined = "".join(assistant_contents)
         return hashlib.sha256(combined.encode()).hexdigest()
+
+    def _compute_hash(self, example: TrainingExample) -> str:
+        return self._hash_contents(
+            m.content for m in example.messages if m.role == "assistant"
+        )
 
     def check(self, example: TrainingExample) -> bool:
         """Return True if this example is a duplicate; otherwise record it and return False."""
@@ -391,6 +408,15 @@ class DuplicateDetector:
             return True
         self._seen_hashes.add(h)
         return False
+
+    def seen_contents(self, assistant_contents: Iterable[str]) -> bool:
+        """Return True when these assistant contents duplicate a recorded
+        example.  Does NOT record — pair with :meth:`record_contents`."""
+        return self._hash_contents(assistant_contents) in self._seen_hashes
+
+    def record_contents(self, assistant_contents: Iterable[str]) -> None:
+        """Record assistant contents as seen (call after a successful write)."""
+        self._seen_hashes.add(self._hash_contents(assistant_contents))
 
 
 # ---------------------------------------------------------------------------
