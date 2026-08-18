@@ -26,11 +26,16 @@ Architecture references:
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import importlib
+import importlib.util
 import json
 import logging
 import re
+import sys
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 import httpx
@@ -303,6 +308,116 @@ def _assistant_fenced_json_valid(data: dict[str, Any]) -> tuple[bool, str]:
         return False, f"fenced JSON does not parse: {exc}"
 
     return True, "ok"
+
+
+# ---------------------------------------------------------------------------
+# Per-domain output validator hook (2026-08-18, Rich's word)
+# ---------------------------------------------------------------------------
+#
+# ``generation.output_validator`` names a callable
+# ``(assistant_content: str, metadata: dict) -> (ok: bool, error_text: str)``
+# as ``<path/to/module.py>:<callable>`` (relative to the project root) or
+# ``<dotted.module>:<callable>``.  The pre-Coach format gate runs it on the
+# last assistant message of every Player turn; a failing row is treated
+# exactly like malformed JSON (retry with the error text, reject when the
+# format-retry budget is spent).  Absent (None) the loop is byte-identical.
+
+OutputValidator = Callable[[str, dict[str, Any]], tuple[bool, str]]
+
+_OUTPUT_VALIDATOR_CACHE: dict[str, OutputValidator] = {}
+
+
+def _resolve_output_validator(spec: str | None) -> OutputValidator | None:
+    """Resolve ``generation.output_validator`` to a callable (cached per spec).
+
+    Raises:
+        ValueError: when the spec is malformed, the module cannot be loaded,
+            or the named attribute is missing / not callable — loud at run
+            start rather than silently accepting unvalidated rows.
+    """
+    if not spec:
+        return None
+    if spec in _OUTPUT_VALIDATOR_CACHE:
+        return _OUTPUT_VALIDATOR_CACHE[spec]
+
+    module_part, sep, func_name = spec.rpartition(":")
+    if not sep or not module_part or not func_name:
+        raise ValueError(
+            f"output_validator must be '<module.py|dotted.module>:<callable>', "
+            f"got {spec!r}"
+        )
+
+    try:
+        if module_part.endswith(".py") or "/" in module_part:
+            path = Path(module_part)
+            if not path.exists():
+                raise ValueError(f"output_validator module not found: {path}")
+            digest = hashlib.sha1(str(path.resolve()).encode("utf-8")).hexdigest()[:10]
+            mod_name = f"_output_validator_{path.stem}_{digest}"
+            mod_spec = importlib.util.spec_from_file_location(mod_name, path)
+            if mod_spec is None or mod_spec.loader is None:
+                raise ValueError(f"output_validator module cannot be loaded: {path}")
+            module = importlib.util.module_from_spec(mod_spec)
+            # Register BEFORE exec so pydantic can resolve the module's own
+            # forward references (``from __future__ import annotations``).
+            sys.modules[mod_name] = module
+            try:
+                mod_spec.loader.exec_module(module)
+            except Exception:
+                sys.modules.pop(mod_name, None)
+                raise
+        else:
+            module = importlib.import_module(module_part)
+    except ValueError:
+        raise
+    except Exception as exc:  # import-time failure inside the module
+        raise ValueError(
+            f"output_validator {spec!r} failed to import: {exc}"
+        ) from exc
+
+    fn = getattr(module, func_name, None)
+    if not callable(fn):
+        raise ValueError(
+            f"output_validator {spec!r}: {func_name!r} is not a callable "
+            f"attribute of {module_part!r}"
+        )
+    _OUTPUT_VALIDATOR_CACHE[spec] = fn
+    return fn
+
+
+def _run_output_validator(
+    validator: OutputValidator, data: dict[str, Any]
+) -> tuple[bool, str]:
+    """Run the domain validator on the last assistant message of ``data``.
+
+    ``data`` is the parsed outer ShareGPT example.  The validator receives
+    the assistant ``content`` string (think block and fence intact — the
+    validator strips/extracts exactly as serving would) and the row's
+    ``metadata`` dict (mode/phase/layer selection is the validator's job).
+    A validator that raises is reported as a failure, never swallowed.
+    """
+    messages = data.get("messages")
+    if not isinstance(messages, list) or not messages:
+        return False, "no messages array"
+    assistant: dict[str, Any] | None = None
+    for msg in reversed(messages):
+        if isinstance(msg, dict) and msg.get("role") == "assistant":
+            assistant = msg
+            break
+    if assistant is None:
+        return False, "no assistant message"
+    content = assistant.get("content")
+    if not isinstance(content, str):
+        return False, "assistant content is not a string"
+    metadata = data.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    try:
+        result = validator(content, metadata)
+        ok, reason = bool(result[0]), str(result[1])
+    except Exception as exc:  # validator bug or unexpected input
+        return False, f"output validator raised {type(exc).__name__}: {exc}"
+    return ok, reason
 
 
 def _extract_player_content(player_response: dict[str, Any]) -> str:
@@ -833,6 +948,10 @@ async def _process_single_target(
     coach_turn = 0
     format_retries = 0
     total_invocations = 0
+    # Opt-in per-domain output validator (None => byte-identical loop).
+    output_validator = _resolve_output_validator(
+        getattr(config, "output_validator", None)
+    )
 
     while coach_turn < config.max_turns:
         total_invocations += 1
@@ -924,6 +1043,27 @@ async def _process_single_target(
                     "escape every newline/tab inside string values (\\n, \\t), "
                     "quote all keys, and add any missing commas. It must parse "
                     "with a strict JSON parser."
+                )
+
+        # Per-domain output validator (opt-in, 2026-08-18) — the assistant
+        # content must satisfy the domain's SERVING contract (e.g. product-
+        # owner ProductRoadmap/EpicPlan/EnrichmentBatch pydantic models), not
+        # merely parse.  Same retry/reject path as the two gates above.
+        if format_gate is None and output_validator is not None:
+            v_ok, v_reason = _run_output_validator(output_validator, data)
+            if not v_ok:
+                format_gate = "assistant_output_invalid"
+                format_reason = v_reason
+                format_feedback = (
+                    "FORMAT ERROR: The object inside your assistant message "
+                    "does not satisfy the serving output contract "
+                    f"({v_reason}). Keep the same <think> block and the same "
+                    "content, but fix EXACTLY the reported fields so the "
+                    "object validates against the schema for this mode: "
+                    "every feature description must be 2+ sentences, every "
+                    "epic must contain at least one feature, list fields must "
+                    "be JSON arrays (not strings), and every required key "
+                    "must be present."
                 )
 
         if format_gate is not None:
@@ -1558,6 +1698,12 @@ async def run_generation_loop(
         GenerationResult with aggregate statistics.
     """
     start_time = time.monotonic()
+    # Fail loud at run start if the configured per-domain output validator
+    # cannot be loaded (rather than rejecting every target one by one).
+    validator_spec = getattr(config, "output_validator", None)
+    if validator_spec:
+        _resolve_output_validator(validator_spec)
+        logger.info("Per-domain output validator enabled: %s", validator_spec)
     accepted_count = 0
     rejected_count = 0
     refusal_count = 0

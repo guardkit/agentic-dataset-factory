@@ -34,6 +34,7 @@ coach:
 generation:
   grounded: false                  # PO Phase 1: no-book generative mode
   require_fenced_json: true        # gate: assistant ```json ProductRoadmap must strictly parse
+  output_validator: domains/product-owner/po_schemas.py:validate_assistant_content   # 2026-08-18 (Rich's word): the gate also runs the vendored SERVING models (ProductRoadmap / EpicPlan / EnrichmentBatch by mode+phase) on the assistant content exactly as ProductOwnerOutputHandler.parse would — the 08-13/14 corpus was only 17% serve-valid under json.loads alone
   limit: 300                       # 2026-08-11 THIN-SHAPES SLICE (Rich's word): ~60/mode round-robin over the five no-corpus modes; sized by the measured coverage table (real rows: spec 39 / plan 34 / gf 11 / idea 4 / scope 2 / evolve 1 / extract 15-harvest)
   modes:                           # round-robined per target (no-corpus modes)
     - idea

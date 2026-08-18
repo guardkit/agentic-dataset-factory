@@ -371,6 +371,46 @@ class TestWindow1:
         written = output_mgr.rejected_fh.write.call_args[0][0]
         assert json.loads(written)["reason"] == "format_retries_exhausted"
 
+    @pytest.mark.asyncio
+    async def test_output_validator_hook_gates_window1(self, tmp_path: Path) -> None:
+        """2026-08-18: the per-domain output validator runs in the batch
+        Player leg too — a failing row re-prompts with the validator's error
+        text; a passing row is accepted."""
+        import entrypoint.generation_loop as gl
+
+        calls: list[str] = []
+
+        def fake_validator(content: str, metadata: dict[str, Any]) -> tuple[bool, str]:
+            calls.append(content)
+            if "metaphor" in content:
+                return False, "FeatureSpecInput.description must contain at least 2 sentences"
+            return True, "ok"
+
+        gl._OUTPUT_VALIDATOR_CACHE["fake:validator"] = fake_validator
+        try:
+            good = json.loads(_VALID_EXAMPLE_JSON)
+            good["messages"][-1]["content"] = "A simile compares. It uses like or as."
+            targets = [_make_target()]
+            player = _make_mock_player([_VALID_EXAMPLE_JSON, json.dumps(good)])
+            outcome = await _run(
+                tmp_path,
+                player=player,
+                coach=AsyncMock(),
+                targets=targets,
+                config=_make_generation_config(output_validator="fake:validator"),
+            )
+        finally:
+            gl._OUTPUT_VALIDATOR_CACHE.pop("fake:validator", None)
+
+        assert outcome.status == "paused"
+        assert player.ainvoke.await_count == 2
+        second_msg = player.ainvoke.await_args_list[1][0][0]["messages"][0]["content"]
+        assert "at least 2 sentences" in second_msg
+        events = _state_events(tmp_path)
+        player_events = [e for e in events if e["event"] == "player_done"]
+        assert player_events[0]["status"] == "ok"
+        assert len(calls) == 2
+
 
 # ---------------------------------------------------------------------------
 # The window boundary — clean stop with operator instruction

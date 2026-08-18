@@ -208,6 +208,38 @@ class GenerationConfig(BaseModel):
             "unaffected."
         ),
     )
+    output_validator: str | None = Field(
+        default=None,
+        description=(
+            "Optional per-domain output validator hook (2026-08-18, Rich's "
+            "word): '<path/to/module.py>:<callable>' relative to the project "
+            "root, or '<dotted.module>:<callable>'. The callable takes "
+            "(assistant_content: str, metadata: dict) and returns "
+            "(ok: bool, error_text: str); the pre-Coach format gate calls it "
+            "on the last assistant message of every Player turn and a row is "
+            "accepted ONLY if it validates — a failing row takes the same "
+            "retry/reject path as malformed JSON with error_text in the "
+            "rejection reason. None (default) leaves every domain unchanged. "
+            "E.g. domains/product-owner/po_schemas.py:validate_assistant_content."
+        ),
+    )
+
+    @field_validator("output_validator", mode="after")
+    @classmethod
+    def validate_output_validator(cls, v: str | None) -> str | None:
+        """Require the '<module>:<callable>' shape (both halves non-empty)."""
+        if v is None:
+            return v
+        spec = v.strip()
+        if not spec:
+            return None
+        module_part, sep, func_part = spec.rpartition(":")
+        if not sep or not module_part.strip() or not func_part.strip():
+            raise ValueError(
+                "output_validator must be '<path/to/module.py>:<callable>' or "
+                f"'<dotted.module>:<callable>', got {v!r}"
+            )
+        return spec
 
     @field_validator("modes", mode="after")
     @classmethod

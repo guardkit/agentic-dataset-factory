@@ -21,6 +21,7 @@ Class → source module @ 69c8620:
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from typing import Literal
@@ -631,3 +632,178 @@ class EnrichmentBatch(BaseModel):
             )
             raise ValueError(msg)
         return self
+
+
+# ---------------------------------------------------------------------------
+# Factory acceptance-gate hook (2026-08-18, Rich's word) — serving-faithful
+# validation of the assistant content, exactly the way serving would see it.
+#
+# Wired from agent-config.yaml as
+#   generation.output_validator: domains/product-owner/po_schemas.py:validate_assistant_content
+# and called by entrypoint/generation_loop.py (and batch_loop.py) on every
+# Player turn BEFORE the Coach, on the last assistant message's content and
+# the row's metadata.  A row is accepted only if this returns ok=True; a
+# failing row takes the existing json-invalid retry/reject path with
+# ``error_text`` in the rejection reason.
+#
+# Why: the 08-13/14 corpus was only 17% serve-valid — the gate did strict
+# json.loads only, so 189 rows with one-sentence descriptions, 24 rows with
+# empty epics, and str-typed list fields all passed the factory and would all
+# fail ``ProductOwnerOutputHandler.parse`` at serving.
+# ---------------------------------------------------------------------------
+
+
+# Mirrors specialist-agent src/specialist_agent/orchestrator/think_block.py
+# strip_think_blocks (top-level lowercase <think>...</think> pairs removed,
+# tags included).  Serving's helper is fence-aware; the trained format puts
+# the fence AFTER the think block so a non-greedy first-pair strip is the same
+# on every well-formed row.
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+# Mirrors specialist-agent src/specialist_agent/roles/product_owner/handler.py
+# ``ProductOwnerOutputHandler._extract_json`` (handler.py:638-711 at
+# specialist-agent c765c04): strategy 2's fence pattern at handler.py:670 —
+#     pattern = r"```(?:json)?\s*\n?(.*?)\n?\s*```"
+#     match = re.search(pattern, stripped, re.DOTALL)
+# NOTE this is a NON-GREEDY first-fence match: a literal ``` inside a JSON
+# string closes the fence early at serving too, so it fails here as well.
+_SERVING_FENCE_PATTERN = r"```(?:json)?\s*\n?(.*?)\n?\s*```"
+
+# Cap on the error text handed back to the Player/Coach loop (pydantic
+# multi-error dumps can run to thousands of chars).
+_ERROR_TEXT_CAP = 2000
+
+
+class OutputExtractError(ValueError):
+    """Raised when no JSON object can be extracted (mirrors serving's
+    ``OutputParseError`` from ``_extract_json``)."""
+
+
+def strip_think(content: str) -> str:
+    """Remove ``<think>...</think>`` blocks (tags included) and strip."""
+    return _THINK_BLOCK_RE.sub("", content).strip()
+
+
+def extract_json_like_serving(raw_text: str) -> dict:
+    """Extract the JSON dict exactly as serving's ``_extract_json`` does.
+
+    Cascade (handler.py:638-711 @ specialist-agent c765c04):
+      1. ``json.loads`` of the stripped text.
+      2. First ``` / ```json fence via ``_SERVING_FENCE_PATTERN``; a fence
+         whose body is not JSON is a hard error (serving does NOT fall
+         through to strategy 3 in that case).
+      3. Leading-object ``raw_decode`` when the text starts with ``{``
+         (trailing content ignored).
+
+    Raises:
+        OutputExtractError: with serving's wording when nothing extracts.
+    """
+    stripped = raw_text.strip()
+
+    # Strategy 1: direct parse
+    try:
+        result = json.loads(stripped)
+        if isinstance(result, dict):
+            return result
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 2: first markdown code fence (serving regex, verbatim)
+    match = re.search(_SERVING_FENCE_PATTERN, stripped, re.DOTALL)
+    if match:
+        block_content = match.group(1).strip()
+        try:
+            result = json.loads(block_content)
+        except json.JSONDecodeError as exc:
+            raise OutputExtractError(
+                f"Found code block but content is not valid JSON: {exc}."
+            ) from exc
+        if isinstance(result, dict):
+            return result
+        raise OutputExtractError(
+            f"Expected JSON object in code block, got {type(result).__name__}."
+        )
+
+    # Strategy 3: leading object with trailing content
+    if stripped.startswith("{"):
+        try:
+            result, _end = json.JSONDecoder().raw_decode(stripped)
+        except json.JSONDecodeError:
+            result = None
+        if isinstance(result, dict):
+            return result
+
+    raise OutputExtractError(
+        "No valid JSON found in Player output. Expected either bare JSON "
+        "or JSON inside a ```json code fence."
+    )
+
+
+def schema_for(metadata: dict | None) -> type[BaseModel] | None:
+    """Pick the serving schema for a row from its metadata.
+
+    * ``layer == "knowledge"`` → ``None`` (prose rows carry no JSON contract).
+    * ``mode == "extract"`` with ``phase == "a"`` → ``EpicPlan`` (Phase A);
+      ``phase == "b"`` → ``EnrichmentBatch`` (Phase B); any other phase
+      (``"full"``/absent) → ``ProductRoadmap`` (single-pass extract).
+    * every other mode (idea/greenfield/evolve/impact/scope) → ``ProductRoadmap``.
+    """
+    md = metadata if isinstance(metadata, dict) else {}
+    if md.get("layer") == "knowledge":
+        return None
+    mode = str(md.get("mode") or "").strip().lower()
+    phase = str(md.get("phase") or "").strip().lower()
+    if mode == "extract":
+        if phase == "a":
+            return EpicPlan
+        if phase == "b":
+            return EnrichmentBatch
+    return ProductRoadmap
+
+
+def validate_assistant_content(
+    assistant_content: str, metadata: dict | None = None
+) -> tuple[bool, str]:
+    """Serving-faithful acceptance check for one row's assistant content.
+
+    Steps, in serving order: strip ``<think>`` blocks → ``_extract_json``
+    cascade → pick the schema by mode/phase → vendored ``model_validate``.
+    ``project_name`` is overridden by serving before ``ProductRoadmap`` /
+    ``EpicPlan`` validation (handler.parse / session.py Phase A), so a
+    missing or non-string ``project_name`` is defaulted here rather than
+    failed — mirroring that override.
+
+    Returns:
+        ``(ok, error_text)`` — ``error_text`` is ``"ok"`` on success, else
+        the serving-shaped failure (``JSON parsed but failed <Schema>
+        validation: <pydantic errors>``), capped at ``_ERROR_TEXT_CAP`` chars.
+    """
+    if not isinstance(assistant_content, str):
+        return False, "assistant content is not a string"
+
+    schema = schema_for(metadata)
+    if schema is None:
+        return True, "ok (knowledge layer: no structured serving contract)"
+
+    stripped = strip_think(assistant_content)
+    if not stripped:
+        return False, "Cannot parse empty markdown input."
+
+    try:
+        data = extract_json_like_serving(stripped)
+    except OutputExtractError as exc:
+        return False, str(exc)
+
+    if schema in (ProductRoadmap, EpicPlan):
+        if not isinstance(data.get("project_name"), str):
+            data["project_name"] = "unnamed-project"
+
+    try:
+        schema.model_validate(data)
+    except Exception as exc:  # pydantic.ValidationError and friends
+        text = f"JSON parsed but failed {schema.__name__} validation: {exc}"
+        if len(text) > _ERROR_TEXT_CAP:
+            text = text[: _ERROR_TEXT_CAP - 3] + "..."
+        return False, text
+
+    return True, "ok"

@@ -71,6 +71,8 @@ from entrypoint.generation_loop import (
     _invoke_coach_fallback,
     _invoke_with_retry,
     _parse_coach_verdict,
+    _resolve_output_validator,
+    _run_output_validator,
 )
 from synthesis.validator import normalise_think_closing_tags, validate_post_generation
 
@@ -335,6 +337,9 @@ async def _player_leg(
     feedback = coach_feedback
     format_retries = 0
     attempt = 0
+    output_validator = _resolve_output_validator(
+        getattr(config, "output_validator", None)
+    )
 
     while True:
         attempt += 1
@@ -404,6 +409,25 @@ async def _player_leg(
                     "escape every newline/tab inside string values (\\n, \\t), "
                     "quote all keys, and add any missing commas. It must parse "
                     "with a strict JSON parser."
+                )
+
+        # Per-domain output validator (opt-in, 2026-08-18) — parity with the
+        # sequential loop's gate; absent => byte-identical.
+        if format_gate is None and output_validator is not None:
+            v_ok, v_reason = _run_output_validator(output_validator, data)
+            if not v_ok:
+                format_gate = "assistant_output_invalid"
+                format_reason = v_reason
+                format_feedback = (
+                    "FORMAT ERROR: The object inside your assistant message "
+                    "does not satisfy the serving output contract "
+                    f"({v_reason}). Keep the same <think> block and the same "
+                    "content, but fix EXACTLY the reported fields so the "
+                    "object validates against the schema for this mode: "
+                    "every feature description must be 2+ sentences, every "
+                    "epic must contain at least one feature, list fields must "
+                    "be JSON arrays (not strings), and every required key "
+                    "must be present."
                 )
 
         if format_gate is None:
