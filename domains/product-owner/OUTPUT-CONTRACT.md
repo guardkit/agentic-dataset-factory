@@ -130,3 +130,27 @@ Align the **generation output instruction** to the exact schemas above (pinned v
 three prompt files) so training, the golden-set harness, and serving all share one shape. The
 golden-set run already shows the base hits the shape under its output instruction, so this is a
 generation-time verbatim pin, not new design.
+
+## Nested types pinned verbatim (2026-08-18, Rich's word)
+
+The serving Pydantic models are the bar. Pinned from `specialist-agent`
+`src/specialist_agent/roles/product_owner/types.py` at `c765c04` (unchanged since the `69c8620`
+vendoring in `po_schemas.py`); the factory gate now runs these very models
+(`generation.output_validator` → `po_schemas.py:validate_assistant_content`).
+
+| Field / rule | Type / text | Serving source |
+|---|---|---|
+| `Epic.source_documents` | `list[str]` — plain filename strings in corpus modes; `[]` in idea and greenfield | `types.py:263` |
+| `FeatureSpecInput.source_documents` | `list[str]` — filenames in corpus modes; `request:<verbatim fragment>` / bare `request` in greenfield (`is_request_reference`, `types.py:47-63`); `[]` in idea | `types.py:173` |
+| `ProductRoadmap.source_documents` | `list[SourceDocument]` = `[{filename, contribution}]` objects, roadmap level ONLY (default `[]`) | `types.py:319` |
+| Description rule | `FeatureSpecInput.description must contain at least 2 sentences, got N. Provide sufficient detail for /feature-spec to generate good Gherkin.` — sentences = `re.split(r"[.!?]\s+|[.!?]$", v.strip())`, non-empty parts counted | `types.py:209-229` (regex `:219`, message `:223-227`) |
+| Epic rule | `Each epic must have at least 1 feature` | `types.py:268-274` (message `:272`) |
+| Other `FeatureSpecInput` list fields | `constraints`, `suggested_context_files`, `depends_on` are `list[str]` — a bare string fails validation | `types.py:174-176` |
+| `ProductRoadmap.constraints_and_dependencies` / `open_questions` | `list[str]` — a bare string fails validation | `types.py:314-315` |
+
+How serving reads the assistant content (what the gate mirrors): `<think>` blocks stripped
+(`orchestrator/think_block.py`), then `ProductOwnerOutputHandler._extract_json` (`handler.py:638-711`)
+— `json.loads` → first fence via `r"```(?:json)?\s*\n?(.*?)\n?\s*```"` (`handler.py:670`, non-greedy:
+a literal ``` inside a JSON string closes the fence early) → leading-object `raw_decode`; then
+`ProductRoadmap.model_validate` (`handler.parse`), `EpicPlan.model_validate` (Phase A,
+`orchestrator/session.py`) or `EnrichmentBatch.model_validate` (Phase B, same cascade since 2026-08-18).
