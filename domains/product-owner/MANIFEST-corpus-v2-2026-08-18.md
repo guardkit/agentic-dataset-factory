@@ -50,7 +50,7 @@ The one synthetic row that still failed (line 82, impact) is in `needs_review.js
 | `request_ref_bare` | 8 features | fallback bare token `request` after 2 failed attempts (model returned 2-word phrases; rule requires 3–20). Legal to prompt/Coach/gate, weakest |
 | `empty_epic_dropped` | 24 rows (evolve 10, impact 14) | zero-feature epics removed — read 4 (lines 4, 30, 116, 173): they are the brief's existing untouched epics; `feature_spec_inputs` already listed only populated features |
 | `add_empty_key` | 13 | synthetic lines 62, 76: missing `depends_on`/`suggested_context_files` (76 also `source_documents`) = `[]` |
-| `wrap_list` | 6 | synthetic line 64 `acceptance_criteria` str→[str] (4: 2 features × 2 places... see log); trace lines 52, 69 `constraints_and_dependencies` str→[str] |
+| `wrap_list` | 6 | synthetic line 64 `acceptance_criteria` str→[str] (4 = features F1, F2 in both epics[] and feature_spec_inputs[]); trace lines 52, 69 `constraints_and_dependencies` str→[str] |
 | `fsi_sync` | 1 | synthetic line 96: epic feature F-A1 absent from `feature_spec_inputs` — copied in (no invention) |
 | `fsi_extra_unfixed` | 1 | synthetic line 82: `feature_spec_inputs` carries F-SS1 with no parent epic — NOT repaired (would need an invented epic) → needs_review |
 | trace roadmap `coverage_score` | 0 | `ProductRoadmap.coverage_score` is `float | None = None` in types.py — optional, left as-is |
