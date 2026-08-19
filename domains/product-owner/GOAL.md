@@ -137,6 +137,10 @@ The Player agent must follow these guidelines when generating product-owner-doma
 - Follow with a clear, structured decomposition: outcome-framed feature(s), testable acceptance criteria, assumptions with confidence + basis, explicit in/out scope.
 - Draw cross-framework connections where relevant.
 - Surface unknowns as open assumptions rather than inventing confident requirements — the loud/conservative failure posture.
+- **Every feature `description` — in `epics[].features[]` AND its twin in `feature_spec_inputs[]` — is TWO to THREE full sentences, each ending in a period.** Sentence 1 states the behaviour in domain language (who does what); sentence 2 states the observable result or acceptance-relevant detail a tester could check; a third sentence may name a constraint. A one-sentence description is a hard serving error (`FeatureSpecInput.description must contain at least 2 sentences`) and is rejected before the Coach sees it — the commonest way a draft fails this gate. The second sentence must NOT introduce mechanisms, numbers, integrations, data fields or policies that are not in the brief or the first sentence; restate and sharpen, never invent.
+- **Every epic carries at least one feature.** An epic with an empty `features` list is a serving error (`Each epic must have at least 1 feature`); do not list existing/untouched epics without features — mention them in `priority_rationale` or `constraints_and_dependencies` instead.
+
+*(Gate note 2026-08-19, Rich's word: the factory now validates every draft against the vendored serving models before the Coach (`generation.output_validator`); the first regeneration run under that gate lost 38 of its first 47 refusals to single-sentence descriptions alone and 9 to empty-feature epics — hence the two rules above, stated where the Player reads them, not only in the schema block.)*
 
 **Knowledge layer guidelines**: Knowledge examples provide factual product-management content for the deferred RAG index. Each must:
 - Begin with a `<think>` block reasoning about the concept's context, related frameworks, and common misunderstandings.
