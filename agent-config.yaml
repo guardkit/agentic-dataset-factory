@@ -45,8 +45,8 @@ generation:
   max_turns: 3
   llm_retry_attempts: 3
   llm_retry_backoff: 2.0
-  llm_timeout: 300
-  target_timeout: 900
+  llm_timeout: 720                # 2026-08-19: was 300 — under llama-swap set-swaps (the factory's workhorse/coach-ft-v4 and this run's gpt-oss-120b/gemma4-coach evict each other per request) a Player call measured 3m07s incl. reload; 300s would fail it
+  target_timeout: 2700            # 2026-08-19: was 900 — a 3-Player-turn + Coach target under set-swap contention needs ~25-40 min; target 1 of the regen died at 900s after two serving-schema refusals
 
 chunking:
   chunk_size: 512
