@@ -28,6 +28,23 @@ case "$STUDENT" in gemma4|qwen38) ;; *) echo "ABORT: STUDENT must be gemma4 or q
 
 NAME="po-ft-${STUDENT}-$(date +%Y%m%d-%H%M)"
 OUT="$HOME/fine-tuning/output/po-${STUDENT}-v3"
+# 2026-08-20 (verifier finding): a reused output dir lets a STALE merged-16bit / gguf / receipt
+# from an aborted attempt be read as if this run produced it (--gate-only especially). Refuse by
+# name unless the operator says which they mean: RESUME=1 continues the same dir, FRESH=1 moves
+# the old one aside with a timestamp. Nothing is ever deleted.
+if [ -d "$OUT" ] && [ "${RESUME:-0}" != "1" ]; then
+  STALE=$(ls -1 "$OUT" 2>/dev/null | grep -E '^(merged-16bit|gguf|train-receipt.json|merged-gen-gate.json)$' | tr '\n' ' ')
+  if [ -n "$STALE" ]; then
+    if [ "${FRESH:-0}" = "1" ]; then
+      MOVED="$OUT.superseded-$(date -u +%Y%m%dT%H%M%SZ)"; mv "$OUT" "$MOVED"
+      echo "[pre-flight] prior artifacts moved aside -> $MOVED"
+    else
+      echo "ABORT: $OUT already holds artifacts from a previous attempt: $STALE"
+      echo "  RESUME=1 ... to continue that run's dir, or FRESH=1 ... to move it aside (nothing is deleted)."
+      exit 2
+    fi
+  fi
+fi
 mkdir -p "$OUT"
 LOG="$OUT/host.log"
 
@@ -47,7 +64,11 @@ if pgrep -a llama-server >/dev/null 2>&1; then
   echo "  Unload them yourself (curl -sS http://localhost:9000/unload) — this script will not
   touch the serving estate." | tee -a "$LOG"; exit 2
 fi
-if docker ps --format '{{.Names}}' | grep -Eq 'ft|train|coach|qav|architect|po-ft'; then
+# 2026-08-20: match TRAINING/EXPORT containers only. The estate's always-on seats
+# (specialist-agent-*-agent-1, forge-prod, office-manager-*) are not GPU trainers and must
+# not abort a window — the first draft's 'architect' substring matched
+# specialist-agent-architect-agent-1 and would have refused every run.
+if docker ps --format '{{.Names}}' | grep -Eq '(^|-)(po|coach|qav|architect|dcl)-(ft|train|reexport)|-ft-[0-9]|finetune|training'; then
   echo "ABORT: another training container is running:" | tee -a "$LOG"
   docker ps --format '  {{.Names}} {{.Status}}' | tee -a "$LOG"; exit 2
 fi

@@ -424,18 +424,26 @@ def gate_g2_render(texts, args, s):
     """[G2] markers present, other student's markers absent, no double <think>."""
     sample = texts[0]
     print(f"\n--- [G2] first rendered example (first 700 chars) ---\n{sample[:700]}\n--- end ---")
-    have_i = s["instruction_part"] in sample
-    have_r = s["response_part"] in sample
-    leaked = [t for t in s["leak_tokens"] if t in sample]
-    print(f"[G2] markers: instruction {s['instruction_part']!r}={have_i}  "
-          f"response {s['response_part']!r}={have_r}  foreign-token leak={leaked or 'none'}")
+    # 2026-08-20 (verifier finding): assert over EVERY rendered row, not just texts[0].
+    # One good first row proves nothing about row 200 — and a row whose markers are missing is a
+    # row train_on_responses_only silently trains whole (prompt included).
+    miss_i = [i for i, t in enumerate(texts) if s["instruction_part"] not in t]
+    miss_r = [i for i, t in enumerate(texts) if s["response_part"] not in t]
+    leak_rows = {tok: [i for i, t in enumerate(texts) if tok in t] for tok in s["leak_tokens"]}
+    leak_rows = {tok: idx for tok, idx in leak_rows.items() if idx}
+    have_i, have_r = not miss_i, not miss_r
+    leaked = sorted(leak_rows)
+    print(f"[G2] markers over all {len(texts)} rows: instruction {s['instruction_part']!r} "
+          f"missing in {len(miss_i)}  response {s['response_part']!r} missing in {len(miss_r)}  "
+          f"foreign-token leak={ {t: len(i) for t, i in leak_rows.items()} or 'none'}")
     if not (have_i and have_r):
-        sys.exit(f"\nABORT [G2]: expected turn markers missing — train_on_responses_only would "
-                 f"mask nothing (or everything) and train==serve would be false. Check the "
-                 f"pinned template file.\n")
+        sys.exit(f"\nABORT [G2]: expected turn markers missing in {len(miss_i)} instruction / "
+                 f"{len(miss_r)} response renders (first offenders: {miss_i[:5]} / {miss_r[:5]}) — "
+                 f"train_on_responses_only would mask nothing (or everything) on those rows and "
+                 f"train==serve would be false. Check the pinned template file.\n")
     if leaked:
-        sys.exit(f"\nABORT [G2]: foreign chat-template tokens {leaked} in the render — the wrong "
-                 f"template was applied.\n")
+        sys.exit(f"\nABORT [G2]: foreign chat-template tokens in the render "
+                 f"{ {t: i[:5] for t, i in leak_rows.items()} } — the wrong template was applied.\n")
     if args.student == "qwen38":
         dbl = [i for i, t in enumerate(texts) if DOUBLE_THINK in t]
         multi = sum(1 for t in texts if t.count("<think>") > 1)

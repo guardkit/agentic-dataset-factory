@@ -50,7 +50,11 @@ if pgrep -a llama-server >/dev/null 2>&1; then
   echo "  Unload them yourself (curl -sS http://localhost:9000/unload) — this script will not
   touch the serving estate." | tee -a "$LOG"; exit 2
 fi
-if docker ps --format '{{.Names}}' | grep -Eq 'ft|train|coach|qav|architect|po-ft'; then
+# 2026-08-20: match TRAINING/EXPORT containers only. The estate's always-on seats
+# (specialist-agent-*-agent-1, forge-prod, office-manager-*) are not GPU trainers and must
+# not abort a window — the first draft's 'architect' substring matched
+# specialist-agent-architect-agent-1 and would have refused every run.
+if docker ps --format '{{.Names}}' | grep -Eq '(^|-)(po|coach|qav|architect|dcl)-(ft|train|reexport)|-ft-[0-9]|finetune|training'; then
   echo "ABORT: another training container is running:" | tee -a "$LOG"
   docker ps --format '  {{.Names}} {{.Status}}' | tee -a "$LOG"; exit 2
 fi
