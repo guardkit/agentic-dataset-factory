@@ -33,7 +33,10 @@ OUT="$HOME/fine-tuning/output/po-${STUDENT}-v3"
 # name unless the operator says which they mean: RESUME=1 continues the same dir, FRESH=1 moves
 # the old one aside with a timestamp. Nothing is ever deleted.
 if [ -d "$OUT" ] && [ "${RESUME:-0}" != "1" ]; then
-  STALE=$(ls -1 "$OUT" 2>/dev/null | grep -E '^(merged-16bit|gguf|train-receipt.json|merged-gen-gate.json)$' | tr '\n' ' ')
+  # `|| true` is load-bearing: grep exits 1 when it matches NOTHING, and under `set -e` + pipefail a
+  # failing command substitution kills the script — i.e. the guard aborted every HEALTHY run (no stale
+  # artifacts) while passing the unhealthy one. Found 2026-08-21 after three silent exits.
+  STALE=$(ls -1 "$OUT" 2>/dev/null | grep -E '^(merged-16bit|gguf|train-receipt.json|merged-gen-gate.json)$' | tr '\n' ' ' || true)
   if [ -n "$STALE" ]; then
     if [ "${FRESH:-0}" = "1" ]; then
       MOVED="$OUT.superseded-$(date -u +%Y%m%dT%H%M%SZ)"; mv "$OUT" "$MOVED"
@@ -58,12 +61,16 @@ if [ "$AVAIL" -lt "$FREE_MIN" ]; then
     curl -sS http://localhost:9000/unload      # and stop the keepalive timer for the window
   Every past tune on this box ran with llama-swap fully unloaded." | tee -a "$LOG"; exit 2
 fi
-if pgrep -a llama-server >/dev/null 2>&1; then
-  echo "ABORT: llama-server processes are resident:" | tee -a "$LOG"
-  pgrep -a llama-server | tee -a "$LOG"
-  echo "  Unload them yourself (curl -sS http://localhost:9000/unload) — this script will not
-  touch the serving estate." | tee -a "$LOG"; exit 2
+# 2026-08-21: refuse only on LARGE seats. The estate's `embed` seat (Qwen3-Embedding-0.6B, ~9 GB)
+# loads on demand whenever fleet-memory/office/crows-nest issue /v1/embeddings and reloads the moment
+# it is unloaded — refusing on ANY llama-server made this script unrunnable. The memory floor above is
+# the real guard. (Same fix already applied to run_po_export.sh.)
+BIG=$(pgrep -a llama-server | grep -oE -- "--alias [a-z0-9._-]+" | awk '{print $2}' | grep -vE "^(embed|qwen3-embedding)$" || true)
+if [ -n "$BIG" ]; then
+  echo "ABORT: large seat(s) resident: $BIG — unload them yourself (curl -sS http://localhost:9000/unload);" | tee -a "$LOG"
+  echo "  this script will not touch the serving estate." | tee -a "$LOG"; exit 2
 fi
+pgrep -a llama-server >/dev/null 2>&1 && echo "[pre-flight] only the small embed seat is resident — proceeding" | tee -a "$LOG"
 # 2026-08-20: match TRAINING/EXPORT containers only. The estate's always-on seats
 # (specialist-agent-*-agent-1, forge-prod, office-manager-*) are not GPU trainers and must
 # not abort a window — the first draft's 'architect' substring matched
