@@ -248,13 +248,20 @@ def parse_args(argv=None):
                    help="Smoke setting: stop after training (no merge, no gate, no GGUF)")
     p.add_argument("--gate-rows", type=int, default=8,
                    help="Merged-gen gate: how many training rows to generate on")
-    p.add_argument("--gate-max-new", type=int, default=512)
+    p.add_argument("--gate-max-new", type=int, default=6144,
+                   help="2026-08-21: was 512, which covers 0 of 187 rows' full answer — the PO contract "
+                        "is <think> (median ~400 tok) THEN a multi-KB JSON roadmap (median ~2,045 tok, "
+                        "max ~5,306). At 512 the gate cut off inside the think block and scored the tune "
+                        "2/8 for a defect that was entirely the harness's. 6144 covers 187/187.")
     p.add_argument("--force-gguf", action="store_true",
                    help="Export GGUF even if the merged-gen gate FAILED or could not run "
                         "(house law says do not; this exists for a named exception)")
     p.add_argument("--gate-only", action="store_true",
                    help="Run ONLY the merged-gen gate against an existing merged-16bit dir")
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--in-process-merge", action="store_true",
+                   help="Merge + export INSIDE the training process (the QAV v1 mistake — 2026-08-21 "
+                        "it cost a Gemma run its export). Default: adapter only, then run_po_export.sh")
     p.add_argument("--dry-run", action="store_true",
                    help="Resolve defaults, run [G6] and the CPU-side checks, then STOP. "
                         "No model is loaded, no GPU is touched.")
@@ -789,7 +796,7 @@ def main(argv=None):
                 print(f"[G5] step {state.global_step}: allocated "
                       f"{torch.cuda.memory_allocated()/1e9:.1f} GB | peak "
                       f"{torch.cuda.max_memory_allocated()/1e9:.1f} GB | host MemAvailable "
-                      f"{avail} (the high-water CLIMBS ~6 GB/40 steps — judge at 40 and 80)")
+                      f"{avail} (high-water tracks the LONGEST ROW SEEN, not step count — measured 2026-08-21: this run read 61.0 GB at step 40 and 61.0 GB at step 80, identical. The inherited '~6 GB/40 steps' rule is FALSE; so is 'mask ratio drives peak' — coach v2 at 31.0%% masked and v4 at 99.6%% masked both peaked 61.2 GB at seq 4096. Judge by the longest row, and never load an eval set at long seq.)")
 
     trainer.add_callback(MemTrajectory())
 
@@ -825,8 +832,27 @@ def main(argv=None):
         print("\n--skip-export: stopping before merge/gate/GGUF (smoke setting).")
         return 0
 
-    print(f"Saving merged 16-bit -> {merged_dir}")
-    model.save_pretrained_merged(merged_dir, tokenizer, save_method="merged_16bit")
+    # 2026-08-21 DEFECT FIXED: the merge used to run HERE, in the training process, which repeats the
+    # QAV v1 lesson this estate already paid for (merge_qav_v2.py: "the v1 in-process merge OOMed at
+    # ~119 GB — merge in a process with nothing else resident"). Live cost: the Gemma v3 full run
+    # trained cleanly (141 steps, loss 0.6296) and was then watchdog-killed at 08:05:49 during the
+    # merge, because the trainer still held its GPU state while the merge climbed ~52 GB of HOST RAM.
+    # The merge + GGUF now belong to run_po_export.sh, which does them in a FRESH container (and uses
+    # llama.cpp's converter, which streams the safetensors instead of loading 52 GB into torch).
+    if not args.in_process_merge:
+        print(f"\n=== TRAINING COMPLETE — merge/export deliberately NOT run in this process ===")
+        print(f"    adapter: {lora_dir}")
+        print(f"    next:    STUDENT={args.student} bash ~/fine-tuning/scripts/run_po_export.sh")
+        print(f"    (--in-process-merge restores the old behaviour; it is the QAV v1 mistake, so do not)")
+        try:
+            json.dump(receipt, open(os.path.join(s["output_dir"], "train-receipt.json"), "w"), indent=2)
+            print(f"    receipt: {os.path.join(s['output_dir'], 'train-receipt.json')}")
+        except Exception as e:
+            print(f"    (receipt not written: {e})")
+        return 0
+    else:
+        print(f"Saving merged 16-bit -> {merged_dir}")
+        model.save_pretrained_merged(merged_dir, tokenizer, save_method="merged_16bit")
 
     # MERGED-GEN GATE — mandatory before any GGUF -----------------------------
     print(f"\n=== MERGED-GEN GATE ({args.gate_rows} rows, house law: no GGUF before it) ===")
